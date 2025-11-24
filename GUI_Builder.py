@@ -10,11 +10,25 @@ BUTTON_COLOR = "#505050"
 ENTRY_COLOR = "#606060"
 TEXT_COLOR = "#FFFFFF"
 
+class LabelWidget:
+    def __init__(self):
+        pass
+
 class GUIBuilder:
     def __init__(self, root):
         self.root = root
         self.root.config(bg=BACKGROUND_COLOR)
         self.root.title("Tkinter GUI Builder Setup")
+
+        #Store mouse position at the time of the left click
+        self.click_x = None
+        self.click_y = None
+
+        #Store selected widgets
+        self.selected_widgets = []
+
+        #Store all created widgets
+        self.created_widgets = []
 
         #Define icon
         self.icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
@@ -38,12 +52,14 @@ class GUIBuilder:
         self.label_window_width = tk.Label(root, text="Window Width:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
         self.label_window_width.grid(row=1, column=0, padx=5, sticky="E")
         self.entry_window_width = tk.Entry(root, width=15, bg=ENTRY_COLOR, fg=TEXT_COLOR)
+        self.entry_window_width.insert(0, 800)
         self.entry_window_width.grid(row=1, column=1, pady=3, sticky="EW")
 
         #GUI for window height
         self.label_window_height = tk.Label(root, text="Height:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
         self.label_window_height.grid(row=1, column=2, padx=5, sticky="E")
         self.entry_window_height = tk.Entry(root, width=15, bg=ENTRY_COLOR, fg=TEXT_COLOR)
+        self.entry_window_height.insert(0, 600)
         self.entry_window_height.grid(row=1, column=3, pady=3, sticky="EW")
 
         #GUI for background color
@@ -93,7 +109,7 @@ class GUIBuilder:
             "button": {"bg": BUTTON_COLOR, "fg": TEXT_COLOR}
         }
 
-        #Dictionary mapping element types to example widgets and their attributes
+        #Dictionary mapping element types to example widgets
         self.example_widgets = {
             "background": self.label_example_background,
             "label": self.label_example_label,
@@ -121,6 +137,7 @@ class GUIBuilder:
             return
 
         title = self.entry_window_title.get()
+        self.root.withdraw()
 
         gui_window = tk.Toplevel(self.root)
         gui_window.title(title)
@@ -136,6 +153,9 @@ class GUIBuilder:
         menu.add_command(label="Add Button", command=lambda: self.add_button(canvas))
 
         def show_menu(event):
+            #Store mouse position at the time of left click
+            self.click_x = event.x
+            self.click_y = event.y
             menu.post(event.x_root, event.y_root)
 
         canvas.bind("<Button-3>", show_menu)
@@ -144,17 +164,23 @@ class GUIBuilder:
         text = simpledialog.askstring("Label Text", "Enter label text:")
         if text:
             label = tk.Label(canvas, text=text, bg=self.colors["label"]["bg"], fg=self.colors["label"]["fg"])
-            canvas.create_window(100, 100, window=label)
+            self.created_widgets.append(label)
+            canvas.create_window(self.click_x, self.click_y, window=label, anchor="sw")
+            print(self.created_widgets)
 
     def add_entry(self, canvas):
         entry = tk.Entry(canvas, bg=self.colors["entry"]["bg"], fg=self.colors["entry"]["fg"])
-        canvas.create_window(200, 200, window=entry)
+        self.created_widgets.append(entry)
+        canvas.create_window(self.click_x, self.click_y, window=entry, anchor="sw")
+        print(self.created_widgets)
 
     def add_button(self, canvas):
         text = simpledialog.askstring("Button Text", "Enter button text:")
         if text:
             button = tk.Button(canvas, text=text, bg=self.colors["button"]["bg"], fg=self.colors["button"]["fg"])
-            canvas.create_window(150, 150, window=button)
+            self.created_widgets.append(button)
+            canvas.create_window(self.click_x, self.click_y, window=button, anchor="sw")
+            print(self.created_widgets)
 
 if __name__ == "__main__":
     root = tk.Tk()
