@@ -50,15 +50,18 @@ class SelectionManager:
     #internal helpers
     def _ensure_highlight(self, item_id: int):
         bbox = self.canvas.bbox(item_id)
+        rect_id = self._rects.get(item_id)
+
         if not bbox:
+            #item is outside view
             return
+
         x1, y1, x2, y2 = bbox
         x1 -= SELECTION_PADDING
         y1 -= SELECTION_PADDING
         x2 += SELECTION_PADDING
         y2 += SELECTION_PADDING
 
-        rect_id = self._rects.get(item_id)
         if rect_id and self.canvas.type(rect_id) == "rectangle":
             self.canvas.coords(rect_id, x1, y1, x2, y2)
         else:

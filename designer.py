@@ -31,21 +31,28 @@ class Designer:
         self._rectangle_selection_dragging: bool = False
         self._rectangle_selection_additive: bool = False
 
+        #drag state
+        self._drag_start_root: Optional[tuple[int, int]] = None
+        self._drag_last_root: Optional[tuple[int, int]] = None
+        self._dragging_widgets: bool = False
+        self._drag_threshold: int = 3
+
         self._wire_context_menu()
         self._wire_canvas_events()
 
-    #context menu
+    #create context menu
     def _wire_context_menu(self):
         self.menu = tk.Menu(self.top, tearoff=0)
         self.menu.add_command(label="Add Label", command=self.add_label)
         self.menu.add_command(label="Add Entry", command=self.add_entry)
         self.menu.add_command(label="Add Button", command=self.add_button)
 
+    #post context menu
     def _show_menu(self, event):
         self.click_x, self.click_y = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
 
-    #canvas events
+    #bind events to functions
     def _wire_canvas_events(self):
         #context menu
         self.canvas.bind("<Button-3>", self._show_menu)
@@ -66,6 +73,7 @@ class Designer:
         self.top.bind("<Shift-Up>", lambda e: self._move_selection(0, -NUDGE_BIG))
         self.top.bind("<Shift-Down>", lambda e: self._move_selection(0, NUDGE_BIG))
 
+    #create selection rectangle
     def _on_canvas_press(self, event):
         #record start coordinates and whether ctrl is held
         self._rectangle_selection_start = (event.x, event.y)
@@ -84,6 +92,7 @@ class Designer:
         #make sure outline is on top
         self.canvas.tag_raise(self._rectangle_selection_id)
 
+    #resize selection rectangle based on mouse movement
     def _on_canvas_drag(self, event):
         if not self._rectangle_selection_start:
             return
@@ -96,6 +105,7 @@ class Designer:
             self.canvas.coords(self._rectangle_selection_id, x0, y0, x1, y1)
             self.canvas.tag_raise(self._rectangle_selection_id)
 
+    #select all widgets that are fully enclosed in the selection rectangle
     def _on_canvas_release(self, event):
         try:
             if not self._rectangle_selection_start:
@@ -145,7 +155,7 @@ class Designer:
             self._rectangle_selection_dragging = False
             self._rectangle_selection_additive = False
 
-    #adders
+    #add new label
     def add_label(self):
         text = simpledialog.askstring("Label Text", "Enter label text:", parent=self.top)
         if text is None:
@@ -158,6 +168,7 @@ class Designer:
         )
         self._create_window_for_widget(widget, LabelWidgetData(text=text))
 
+    #add new entry
     def add_entry(self):
         widget = tk.Entry(
             self.canvas,
@@ -166,6 +177,7 @@ class Designer:
         )
         self._create_window_for_widget(widget, EntryWidgetData())
 
+    #add new button
     def add_button(self):
         text = simpledialog.askstring("Button Text", "Enter button text:", parent=self.top)
         if text is None:
@@ -178,7 +190,7 @@ class Designer:
         )
         self._create_window_for_widget(widget, ButtonWidgetData(text=text))
 
-    #plumbing
+    #create window for widget
     def _create_window_for_widget(self, widget: tk.Widget, model: BaseWidgetData):
         x = self.click_x if self.click_x is not None else 20
         y = self.click_y if self.click_y is not None else 40
@@ -191,25 +203,74 @@ class Designer:
         self.widget_map[window_id] = model
 
         #selection bindings for the widget itself
-        widget.bind("<Button-1>", lambda e, i=window_id: self._on_widget_left_click(e, i))
+        widget.bind("<ButtonPress-1>", lambda e, i=window_id: self._on_widget_press(e, i))
+        widget.bind("<B1-Motion>", lambda e, i=window_id: self._on_widget_drag(e, i))
+        widget.bind("<ButtonRelease-1>", lambda e, i=window_id: self._on_widget_release(e, i))
         widget.bind("<Control-Button-1>", lambda e, i=window_id: self._on_widget_ctrl_left_click(e, i))
         widget.bind("<Configure>", lambda e, i=window_id: self.selection and self.selection.refresh(i))
 
-    def _on_widget_left_click(self, event, item_id: int):
+    #select widget
+    def _on_widget_press(self, event, item_id: int):
         if self.selection:
-            self.selection.select_only(item_id)
-            self._sync_selected_widgets()
+            if bool(event.state & 0x0004):
+                self.selection.toggle(item_id)
+                self._sync_selected_widgets()
+            else:
+                if item_id not in self.selection.selected_ids():
+                    self.selection.select_only(item_id)
+                    self._sync_selected_widgets()
+
+        #record screen coordinates
+        self._drag_start_root = (event.x_root, event.y_root)
+        self._drag_last_root = (event.x_root, event.y_root)
+        self._dragging_widgets = False
         return "break"  #prevent canvas from clearing selection
 
+    #move widgets based on mouse movement
+    def _on_widget_drag(self, event, item_id):
+        if not self._drag_start_root:
+            return "break"
+
+        dx, dy = event.x_root - self._drag_last_root[0], event.y_root - self._drag_last_root[1]
+        dx, dy = self._group_clamped_delta(dx, dy)
+
+        if not self._dragging_widgets:
+            total_dx = event.x_root - self._drag_start_root[0]
+            total_dy = event.y_root - self._drag_start_root[1]
+            if abs(total_dx) + abs(total_dy) < self._drag_threshold:
+                return "break"
+            self._dragging_widgets = True
+
+        for item_id in self.selection.selected_ids():
+            self.canvas.move(item_id, dx, dy)
+            model = self.widget_map.get(item_id)
+            if model:
+                model.x += dx
+                model.y += dy
+            self.selection.refresh(item_id)
+
+        self._drag_last_root = (event.x_root, event.y_root)
+        return "break"
+
+    #reset drag state after dragging
+    def _on_widget_release(self, event, item_it: int):
+        self._drag_start_root = None
+        self._drag_last_root = None
+        self._dragging_widgets = False
+        return "break"
+
+    #add widget to selection
     def _on_widget_ctrl_left_click(self, event, item_id: int):
         if self.selection:
             self.selection.toggle(item_id)
             self._sync_selected_widgets()
         return "break"
 
+    #move selected widgets
     def _move_selection(self, dx, dy):
         if not self.selection:
             return
+        dx, dy = self._group_clamped_delta(dx, dy)
         for item_id in self.selection.selected_ids():
             #move widget in canvas
             self.canvas.move(item_id, dx, dy)
@@ -223,15 +284,35 @@ class Designer:
             #update highlight
             self.selection.refresh(item_id)
 
+    #compute clamped delta, so that widget cannot be moved outside the GUI window
+    def _group_clamped_delta(self, dx: int, dy: int) -> tuple[int, int]:
+        canvas_width, canvas_height = self.canvas.winfo_width(), self.canvas.winfo_height()
+        dx_clamped, dy_clamped = dx, dy
+
+        for item_id in self.selection.selected_ids():
+            bbox = self.canvas.bbox(item_id)
+            if not bbox:
+                continue
+            x0, y0, x1, y1 = bbox
+            min_dx = -x0
+            max_dx = canvas_width - x1
+            min_dy = -y0
+            max_dy = canvas_height - y1
+            dx_clamped = max(min_dx, min(max_dx, dx_clamped))
+            dy_clamped = max(min_dy, min(max_dy, dy_clamped))
+
+        return dx_clamped, dy_clamped
+
+    #update selected widgets in GUI window
     def _sync_selected_widgets(self):
         self.gui_window.selected_widgets = [
             self.widget_map[i] for i in self.selection.selected_ids() if i in self.widget_map
         ]
 
-    #helpers
+    #find clicked widget
     def _find_topmost_window_at(self, x: int, y: int) -> Optional[int]:
         items = self.canvas.find_overlapping(x, y, x, y)
-        for item in reversed(items):  # last is top-most
+        for item in reversed(items):  #last is top-most
             if self.canvas.type(item) == "window":
                 return item
         return None

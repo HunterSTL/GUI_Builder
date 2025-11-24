@@ -1,6 +1,6 @@
 """
 GUI_Builder
-    -theme.py       Contains standard colors and design for selections
+    -theme.py       Contains standard colors and design for selections along with global settings
     -models.py      Contains data classes for GUIWindow, Widgets and IdCounters
     -setup.py       Contains the SetupWizard
     -designer.py    Contains the interactive GUI designer
