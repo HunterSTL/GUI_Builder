@@ -4,6 +4,7 @@ from typing import Dict, Optional
 from CanvasManager import CanvasManager
 from SelectionManager import SelectionManager
 from ToolbarManager import ToolbarManager
+from WidgetManager import WidgetManager
 from DataModels import *
 from Theme import *
 from PIL import ImageTk
@@ -21,9 +22,6 @@ class Designer:
 
         #create instance of GUIWindow to store dimensions, title and color pallette
         self.gui_window = GUIWindow(title, width, height, self.colors["background"]["bg"])
-
-        #dictionary to map integer IDs to the instances of the widgets
-        self.widget_map: Dict[int, BaseWidgetData] = {}
 
         #last right-click position for insertion
         self.click_x: Optional[int] = None
@@ -44,8 +42,11 @@ class Designer:
 
         self.canvas = self.canvas_manager.create_canvas()
 
-        #create instance of SelectionManager to store selected widgets (as integer IDs)
+        #create instance of SelectionManager to store selected widgets
         self.selection_manager = SelectionManager(self.canvas)
+
+        #create instance of WidgetManager to store created widgets
+        self.widget_manager = WidgetManager(self.top, self.canvas, self.colors, self.selection_manager, self._sync_selected_widgets, self._group_clamped_delta)
 
         self.canvas_manager.bind_events(
             self._show_menu,
@@ -55,7 +56,7 @@ class Designer:
                 "release": lambda e: self.selection_manager.handle_canvas_release(e, self._sync_selected_widgets)
             },
             self._move_selection,
-            self._delete_selected_widgets
+            self.widget_manager.delete_selected_widgets
         )
 
         #create instance of ToolbarManager to store theme and function callbacks
@@ -68,9 +69,9 @@ class Designer:
                 "menu_color": MENU_COLOR
             },
             callbacks={
-                "snap_to_grid": self._snap_to_grid,
-                "align_left": self._snap_to_grid,   #currently place holder
-                "align_top": self._snap_to_grid,    #currently place holder
+                "snap_to_grid": lambda: self.widget_manager.snap_to_grid(self.grid_size),
+                "align_left": lambda: self.widget_manager.snap_to_grid(self.grid_size),   #currently place holder
+                "align_top": lambda: self.widget_manager.snap_to_grid(self.grid_size),    #currently place holder
                 "toggle_grid": self.canvas_manager.toggle_grid
             }
         )
@@ -118,89 +119,29 @@ class Designer:
     #create add widget menu
     def _add_widget_menu(self):
         self.menu = tk.Menu(self.top, bg=TOOLBAR_COLOR, fg=TEXT_COLOR, tearoff=0)
-        self.menu.add_command(label="Add Label", command=self.add_label)
-        self.menu.add_command(label="Add Entry", command=self.add_entry)
-        self.menu.add_command(label="Add Button", command=self.add_button)
+
+        def _pos():
+            x = self.click_x if self.click_x is not None else 20
+            y = self.click_y if self.click_y is not None else 20
+            return x, y
+
+        self.menu.add_command(
+            label="Add Label",
+            command=lambda: self.widget_manager.add_widget("label", *_pos())
+        )
+        self.menu.add_command(
+            label="Add Entry",
+            command=lambda: self.widget_manager.add_widget("entry", *_pos())
+        )
+        self.menu.add_command(
+            label="Add Button",
+            command=lambda: self.widget_manager.add_widget("button", *_pos())
+        )
 
     #post context menu
     def _show_menu(self, event):
         self.click_x, self.click_y = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
-
-    #add new label
-    def add_label(self):
-        text = simpledialog.askstring("Label Text", "Enter label text:", parent=self.top)
-        if text is None:
-            return
-        widget = tk.Label(
-            self.canvas,
-            text=text,
-            bg=self.colors["label"]["bg"],
-            fg=self.colors["label"]["fg"]
-        )
-        self._create_window_for_widget(widget, LabelWidgetData(text=text))
-        self.canvas.focus_set()
-
-    #add new entry
-    def add_entry(self):
-        widget = tk.Entry(
-            self.canvas,
-            bg=self.colors["entry"]["bg"],
-            fg=self.colors["entry"]["fg"]
-        )
-        self._create_window_for_widget(widget, EntryWidgetData())
-
-    #add new button
-    def add_button(self):
-        text = simpledialog.askstring("Button Text", "Enter button text:", parent=self.top)
-        if text is None:
-            return
-        widget = tk.Button(
-            self.canvas,
-            text=text,
-            bg=self.colors["button"]["bg"],
-            fg=self.colors["button"]["fg"]
-        )
-        self._create_window_for_widget(widget, ButtonWidgetData(text=text))
-        self.canvas.focus_set()
-
-    #create window for widget
-    def _create_window_for_widget(self, widget: tk.Widget, model: BaseWidgetData):
-        x = self.click_x if self.click_x is not None else 20
-        y = self.click_y if self.click_y is not None else 40
-
-        model.x, model.y = x, y
-        model.create_id()
-
-        #append model to GUIWindow.widgets
-        self.gui_window.add_widget(model)
-
-        #create window for model
-        window_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor)
-
-        #map window id to model
-        self.widget_map[window_id] = model
-
-        def _on_press(e, i=window_id):
-            #start drag
-            self.selection_manager.start_widget_drag(e)
-            #handle widget click (toggle or select_only based on CTRL key)
-            return self.selection_manager.handle_widget_click(e, i, self._sync_selected_widgets)
-
-        #start drag and handle selection of widget
-        widget.bind("<ButtonPress-1>", _on_press)
-
-        #add or remove widget from selection
-        widget.bind("<Control-Button-1>", lambda e, i=window_id: self.selection_manager.handle_widget_ctrl_click(e, i, self._sync_selected_widgets))
-
-        #move widgets based on mouse movement
-        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self._group_clamped_delta))
-
-        #reset drag state
-        widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
-
-        #keep outlines in sync when widget resizes
-        widget.bind("<Configure>", lambda e, i=window_id: self.selection_manager and self.selection_manager.refresh(i))
 
     #move selected widgets
     def _move_selection(self, dx, dy):
@@ -212,10 +153,10 @@ class Designer:
             self.canvas.move(item_id, dx, dy)
 
             #update model data
-            widget = self.widget_map.get(item_id)
-            if widget:
-                widget.x += dx
-                widget.y += dy
+            model = self.widget_manager.widget_map.get(item_id)
+            if model:
+                model.x += dx
+                model.y += dy
 
             #update highlight
             self.selection_manager.refresh(item_id)
@@ -242,35 +183,5 @@ class Designer:
     #update selected widgets in GUI window
     def _sync_selected_widgets(self):
         self.gui_window.selected_widgets = [
-            self.widget_map[i] for i in self.selection_manager.selected_ids() if i in self.widget_map
+            self.widget_manager.widget_map[i] for i in self.selection_manager.selected_ids() if i in self.widget_manager.widget_map
         ]
-
-    #snap selected widgets to grid
-    def _snap_to_grid(self):
-        if not self.selection_manager:
-            return
-        for item_id in self.selection_manager.selected_ids():
-            widget = self.widget_map.get(item_id)
-            new_x, new_y = round(widget.x / self.grid_size) * self.grid_size, round(widget.y / self.grid_size) * self.grid_size
-            dx, dy = new_x - widget.x, new_y - widget.y
-
-            #move widget in canvas
-            self.canvas.move(item_id, dx, dy)
-
-            #update model data
-            widget.x, widget.y = new_x, new_y
-
-            #update highlight
-            self.selection_manager.refresh(item_id)
-
-    def _delete_selected_widgets(self):
-        if not self.selection_manager:
-            return
-        if messagebox.askyesno("Delete", "Delete selected widgets?"):
-            for item_id in [i for i in self.selection_manager.selected_ids() if self.canvas.type(i) == "window"]:
-                #delete widget
-                self.canvas.delete(item_id)
-                #delete model
-                self.widget_map.pop(item_id, None)
-                #clear selection
-                self.selection_manager.clear()

@@ -140,26 +140,19 @@ class SelectionManager:
             self._rectangle_selection_additive = False
 
     #select widget
-    def handle_widget_click(self, event, item_id: int, sync_callback):
+    def handle_widget_click(self, event, item_id: int):
         if bool(event.state & 0x0004):
             self.toggle(item_id)
         else:
             if item_id not in self.selected_ids():
                 self.select_only(item_id)
 
-        if sync_callback:
-            sync_callback()
-
         self.refresh_all()
         return "break"  #prevent canvas from clearing selection
 
     #add widget to selection
-    def handle_widget_ctrl_click(self, event, item_id: int, sync_callback):
+    def handle_widget_ctrl_click(self, item_id: int):
         self.toggle(item_id)
-
-        if sync_callback:
-            sync_callback()
-
         self.refresh_all()
         return "break"
 

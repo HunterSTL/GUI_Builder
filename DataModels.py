@@ -44,8 +44,3 @@ class GUIWindow:
     width: int
     height: int
     bg_color: str
-    widgets: List[BaseWidgetData] = field(default_factory=list)
-    selected_widgets: List[BaseWidgetData] = field(default_factory=list)
-
-    def add_widget(self, widget: BaseWidgetData):
-        self.widgets.append(widget)
