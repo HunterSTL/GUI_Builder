@@ -205,6 +205,8 @@ class Designer:
                         for window_id in enclosed_windows:
                             self.selection.toggle(window_id)
         finally:
+            #refresh outlines
+            self.selection.refresh_all()
             #remove rectangle selection
             if self._rectangle_selection_id is not None:
                 self.canvas.delete(self._rectangle_selection_id)
@@ -276,6 +278,7 @@ class Designer:
                 if item_id not in self.selection.selected_ids():
                     self.selection.select_only(item_id)
                     self._sync_selected_widgets()
+            self.selection.refresh_all()
 
         #record screen coordinates
         self._drag_start_root = (event.x_root, event.y_root)
@@ -321,6 +324,7 @@ class Designer:
         if self.selection:
             self.selection.toggle(item_id)
             self._sync_selected_widgets()
+            self.selection.refresh_all()
         return "break"
 
     #move selected widgets

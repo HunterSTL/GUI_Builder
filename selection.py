@@ -1,5 +1,5 @@
 import tkinter as tk
-from theme import (SELECTION_COLOR, SELECTION_WIDTH, SELECTION_DASH, SELECTION_PADDING)
+from theme import *
 from typing import Dict, Optional, Set
 
 class SelectionManager:
@@ -47,7 +47,6 @@ class SelectionManager:
         for item_id in list(self._selected):
             self._ensure_highlight(item_id)
 
-    #internal helpers
     def _ensure_highlight(self, item_id: int):
         bbox = self.canvas.bbox(item_id)
         rect_id = self._rects.get(item_id)
@@ -62,12 +61,15 @@ class SelectionManager:
         x2 += SELECTION_PADDING
         y2 += SELECTION_PADDING
 
+        outline_color = LAST_SELECTED_COLOR if self._last_selected == item_id else SELECTION_COLOR
+
         if rect_id and self.canvas.type(rect_id) == "rectangle":
             self.canvas.coords(rect_id, x1, y1, x2, y2)
+            self.canvas.itemconfig(rect_id, outline=outline_color)
         else:
             rect_id = self.canvas.create_rectangle(
                 x1, y1, x2, y2,
-                outline=SELECTION_COLOR,
+                outline=outline_color,
                 width=SELECTION_WIDTH,
                 dash=SELECTION_DASH,
                 fill=""
