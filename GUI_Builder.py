@@ -80,6 +80,9 @@ class GUIBuilder:
         self.gui_window = None
         self.canvas = None
 
+        #Mapping between window id and widget data objects
+        self.widget_map = {}
+
         #Store mouse position at the time of the left click
         self.click_x = None
         self.click_y = None
@@ -183,6 +186,15 @@ class GUIBuilder:
             widget.config({attribute: color})
 
     def create_gui_window(self):
+        def show_menu(event):
+            #Store mouse position at the time of left click
+            self.click_x = event.x
+            self.click_y = event.y
+            menu.post(event.x_root, event.y_root)
+
+        def on_click(event):
+            pass
+
         width = self.entry_window_width.get()
         height = self.entry_window_height.get()
 
@@ -210,47 +222,51 @@ class GUIBuilder:
         menu.add_command(label="Add Entry", command=lambda: self.add_entry(canvas))
         menu.add_command(label="Add Button", command=lambda: self.add_button(canvas))
 
-        def show_menu(event):
-            #Store mouse position at the time of left click
-            self.click_x = event.x
-            self.click_y = event.y
-            menu.post(event.x_root, event.y_root)
-
         canvas.bind("<Button-3>", show_menu)
+        canvas.bind("<Button-1>", on_click)
 
     def add_label(self, canvas):
         text = simpledialog.askstring("Label Text", "Enter label text:")
         if text:
             #Render the widget in the GUI builder
             label = tk.Label(canvas, text=text, bg=self.colors["label"]["bg"], fg=self.colors["label"]["fg"])
-            canvas.create_window(self.click_x, self.click_y, window=label, anchor="sw")
+            window_id = canvas.create_window(self.click_x, self.click_y, window=label, anchor="sw")
 
             #Store widget data for code generation
             label_data = LabelWidget(self.click_x, self.click_y, text, self.colors["label"]["bg"], self.colors["label"]["fg"], "sw")
             label_data.create_id()
             self.gui_window.add_widget(label_data)
 
+            #Create mapping between window id and widget data object
+            self.widget_map[window_id] = label_data
+
     def add_entry(self, canvas):
         #Render the widget in the GUI builder
         entry = tk.Entry(canvas, bg=self.colors["entry"]["bg"], fg=self.colors["entry"]["fg"])
-        canvas.create_window(self.click_x, self.click_y, window=entry, anchor="sw")
+        window_id = canvas.create_window(self.click_x, self.click_y, window=entry, anchor="sw")
 
         #Store widget data for code generation
         entry_data = EntryWidget(self.click_x, self.click_y, self.colors["entry"]["bg"], self.colors["entry"]["fg"], "sw")
         entry_data.create_id()
         self.gui_window.add_widget(entry_data)
 
+        #Create mapping between window id and widget data object
+        self.widget_map[window_id] = entry_data
+
     def add_button(self, canvas):
         text = simpledialog.askstring("Button Text", "Enter button text:")
         if text:
             #Render the widget in the GUI builder
             button = tk.Button(canvas, text=text, bg=self.colors["button"]["bg"], fg=self.colors["button"]["fg"])
-            canvas.create_window(self.click_x, self.click_y, window=button, anchor="sw")
+            window_id = canvas.create_window(self.click_x, self.click_y, window=button, anchor="sw")
 
             #Store widget data for code generation
             button_data = ButtonWidget(self.click_x, self.click_y, text, self.colors["button"]["bg"], self.colors["button"]["fg"], "sw")
             button_data.create_id()
             self.gui_window.add_widget(button_data)
+
+            #Create mapping between window id and widget data object
+            self.widget_map[window_id] = button_data
 
 if __name__ == "__main__":
     root = tk.Tk()
