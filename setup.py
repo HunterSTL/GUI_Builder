@@ -1,9 +1,19 @@
-import sys
 import os
 import tkinter as tk
-from tkinter import colorchooser, messagebox
+from tkinter import colorchooser, messagebox, filedialog
 from theme import (TITLE_BAR_COLOR, TITLE_BAR_TEXT_COLOR, BACKGROUND_COLOR, BUTTON_COLOR, ENTRY_COLOR, TEXT_COLOR, TOOLBAR_COLOR)
 from designer import Designer
+from PIL import Image, ImageTk
+
+def load_icon(path, size):
+    try:
+        if path and os.path.exists(path):
+            icon = Image.open(path).convert("RGBA")
+            icon = icon.resize(size, Image.Resampling.LANCZOS)
+            return ImageTk.PhotoImage(icon)
+    except Exception as e:
+        messagebox.showerror("File error", f"File not supported: {e}")
+        return None
 
 class SetupWizard:
     def __init__(self, root: tk.Tk):
@@ -36,12 +46,9 @@ class SetupWizard:
 
         #add icon
         icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
-        if os.path.exists(icon_path):
-            from PIL import Image, ImageTk
-            icon = Image.open(icon_path).convert("RGBA")    #convert to RGBA so alpha chanel is not lost
-            icon = icon.resize((20, 20), Image.Resampling.LANCZOS)
-            self.tk_icon = ImageTk.PhotoImage(icon)
-            icon_label = tk.Label(title_bar, image=self.tk_icon, bg=TITLE_BAR_COLOR)
+        self.icon_setup = load_icon(icon_path, (20, 20))
+        if self.icon_setup:
+            icon_label = tk.Label(title_bar, image=self.icon_setup, bg=TITLE_BAR_COLOR)
             icon_label.pack(side="left", padx=2, pady=2)
             icon_label.bind("<Button-1>", start_move)
             icon_label.bind("<B1-Motion>", do_move)
@@ -134,12 +141,24 @@ class SetupWizard:
         }
 
         #icon
+        label_icon = tk.Label(self.root, text="Icon:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
+        label_icon.grid(row=7, column=0, sticky="E")
 
+        icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
+        self.icon = load_icon(icon_path, (20, 20))
+        if self.icon:
+            self.label_icon_preview = tk.Label(self.root, image=self.icon, bg=BACKGROUND_COLOR)
+            self.label_icon_preview.grid(row=7, column=1, sticky="W")
+        else:
+            self.label_icon_preview = tk.Label(self.root, bg=BACKGROUND_COLOR)
+            self.label_icon_preview.grid(row=7, column=1, sticky="W")
+
+        button_select_icon = tk.Button(self.root, text="Select", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=lambda: self.select_icon())
+        button_select_icon.grid(row=7, column=3, padx=5, pady=2, sticky="EW")
 
         #create button
-        tk.Button(self.root, text="Create GUI Window", bg=BUTTON_COLOR, fg=TEXT_COLOR,
-                  command=self.launch_designer)\
-          .grid(row=8, column=0, padx=5, pady=10, sticky="W")
+        button_create_gui_window = tk.Button(self.root, text="Create GUI Window", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=self.launch_designer)
+        button_create_gui_window.grid(row=8, column=0, padx=5, pady=10, sticky="W")
 
     #actions
     def choose_color(self, element_type: str, attribute: str):
@@ -147,6 +166,14 @@ class SetupWizard:
         if color:
             self.colors[element_type][attribute] = color
             self.example_widgets[element_type].config({attribute: color})
+
+    def select_icon(self):
+        file_path = filedialog.askopenfilename()
+        if file_path:
+            icon = load_icon(file_path, (20, 20))
+            if icon is not None:
+                self.icon = icon
+                self.label_icon_preview.config(image=self.icon)
 
     def launch_designer(self):
         width_str = self.entry_window_width.get()
@@ -162,4 +189,4 @@ class SetupWizard:
 
         #hide setup window and launch Designer
         self.root.withdraw()
-        Designer(self.root, title, width, height, self.colors)
+        Designer(self.root, title, width, height, self.colors, self.icon)

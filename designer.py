@@ -4,12 +4,13 @@ from typing import Dict, Optional
 from selection import SelectionManager
 from models import (GUIWindow, BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData)
 from theme import TITLE_BAR_COLOR, TITLE_BAR_TEXT_COLOR, SELECTION_COLOR, SELECTION_WIDTH, SELECTION_DASH, NUDGE_SMALL, NUDGE_BIG
-import os
+from PIL import ImageTk
 
 class Designer:
-    def __init__(self, parent: tk.Tk, title: str, width: int, height: int, colors: dict):
+    def __init__(self, parent: tk.Tk, title: str, width: int, height: int, colors: dict, icon: ImageTk.PhotoImage):
         self.parent = parent
         self.colors = colors
+        self.icon = icon
 
         #create window
         self.top = tk.Toplevel(parent)
@@ -67,16 +68,10 @@ class Designer:
         title_bar.bind("<B1-Motion>", do_move)
 
         #add icon
-        icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
-        if os.path.exists(icon_path):
-            from PIL import Image, ImageTk
-            icon = Image.open(icon_path).convert("RGBA")    #convert to RGBA so alpha chanel is not lost
-            icon = icon.resize((20, 20), Image.Resampling.LANCZOS)
-            self.tk_icon = ImageTk.PhotoImage(icon)
-            icon_label = tk.Label(title_bar, image=self.tk_icon, bg=TITLE_BAR_COLOR)
-            icon_label.pack(side="left", padx=2, pady=2)
-            icon_label.bind("<Button-1>", start_move)
-            icon_label.bind("<B1-Motion>", do_move)
+        icon_label = tk.Label(title_bar, image=self.icon, bg=TITLE_BAR_COLOR)
+        icon_label.pack(side="left", padx=2, pady=2)
+        icon_label.bind("<Button-1>", start_move)
+        icon_label.bind("<B1-Motion>", do_move)
 
         #add title
         title_label = tk.Label(title_bar, text=self.gui_window.title, bg=TITLE_BAR_COLOR, fg=TITLE_BAR_TEXT_COLOR)
