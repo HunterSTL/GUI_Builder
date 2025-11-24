@@ -79,6 +79,8 @@ class GUIBuilder:
         self.root.title("Tkinter GUI Builder Setup")
         self.gui_window = None
         self.canvas = None
+        self.selected_items = set()
+        self.selection_rects = {}
 
         #Mapping between window id and widget data objects
         self.widget_map = {}
@@ -109,14 +111,14 @@ class GUIBuilder:
         self.label_window_width = tk.Label(root, text="Window Width:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
         self.label_window_width.grid(row=1, column=0, padx=5, sticky="E")
         self.entry_window_width = tk.Entry(root, width=15, bg=ENTRY_COLOR, fg=TEXT_COLOR)
-        self.entry_window_width.insert(0, 800)
+        self.entry_window_width.insert(0, "800")
         self.entry_window_width.grid(row=1, column=1, pady=3, sticky="EW")
 
         #GUI for window height
         self.label_window_height = tk.Label(root, text="Height:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
         self.label_window_height.grid(row=1, column=2, padx=5, sticky="E")
         self.entry_window_height = tk.Entry(root, width=15, bg=ENTRY_COLOR, fg=TEXT_COLOR)
-        self.entry_window_height.insert(0, 600)
+        self.entry_window_height.insert(0, "600")
         self.entry_window_height.grid(row=1, column=3, pady=3, sticky="EW")
 
         #GUI for background color
@@ -192,9 +194,6 @@ class GUIBuilder:
             self.click_y = event.y
             menu.post(event.x_root, event.y_root)
 
-        def on_click(event):
-            pass
-
         width = self.entry_window_width.get()
         height = self.entry_window_height.get()
 
@@ -222,8 +221,129 @@ class GUIBuilder:
         menu.add_command(label="Add Entry", command=lambda: self.add_entry(canvas))
         menu.add_command(label="Add Button", command=lambda: self.add_button(canvas))
 
+        #Bind canvas events
         canvas.bind("<Button-3>", show_menu)
-        canvas.bind("<Button-1>", on_click)
+        canvas.bind("<Button-1>", self.on_canvas_left_click)
+        canvas.bind("<Control-Button-1>", self.on_canvas_ctrl_left_click)
+
+    def on_widget_click(self, event, item_id):
+        widget_data = self.widget_map.get(item_id)
+        if not widget_data:
+            return
+
+        #Multi selection if CTRL is pressed
+        if event.state & 0x0004:
+            if widget_data in self.gui_window.selected_widgets:
+                self.gui_window.selected_widgets.remove(widget_data)
+                self.canvas.itemconfig(item_id, outline="", width=0)
+            else:
+                self.gui_window.selected_widgets.append(widget_data)
+                self.canvas.itemconfig(item_id, outline="yellow", width=2)
+        #Single selection
+        else:
+            for selected in self.gui_window.selected_widgets:
+                for window_id, widget_data in self.widget_map.items():
+                    if widget_data == selected:
+                        self.canvas.itemconfig(window_id, outline="", width=0)
+            self.gui_window.selected_widgets = [widget_data]
+            self.canvas.itemconfig(item_id, outline="yellow", width=2)
+
+    def clear_selection(self):
+        if not self.canvas:
+            return
+        for item_id in list(self.selected_items):
+            self.unhighlight_item(item_id)
+        self.selected_items.clear()
+        if self.gui_window:
+            self.gui_window.selected_widgets = []
+
+    def select_only(self, item_id):
+        if item_id is None:
+            self.clear_selection()
+            return
+        for other in list(self.selected_items):
+            if other != item_id:
+                self.unhighlight_item(other)
+        self.selected_items = {item_id}
+        self.highlight_item(item_id)
+        if self.gui_window:
+            w = self.widget_map.get(item_id)
+            self.gui_window.selected_widgets = [w] if w else []
+
+    def toggle_selection(self, item_id):
+        if item_id is None:
+            return
+        if item_id in self.selected_items:
+            #Deselect
+            self.unhighlight_item(item_id)
+            self.selected_items.remove(item_id)
+        else:
+            #Select
+            self.highlight_item(item_id)
+            self.selected_items.add(item_id)
+        if self.gui_window:
+            self.gui_window.selected_widgets = [
+                self.widget_map[i] for i in self.selected_items if i in self.widget_map
+            ]
+
+    def highlight_item(self, item_id):
+        if not self.canvas:
+            return
+        bbox = self.canvas.bbox(item_id)
+        if not bbox:
+            return
+        x1, y1, x2, y2 = bbox
+        pad = 3
+        x1 -= pad; y1 -= pad; x2 += pad; y2 += pad
+        rect_id = self.selection_rects.get(item_id)
+        if rect_id and self.canvas.type(rect_id) == "rectangle":
+            self.canvas.coords(rect_id, x1, y1, x2, y2)
+        else:
+            rect_id = self.canvas.create_rectangle(
+                x1, y1, x2, y2, outline="#33A1FD", width=2, dash=(3,2), fill=""
+            )
+            self.selection_rects[item_id] = rect_id
+        self.canvas.tag_raise(rect_id)
+
+    def unhighlight_item(self, item_id):
+        if not self.canvas:
+            return
+        rect_id = self.selection_rects.pop(item_id, None)
+        if rect_id and self.canvas.type(rect_id) == "rectangle":
+            self.canvas.delete(rect_id)
+
+    def find_topmost_window_at(self, x, y):
+        if not self.canvas:
+            return
+        items = self.canvas.find_overlapping(x, y, x, y)
+        for item in reversed(items):
+            if self.canvas.type(item) == "window":
+                return item
+        return None
+
+    def on_canvas_left_click(self, event):
+        item_id = self.find_topmost_window_at(event.x, event.y)
+        if item_id is None:
+            self.clear_selection()
+
+    def on_canvas_ctrl_left_click(self, event):
+        item_id = self.find_topmost_window_at(event.x, event.y)
+        if item_id is None:
+            return
+
+    def on_widget_left_click(self, event, item_id):
+        self.select_only(item_id)
+        return "break"
+
+    def on_widget_ctrl_click(self, event, item_id):
+        self.toggle_selection(item_id)
+        return "break"
+
+    def bind_widget_for_selection(self, widget, item_id):
+        #Left click
+        widget.bind("<Button-1>", lambda e, i=item_id: self.on_widget_left_click(e, i))
+        #CTRL + left click
+        widget.bind("<Control-Button-1>", lambda e, i=item_id: self.on_widget_ctrl_click(e, i))
 
     def add_label(self, canvas):
         text = simpledialog.askstring("Label Text", "Enter label text:")
@@ -231,6 +351,7 @@ class GUIBuilder:
             #Render the widget in the GUI builder
             label = tk.Label(canvas, text=text, bg=self.colors["label"]["bg"], fg=self.colors["label"]["fg"])
             window_id = canvas.create_window(self.click_x, self.click_y, window=label, anchor="sw")
+            label.bind("<Button-1>", lambda e, item_id=window_id: self.on_widget_click(e, item_id))
 
             #Store widget data for code generation
             label_data = LabelWidget(self.click_x, self.click_y, text, self.colors["label"]["bg"], self.colors["label"]["fg"], "sw")
@@ -239,6 +360,8 @@ class GUIBuilder:
 
             #Create mapping between window id and widget data object
             self.widget_map[window_id] = label_data
+
+            self.bind_widget_for_selection(label, window_id)
 
     def add_entry(self, canvas):
         #Render the widget in the GUI builder
@@ -252,6 +375,8 @@ class GUIBuilder:
 
         #Create mapping between window id and widget data object
         self.widget_map[window_id] = entry_data
+
+        self.bind_widget_for_selection(entry, window_id)
 
     def add_button(self, canvas):
         text = simpledialog.askstring("Button Text", "Enter button text:")
@@ -267,6 +392,8 @@ class GUIBuilder:
 
             #Create mapping between window id and widget data object
             self.widget_map[window_id] = button_data
+
+            self.bind_widget_for_selection(button, window_id)
 
 if __name__ == "__main__":
     root = tk.Tk()
