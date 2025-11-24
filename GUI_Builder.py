@@ -10,11 +10,7 @@ BUTTON_COLOR = "#505050"
 ENTRY_COLOR = "#606060"
 TEXT_COLOR = "#FFFFFF"
 
-#Counters for widget ids
-COUNTER_LABEL_WIDGET = 1
-COUNTER_ENTRY_WIDGET = 1
-COUNTER_BUTTON_WIDGET = 1
-
+#Stores the attribute of the GUI window and the widgets
 class GUIWindow:
     def __init__(self, title, width, height, bg_color):
         self.title = title
@@ -22,11 +18,15 @@ class GUIWindow:
         self.height = height
         self.bg_color = bg_color
         self.widgets = []
+        self.selected_widgets = []
 
     def add_widget(self, widget):
         self.widgets.append(widget)
 
+#Stores the attributes for the label widgets
 class LabelWidget:
+    id_counter = 1
+
     def __init__(self, x, y, text, bg, fg, anchor):
         self.id = None
         self.x = x
@@ -37,11 +37,13 @@ class LabelWidget:
         self.anchor = anchor
 
     def create_id(self):
-        global COUNTER_LABEL_WIDGET
-        self.id = "label" + str(COUNTER_LABEL_WIDGET)
-        COUNTER_LABEL_WIDGET += 1
+        self.id = "label" + str(LabelWidget.id_counter)
+        LabelWidget.id_counter += 1
 
+#Stores the attributes for the entry widgets
 class EntryWidget:
+    id_counter = 1
+
     def __init__(self, x, y, bg, fg, anchor):
         self.id = None
         self.x = x
@@ -51,12 +53,14 @@ class EntryWidget:
         self.anchor = anchor
 
     def create_id(self):
-        global COUNTER_ENTRY_WIDGET
-        self.id = "entry" + str(COUNTER_ENTRY_WIDGET)
-        COUNTER_ENTRY_WIDGET += 1
+        self.id = "entry" + str(EntryWidget.id_counter)
+        EntryWidget.id_counter += 1
 
+#Stores the attributes for the button widgets
 class ButtonWidget:
-    def __init__(self, x, y, bg, fg, anchor):
+    id_counter = 1
+
+    def __init__(self, x, y, text, bg, fg, anchor):
         self.id = None
         self.x = x
         self.y = y
@@ -65,9 +69,8 @@ class ButtonWidget:
         self.anchor = anchor
 
     def create_id(self):
-        global COUNTER_BUTTON_WIDGET
-        self.id = "button" + str(COUNTER_BUTTON_WIDGET)
-        COUNTER_BUTTON_WIDGET += 1
+        self.id = "button" + str(ButtonWidget.id_counter)
+        ButtonWidget.id_counter += 1
 
 class GUIBuilder:
     def __init__(self, root):
@@ -245,7 +248,7 @@ class GUIBuilder:
             canvas.create_window(self.click_x, self.click_y, window=button, anchor="sw")
 
             #Store widget data for code generation
-            button_data = ButtonWidget(self.click_x, self.click_y, self.colors["button"]["bg"], self.colors["button"]["fg"], "sw")
+            button_data = ButtonWidget(self.click_x, self.click_y, text, self.colors["button"]["bg"], self.colors["button"]["fg"], "sw")
             button_data.create_id()
             self.gui_window.add_widget(button_data)
 
