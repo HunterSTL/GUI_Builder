@@ -168,7 +168,7 @@ class SetupWizard:
             self.example_widgets[element_type].config({attribute: color})
 
     def select_icon(self):
-        file_path = filedialog.askopenfilename()
+        file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg *.ico")])
         if file_path:
             icon = load_icon(file_path, (20, 20))
             if icon is not None:

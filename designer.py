@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox
 from typing import Dict, Optional
 from selection import SelectionManager
 from models import (GUIWindow, BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData)
@@ -11,6 +11,7 @@ class Designer:
         self.parent = parent
         self.colors = colors
         self.icon = icon
+        self.grid_size = GRID_SIZE
 
         #create window
         self.top = tk.Toplevel(parent)
@@ -130,6 +131,9 @@ class Designer:
         self.top.bind("<Shift-Up>", lambda e: self._move_selection(0, -NUDGE_BIG))
         self.top.bind("<Shift-Down>", lambda e: self._move_selection(0, NUDGE_BIG))
 
+        #delete selected widgets
+        self.canvas.bind("<Delete>", lambda e: self._delete_selected_widgets())
+
     #create selection rectangle
     def _on_canvas_press(self, event):
         #record start coordinates and whether ctrl is held
@@ -226,6 +230,7 @@ class Designer:
             fg=self.colors["label"]["fg"]
         )
         self._create_window_for_widget(widget, LabelWidgetData(text=text))
+        self.canvas.focus_set()
 
     #add new entry
     def add_entry(self):
@@ -248,6 +253,7 @@ class Designer:
             fg=self.colors["button"]["fg"]
         )
         self._create_window_for_widget(widget, ButtonWidgetData(text=text))
+        self.canvas.focus_set()
 
     #create window for widget
     def _create_window_for_widget(self, widget: tk.Widget, model: BaseWidgetData):
@@ -384,7 +390,7 @@ class Designer:
             return
         for item_id in self.selection.selected_ids():
             widget = self.widget_map.get(item_id)
-            new_x, new_y = round(widget.x / GRID_SIZE) * GRID_SIZE, round(widget.y / GRID_SIZE) * GRID_SIZE
+            new_x, new_y = round(widget.x / self.grid_size) * self.grid_size, round(widget.y / self.grid_size) * self.grid_size
             dx, dy = new_x - widget.x, new_y - widget.y
 
             #move widget in canvas
@@ -395,3 +401,15 @@ class Designer:
 
             #update highlight
             self.selection.refresh(item_id)
+
+    def _delete_selected_widgets(self):
+        if not self.selection:
+            return
+        if messagebox.askyesno("Delete", "Delete selected widgets?"):
+            for item_id in [i for i in self.selection.selected_ids() if self.canvas.type(i) == "window"]:
+                #delete widget
+                self.canvas.delete(item_id)
+                #delete model
+                self.widget_map.pop(item_id, None)
+                #clear selection
+                self.selection.clear()
