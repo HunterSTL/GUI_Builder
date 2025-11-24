@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 from typing import Dict, Optional
+from CanvasManager import CanvasManager
 from SelectionManager import SelectionManager
 from ToolbarManager import ToolbarManager
 from DataModels import *
@@ -12,10 +13,7 @@ class Designer:
         self.parent = parent
         self.colors = colors
         self.icon = icon
-        self.width = width
-        self.height = height
         self.grid_size = GRID_SIZE
-        self.show_grid = False
 
         #create window
         self.top = tk.Toplevel(parent)
@@ -31,20 +29,34 @@ class Designer:
         self.click_x: Optional[int] = None
         self.click_y: Optional[int] = None
 
-        #rectangle selection
-        self._rectangle_selection_id:  Optional[int] = None
-        self._rectangle_selection_start: Optional[tuple[int, int]] = None
-        self._rectangle_selection_dragging: bool = False
-        self._rectangle_selection_additive: bool = False
-
-        #drag state
-        self._drag_start_root: Optional[tuple[int, int]] = None
-        self._drag_last_root: Optional[tuple[int, int]] = None
-        self._dragging_widgets: bool = False
-        self._drag_threshold: int = 3
-
         #create title bar
         self._create_title_bar()
+
+        #create instance of CanvasManager
+        self.canvas_manager = CanvasManager(
+            parent=self.top,
+            width=width,
+            height=height,
+            bg_color=self.colors["background"]["bg"],
+            grid_size=GRID_SIZE,
+            grid_color=GRID_COLOR
+        )
+
+        self.canvas = self.canvas_manager.create_canvas()
+
+        #create instance of SelectionManager to store selected widgets (as integer IDs)
+        self.selection_manager = SelectionManager(self.canvas)
+
+        self.canvas_manager.bind_events(
+            self._show_menu,
+            {
+                "press": self.selection_manager.handle_canvas_press,
+                "drag": self.selection_manager.handle_canvas_drag,
+                "release": lambda e: self.selection_manager.handle_canvas_release(e, self._sync_selected_widgets)
+            },
+            self._move_selection,
+            self._delete_selected_widgets
+        )
 
         #create instance of ToolbarManager to store theme and function callbacks
         self.toolbar_manger = ToolbarManager(
@@ -59,17 +71,13 @@ class Designer:
                 "snap_to_grid": self._snap_to_grid,
                 "align_left": self._snap_to_grid,   #currently place holder
                 "align_top": self._snap_to_grid,    #currently place holder
-                "toggle_grid": self._toggle_grid
+                "toggle_grid": self.canvas_manager.toggle_grid
             }
         )
 
         self.toolbar_manger.create_toolbar()
-        self._create_canvas()
-        self._add_widget_menu()
-        self._wire_canvas_events()
 
-        #create instance of SelectionManager to store selected widgets (as integer IDs)
-        self.selection_manager = SelectionManager(self.canvas)
+        self._add_widget_menu()
 
     #create title bar
     def _create_title_bar(self):
@@ -107,11 +115,6 @@ class Designer:
         close_button = tk.Button(title_bar, text=" X ", bg=TITLE_BAR_COLOR, fg=TITLE_BAR_TEXT_COLOR, relief="flat", command=lambda: self.top.destroy())
         close_button.pack(side="right")
 
-    def _create_canvas(self):
-        #create canvas
-        self.canvas = tk.Canvas(self.top, bg=self.colors["background"]["bg"], highlightthickness=0)
-        self.canvas.pack(fill="both", expand=True)
-
     #create add widget menu
     def _add_widget_menu(self):
         self.menu = tk.Menu(self.top, bg=TOOLBAR_COLOR, fg=TEXT_COLOR, tearoff=0)
@@ -123,114 +126,6 @@ class Designer:
     def _show_menu(self, event):
         self.click_x, self.click_y = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
-
-    #bind events to functions
-    def _wire_canvas_events(self):
-        #context menu
-        self.canvas.bind("<Button-3>", self._show_menu)
-
-        #rectangle selection
-        self.canvas.bind("<ButtonPress-1>", self._on_canvas_press)
-        self.canvas.bind("<B1-Motion>", self._on_canvas_drag)
-        self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
-
-        #binds to move selected widgets
-        self.canvas.focus_set()
-        self.top.bind("<Left>", lambda e: self._move_selection(-NUDGE_SMALL, 0))
-        self.top.bind("<Right>", lambda e: self._move_selection(NUDGE_SMALL, 0))
-        self.top.bind("<Up>", lambda e: self._move_selection(0, -NUDGE_SMALL))
-        self.top.bind("<Down>", lambda e: self._move_selection(0, NUDGE_SMALL))
-        self.top.bind("<Shift-Left>", lambda e: self._move_selection(-NUDGE_BIG, 0))
-        self.top.bind("<Shift-Right>", lambda e: self._move_selection(NUDGE_BIG, 0))
-        self.top.bind("<Shift-Up>", lambda e: self._move_selection(0, -NUDGE_BIG))
-        self.top.bind("<Shift-Down>", lambda e: self._move_selection(0, NUDGE_BIG))
-
-        #delete selected widgets
-        self.canvas.bind("<Delete>", lambda e: self._delete_selected_widgets())
-
-    #create selection rectangle
-    def _on_canvas_press(self, event):
-        #record start coordinates and whether ctrl is held
-        self._rectangle_selection_start = (event.x, event.y)
-        self._rectangle_selection_dragging = False
-        self._rectangle_selection_additive = bool(event.state & 0x0004)     #0x0004 = ctrl key
-
-        #create rectangle outline
-        if self._rectangle_selection_id is None:
-            self._rectangle_selection_id = self.canvas.create_rectangle(
-                event.x, event.y, event.x, event.y,
-                outline=SELECTION_COLOR, width=SELECTION_WIDTH, dash=SELECTION_DASH, fill=""
-            )
-        else:
-            self.canvas.coords(self._rectangle_selection_id, event.x, event.y, event.x, event.y)
-
-        #make sure outline is on top
-        self.canvas.tag_raise(self._rectangle_selection_id)
-
-    #resize selection rectangle based on mouse movement
-    def _on_canvas_drag(self, event):
-        if not self._rectangle_selection_start:
-            return
-        self._rectangle_selection_dragging = True
-        x0, y0 = self._rectangle_selection_start
-        x1, y1 = event.x, event.y
-
-        #update rectangle
-        if self._rectangle_selection_id is not None:
-            self.canvas.coords(self._rectangle_selection_id, x0, y0, x1, y1)
-            self.canvas.tag_raise(self._rectangle_selection_id)
-
-    #select all widgets that are fully enclosed in the selection rectangle
-    def _on_canvas_release(self, event):
-        try:
-            if not self._rectangle_selection_start:
-                return
-
-            x0, y0 = self._rectangle_selection_start
-            x1, y1 = event.x, event.y
-            self._rectangle_selection_start = None
-
-            #normalize corners
-            x0n, x1n = sorted((x0, x1))
-            y0n, y1n = sorted((y0, y1))
-
-            #when dragging is false → treat as normal click
-            if not self._rectangle_selection_dragging:
-                item_id = self._find_topmost_window_at(event.x, event.y)
-                if item_id is None and self.selection_manager:
-                    self.selection_manager.clear()
-                    self._sync_selected_widgets()
-                else:
-                    if self.selection_manager:
-                        if self._rectangle_selection_additive:
-                            self.selection_manager.toggle(item_id)
-                        else:
-                            self.selection_manager.select_only(item_id)
-                        self._sync_selected_widgets()
-            #when dragging is true → select all items fully enclosed by rectangle selection
-            else:
-                enclosed_widgets = self.canvas.find_enclosed(x0n, y0n, x1n, y1n)
-                #filter out everything that's not a window item
-                enclosed_windows = [i for i in enclosed_widgets if self.canvas.type(i) == "window"]
-
-                if self.selection_manager:
-                    if self._rectangle_selection_additive:
-                        for window_id in enclosed_windows:
-                            if window_id not in self.selection_manager.selected_ids():
-                                self.selection_manager.toggle(window_id)    #only toggle widgets that are not yet selected
-                    else:
-                        self.selection_manager.clear()
-                        for window_id in enclosed_windows:
-                            self.selection_manager.toggle(window_id)
-        finally:
-            #refresh outlines
-            self.selection_manager.refresh_all()
-            #remove rectangle selection
-            if self._rectangle_selection_id is not None:
-                self.canvas.delete(self._rectangle_selection_id)
-                self._rectangle_selection_id = None
-            self._rectangle_selection_dragging = False
-            self._rectangle_selection_additive = False
 
     #add new label
     def add_label(self):
@@ -286,71 +181,26 @@ class Designer:
         #map window id to model
         self.widget_map[window_id] = model
 
-        #selection bindings for the widget itself
-        widget.bind("<ButtonPress-1>", lambda e, i=window_id: self._on_widget_press(e, i))
-        widget.bind("<B1-Motion>", lambda e, i=window_id: self._on_widget_drag(e, i))
-        widget.bind("<ButtonRelease-1>", lambda e, i=window_id: self._on_widget_release(e, i))
-        widget.bind("<Control-Button-1>", lambda e, i=window_id: self._on_widget_ctrl_left_click(e, i))
+        def _on_press(e, i=window_id):
+            #start drag
+            self.selection_manager.start_widget_drag(e)
+            #handle widget click (toggle or select_only based on CTRL key)
+            return self.selection_manager.handle_widget_click(e, i, self._sync_selected_widgets)
+
+        #start drag and handle selection of widget
+        widget.bind("<ButtonPress-1>", _on_press)
+
+        #add or remove widget from selection
+        widget.bind("<Control-Button-1>", lambda e, i=window_id: self.selection_manager.handle_widget_ctrl_click(e, i, self._sync_selected_widgets))
+
+        #move widgets based on mouse movement
+        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self._group_clamped_delta))
+
+        #reset drag state
+        widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
+
+        #keep outlines in sync when widget resizes
         widget.bind("<Configure>", lambda e, i=window_id: self.selection_manager and self.selection_manager.refresh(i))
-
-    #select widget
-    def _on_widget_press(self, event, item_id: int):
-        if self.selection_manager:
-            if bool(event.state & 0x0004):
-                self.selection_manager.toggle(item_id)
-                self._sync_selected_widgets()
-            else:
-                if item_id not in self.selection_manager.selected_ids():
-                    self.selection_manager.select_only(item_id)
-                    self._sync_selected_widgets()
-            self.selection_manager.refresh_all()
-
-        #record screen coordinates
-        self._drag_start_root = (event.x_root, event.y_root)
-        self._drag_last_root = (event.x_root, event.y_root)
-        self._dragging_widgets = False
-        return "break"  #prevent canvas from clearing selection
-
-    #move widgets based on mouse movement
-    def _on_widget_drag(self, event, item_id):
-        if not self._drag_start_root:
-            return "break"
-
-        dx, dy = event.x_root - self._drag_last_root[0], event.y_root - self._drag_last_root[1]
-        dx, dy = self._group_clamped_delta(dx, dy)
-
-        if not self._dragging_widgets:
-            total_dx = event.x_root - self._drag_start_root[0]
-            total_dy = event.y_root - self._drag_start_root[1]
-            if abs(total_dx) + abs(total_dy) < self._drag_threshold:
-                return "break"
-            self._dragging_widgets = True
-
-        for item_id in self.selection_manager.selected_ids():
-            self.canvas.move(item_id, dx, dy)
-            model = self.widget_map.get(item_id)
-            if model:
-                model.x += dx
-                model.y += dy
-            self.selection_manager.refresh(item_id)
-
-        self._drag_last_root = (event.x_root, event.y_root)
-        return "break"
-
-    #reset drag state after dragging
-    def _on_widget_release(self, event, item_it: int):
-        self._drag_start_root = None
-        self._drag_last_root = None
-        self._dragging_widgets = False
-        return "break"
-
-    #add widget to selection
-    def _on_widget_ctrl_left_click(self, event, item_id: int):
-        if self.selection_manager:
-            self.selection_manager.toggle(item_id)
-            self._sync_selected_widgets()
-            self.selection_manager.refresh_all()
-        return "break"
 
     #move selected widgets
     def _move_selection(self, dx, dy):
@@ -395,17 +245,8 @@ class Designer:
             self.widget_map[i] for i in self.selection_manager.selected_ids() if i in self.widget_map
         ]
 
-    #find clicked widget
-    def _find_topmost_window_at(self, x: int, y: int) -> Optional[int]:
-        items = self.canvas.find_overlapping(x, y, x, y)
-        for item in reversed(items):  #last is top-most
-            if self.canvas.type(item) == "window":
-                return item
-        return None
-
     #snap selected widgets to grid
     def _snap_to_grid(self):
-        print("snap_to_grid called")
         if not self.selection_manager:
             return
         for item_id in self.selection_manager.selected_ids():
@@ -421,28 +262,6 @@ class Designer:
 
             #update highlight
             self.selection_manager.refresh(item_id)
-
-    def _toggle_grid(self):
-        self.show_grid = not self.show_grid
-        if self.show_grid:
-            self._draw_grid()
-        else:
-            self._clear_grid()
-
-    def _draw_grid(self):
-        self.grid_lines = []
-        for x in range(0, self.width, self.grid_size):
-            line = self.canvas.create_line(x, 0, x, self.height, fill=GRID_COLOR)
-            self.grid_lines.append(line)
-        for y in range(0, self.height, self.grid_size):
-            line = self.canvas.create_line(0, y, self.width, y, fill=GRID_COLOR)
-            self.grid_lines.append(line)
-
-    def _clear_grid(self):
-        if hasattr(self, "grid_lines"):
-            for line in self.grid_lines:
-                self.canvas.delete(line)
-            self.grid_lines.clear()
 
     def _delete_selected_widgets(self):
         if not self.selection_manager:

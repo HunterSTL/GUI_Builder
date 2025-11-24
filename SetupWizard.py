@@ -21,6 +21,15 @@ class SetupWizard:
         self.root.config(bg=BACKGROUND_COLOR)
         self.root.title("Tkinter GUI Builder – Setup")
 
+        #colors pallette from Theme.py
+        self.colors = {
+            "background": {"bg": BACKGROUND_COLOR},
+            "label": {"bg": BACKGROUND_COLOR, "fg": TEXT_COLOR},
+            "entry": {"bg": ENTRY_COLOR, "fg": TEXT_COLOR},
+            "button": {"bg": BUTTON_COLOR, "fg": TEXT_COLOR},
+            "toolbar": {"bg": TOOLBAR_COLOR}
+        }
+
         self._create_title_bar()
         self._build_setup_ui()
 
@@ -83,15 +92,6 @@ class SetupWizard:
         self.entry_window_height = tk.Entry(self.root, width=15, bg=ENTRY_COLOR, fg=TEXT_COLOR)
         self.entry_window_height.insert(0, "600")
         self.entry_window_height.grid(row=2, column=3, pady=3, sticky="EW")
-
-        #colors preview and pickers
-        self.colors = {
-            "background": {"bg": BACKGROUND_COLOR},
-            "label": {"bg": BACKGROUND_COLOR, "fg": TEXT_COLOR},
-            "entry": {"bg": ENTRY_COLOR, "fg": TEXT_COLOR},
-            "button": {"bg": BUTTON_COLOR, "fg": TEXT_COLOR},
-            "toolbar": {"bg": TOOLBAR_COLOR}
-        }
 
         #background color
         label_background_color = tk.Label(self.root, text="Background Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
