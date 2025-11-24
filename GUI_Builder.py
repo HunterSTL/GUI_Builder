@@ -10,25 +10,76 @@ BUTTON_COLOR = "#505050"
 ENTRY_COLOR = "#606060"
 TEXT_COLOR = "#FFFFFF"
 
+#Counters for widget ids
+COUNTER_LABEL_WIDGET = 1
+COUNTER_ENTRY_WIDGET = 1
+COUNTER_BUTTON_WIDGET = 1
+
+class GUIWindow:
+    def __init__(self, title, width, height, bg_color):
+        self.title = title
+        self.width = width
+        self.height = height
+        self.bg_color = bg_color
+        self.widgets = []
+
+    def add_widget(self, widget):
+        self.widgets.append(widget)
+
 class LabelWidget:
-    def __init__(self):
-        pass
+    def __init__(self, x, y, text, bg, fg, anchor):
+        self.id = None
+        self.x = x
+        self.y = y
+        self.text = text
+        self.bg = bg
+        self.fg = fg
+        self.anchor = anchor
+
+    def create_id(self):
+        global COUNTER_LABEL_WIDGET
+        self.id = "label" + str(COUNTER_LABEL_WIDGET)
+        COUNTER_LABEL_WIDGET += 1
+
+class EntryWidget:
+    def __init__(self, x, y, bg, fg, anchor):
+        self.id = None
+        self.x = x
+        self.y = y
+        self.bg = bg
+        self.fg = fg
+        self.anchor = anchor
+
+    def create_id(self):
+        global COUNTER_ENTRY_WIDGET
+        self.id = "entry" + str(COUNTER_ENTRY_WIDGET)
+        COUNTER_ENTRY_WIDGET += 1
+
+class ButtonWidget:
+    def __init__(self, x, y, bg, fg, anchor):
+        self.id = None
+        self.x = x
+        self.y = y
+        self.bg = bg
+        self.fg = fg
+        self.anchor = anchor
+
+    def create_id(self):
+        global COUNTER_BUTTON_WIDGET
+        self.id = "button" + str(COUNTER_BUTTON_WIDGET)
+        COUNTER_BUTTON_WIDGET += 1
 
 class GUIBuilder:
     def __init__(self, root):
         self.root = root
         self.root.config(bg=BACKGROUND_COLOR)
         self.root.title("Tkinter GUI Builder Setup")
+        self.gui_window = None
+        self.canvas = None
 
         #Store mouse position at the time of the left click
         self.click_x = None
         self.click_y = None
-
-        #Store selected widgets
-        self.selected_widgets = []
-
-        #Store all created widgets
-        self.created_widgets = []
 
         #Define icon
         self.icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
@@ -146,6 +197,10 @@ class GUIBuilder:
         canvas = tk.Canvas(gui_window, bg=self.colors["background"]["bg"])
         canvas.pack(fill="both", expand=True)
 
+        #Store window data for code generation
+        self.gui_window = GUIWindow(title, width, height, self.colors["background"]["bg"])
+        self.canvas = canvas
+
         #Right click menu
         menu = tk.Menu(gui_window, tearoff=0)
         menu.add_command(label="Add Label", command=lambda: self.add_label(canvas))
@@ -163,24 +218,36 @@ class GUIBuilder:
     def add_label(self, canvas):
         text = simpledialog.askstring("Label Text", "Enter label text:")
         if text:
+            #Render the widget in the GUI builder
             label = tk.Label(canvas, text=text, bg=self.colors["label"]["bg"], fg=self.colors["label"]["fg"])
-            self.created_widgets.append(label)
             canvas.create_window(self.click_x, self.click_y, window=label, anchor="sw")
-            print(self.created_widgets)
+
+            #Store widget data for code generation
+            label_data = LabelWidget(self.click_x, self.click_y, text, self.colors["label"]["bg"], self.colors["label"]["fg"], "sw")
+            label_data.create_id()
+            self.gui_window.add_widget(label_data)
 
     def add_entry(self, canvas):
+        #Render the widget in the GUI builder
         entry = tk.Entry(canvas, bg=self.colors["entry"]["bg"], fg=self.colors["entry"]["fg"])
-        self.created_widgets.append(entry)
         canvas.create_window(self.click_x, self.click_y, window=entry, anchor="sw")
-        print(self.created_widgets)
+
+        #Store widget data for code generation
+        entry_data = EntryWidget(self.click_x, self.click_y, self.colors["entry"]["bg"], self.colors["entry"]["fg"], "sw")
+        entry_data.create_id()
+        self.gui_window.add_widget(entry_data)
 
     def add_button(self, canvas):
         text = simpledialog.askstring("Button Text", "Enter button text:")
         if text:
+            #Render the widget in the GUI builder
             button = tk.Button(canvas, text=text, bg=self.colors["button"]["bg"], fg=self.colors["button"]["fg"])
-            self.created_widgets.append(button)
             canvas.create_window(self.click_x, self.click_y, window=button, anchor="sw")
-            print(self.created_widgets)
+
+            #Store widget data for code generation
+            button_data = ButtonWidget(self.click_x, self.click_y, self.colors["button"]["bg"], self.colors["button"]["fg"], "sw")
+            button_data.create_id()
+            self.gui_window.add_widget(button_data)
 
 if __name__ == "__main__":
     root = tk.Tk()
