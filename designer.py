@@ -11,7 +11,10 @@ class Designer:
         self.parent = parent
         self.colors = colors
         self.icon = icon
+        self.width = width
+        self.height = height
         self.grid_size = GRID_SIZE
+        self.show_grid = False
 
         #create window
         self.top = tk.Toplevel(parent)
@@ -42,7 +45,7 @@ class Designer:
         self._create_title_bar()
         self._create_tool_bar()
         self._create_canvas()
-        self._wire_context_menu()
+        self._add_widget_menu()
         self._wire_canvas_events()
 
         #create instance of SelectionManager to store selected widgets (as integer IDs)
@@ -86,21 +89,33 @@ class Designer:
 
     def _create_tool_bar(self):
         #create toolbar
-        self.toolbar = tk.Frame(self.top, bg=self.colors["toolbar"]["bg"])
+        self.toolbar = tk.Frame(self.top, bg=TOOLBAR_COLOR)
         self.toolbar.pack(side="top", fill="x")
 
-        #add buttons to toolbar
-        snap_to_grid_button = tk.Button(self.toolbar, text="Snap to grid", bg=self.colors["button"]["bg"], fg=self.colors["button"]["fg"], command=lambda: self._snap_to_grid())
-        snap_to_grid_button.pack(side="left", padx=2, pady=2)
+        #add widget menu to toolbar
+        widget_menu_button = tk.Menubutton(self.toolbar, text="Widgets", bg=BUTTON_COLOR, fg=TEXT_COLOR, relief="raised", width=10)
+        widget_menu = tk.Menu(widget_menu_button, bg=TOOLBAR_COLOR, fg=TEXT_COLOR, tearoff=0)
+        widget_menu_button.config(menu=widget_menu)
+        widget_menu_button.pack(side="left")
+        widget_menu.add_command(label="Snap to grid", command=lambda: self._snap_to_grid())
+        widget_menu.add_command(label="Align left", command=lambda: self._snap_to_grid())
+        widget_menu.add_command(label="Align top", command=lambda: self._snap_to_grid())
+
+        #add grid menu to toolbar
+        grid_menu_button = tk.Menubutton(self.toolbar, text="Grid", bg=BUTTON_COLOR, fg=TEXT_COLOR, relief="raised", width=10)
+        grid_menu = tk.Menu(grid_menu_button, bg=TOOLBAR_COLOR, fg=TEXT_COLOR, tearoff=0)
+        grid_menu_button.config(menu=grid_menu)
+        grid_menu_button.pack(side="left")
+        grid_menu.add_checkbutton(label="Visualize grid", command=self._toggle_grid)
 
     def _create_canvas(self):
         #create canvas
-        self.canvas = tk.Canvas(self.top, bg=self.colors["background"]["bg"])
+        self.canvas = tk.Canvas(self.top, bg=self.colors["background"]["bg"], highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
 
-    #create context menu
-    def _wire_context_menu(self):
-        self.menu = tk.Menu(self.top, tearoff=0)
+    #create add widget menu
+    def _add_widget_menu(self):
+        self.menu = tk.Menu(self.top, bg=TOOLBAR_COLOR, fg=TEXT_COLOR, tearoff=0)
         self.menu.add_command(label="Add Label", command=self.add_label)
         self.menu.add_command(label="Add Entry", command=self.add_entry)
         self.menu.add_command(label="Add Button", command=self.add_button)
@@ -262,9 +277,14 @@ class Designer:
 
         model.x, model.y = x, y
         model.create_id()
+
+        #append model to GUIWindow.widgets
         self.gui_window.add_widget(model)
 
+        #create window for model
         window_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor)
+
+        #map window id to model
         self.widget_map[window_id] = model
 
         #selection bindings for the widget itself
@@ -401,6 +421,28 @@ class Designer:
 
             #update highlight
             self.selection.refresh(item_id)
+
+    def _toggle_grid(self):
+        self.show_grid = not self.show_grid
+        if self.show_grid:
+            self._draw_grid()
+        else:
+            self._clear_grid()
+
+    def _draw_grid(self):
+        self.grid_lines = []
+        for x in range(0, self.width, self.grid_size):
+            line = self.canvas.create_line(x, 0, x, self.height, fill=GRID_COLOR)
+            self.grid_lines.append(line)
+        for y in range(0, self.height, self.grid_size):
+            line = self.canvas.create_line(0, y, self.width, y, fill=GRID_COLOR)
+            self.grid_lines.append(line)
+
+    def _clear_grid(self):
+        if hasattr(self, "grid_lines"):
+            for line in self.grid_lines:
+                self.canvas.delete(line)
+            self.grid_lines.clear()
 
     def _delete_selected_widgets(self):
         if not self.selection:

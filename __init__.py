@@ -6,4 +6,7 @@ GUI_Builder
     -designer.py    Contains the interactive GUI designer
     -selection.py   Contains the SelectionManager
     -app.py         Contains the mainloop to launch the program
+
+ToDo:
+    -Align left/right/top/bottom
 """
