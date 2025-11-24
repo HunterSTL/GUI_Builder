@@ -3,6 +3,7 @@ from tkinter import simpledialog
 from typing import Dict, Optional
 from selection import SelectionManager
 from models import (GUIWindow, BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData)
+from theme import SELECTION_COLOR, SELECTION_WIDTH, SELECTION_DASH, NUDGE_SMALL, NUDGE_BIG
 
 class Designer:
     def __init__(self, parent: tk.Tk, title: str, width: int, height: int, colors: dict):
@@ -24,6 +25,12 @@ class Designer:
         self.click_x: Optional[int] = None
         self.click_y: Optional[int] = None
 
+        #rectangle selection
+        self._rectangle_selection_id:  Optional[int] = None
+        self._rectangle_selection_start: Optional[tuple[int, int]] = None
+        self._rectangle_selection_dragging: bool = False
+        self._rectangle_selection_additive: bool = False
+
         self._wire_context_menu()
         self._wire_canvas_events()
 
@@ -40,31 +47,103 @@ class Designer:
 
     #canvas events
     def _wire_canvas_events(self):
-        self.canvas.bind("<Button-3>", self._show_menu)                             #right-click
-        self.canvas.bind("<Button-1>", self._on_canvas_left_click)                  #clear selection
-        self.canvas.bind("<Control-Button-1>", self._on_canvas_ctrl_left_click)     #no-op
+        #context menu
+        self.canvas.bind("<Button-3>", self._show_menu)
+
+        #rectangle selection
+        self.canvas.bind("<ButtonPress-1>", self._on_canvas_press)
+        self.canvas.bind("<B1-Motion>", self._on_canvas_drag)
+        self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
 
         #binds to move selected widgets
         self.canvas.focus_set()
-        small_step, big_step = 1, 10
-        self.top.bind_all("<Left>", lambda e: self._move_selection(-small_step, 0))
-        self.top.bind_all("<Right>", lambda e: self._move_selection(small_step, 0))
-        self.top.bind_all("<Up>", lambda e: self._move_selection(0, -small_step))
-        self.top.bind_all("<Down>", lambda e: self._move_selection(0, small_step))
-        self.top.bind_all("<Shift-Left>", lambda e: self._move_selection(-big_step, 0))
-        self.top.bind_all("<Shift-Right>", lambda e: self._move_selection(big_step, 0))
-        self.top.bind_all("<Shift-Up>", lambda e: self._move_selection(0, -big_step))
-        self.top.bind_all("<Shift-Down>", lambda e: self._move_selection(0, big_step))
+        self.top.bind("<Left>", lambda e: self._move_selection(-NUDGE_SMALL, 0))
+        self.top.bind("<Right>", lambda e: self._move_selection(NUDGE_SMALL, 0))
+        self.top.bind("<Up>", lambda e: self._move_selection(0, -NUDGE_SMALL))
+        self.top.bind("<Down>", lambda e: self._move_selection(0, NUDGE_SMALL))
+        self.top.bind("<Shift-Left>", lambda e: self._move_selection(-NUDGE_BIG, 0))
+        self.top.bind("<Shift-Right>", lambda e: self._move_selection(NUDGE_BIG, 0))
+        self.top.bind("<Shift-Up>", lambda e: self._move_selection(0, -NUDGE_BIG))
+        self.top.bind("<Shift-Down>", lambda e: self._move_selection(0, NUDGE_BIG))
 
-    def _on_canvas_left_click(self, event):
-        item_id = self._find_topmost_window_at(event.x, event.y)
-        if item_id is None and self.selection:
-            self.selection.clear()
-            self._sync_selected_widgets()
+    def _on_canvas_press(self, event):
+        #record start coordinates and whether ctrl is held
+        self._rectangle_selection_start = (event.x, event.y)
+        self._rectangle_selection_dragging = False
+        self._rectangle_selection_additive = bool(event.state & 0x0004)     #0x0004 = ctrl key
 
-    def _on_canvas_ctrl_left_click(self, event):
-        #keep existing selection; Ctrl+click empty canvas is a no-op
-        pass
+        #create rectangle outline
+        if self._rectangle_selection_id is None:
+            self._rectangle_selection_id = self.canvas.create_rectangle(
+                event.x, event.y, event.x, event.y,
+                outline=SELECTION_COLOR, width=SELECTION_WIDTH, dash=SELECTION_DASH, fill=""
+            )
+        else:
+            self.canvas.coords(self._rectangle_selection_id, event.x, event.y, event.x, event.y)
+
+        #make sure outline is on top
+        self.canvas.tag_raise(self._rectangle_selection_id)
+
+    def _on_canvas_drag(self, event):
+        if not self._rectangle_selection_start:
+            return
+        self._rectangle_selection_dragging = True
+        x0, y0 = self._rectangle_selection_start
+        x1, y1 = event.x, event.y
+
+        #update rectangle
+        if self._rectangle_selection_id is not None:
+            self.canvas.coords(self._rectangle_selection_id, x0, y0, x1, y1)
+            self.canvas.tag_raise(self._rectangle_selection_id)
+
+    def _on_canvas_release(self, event):
+        try:
+            if not self._rectangle_selection_start:
+                return
+
+            x0, y0 = self._rectangle_selection_start
+            x1, y1 = event.x, event.y
+            self._rectangle_selection_start = None
+
+            #normalize corners
+            x0n, x1n = sorted((x0, x1))
+            y0n, y1n = sorted((y0, y1))
+
+            #when dragging is false → treat as normal click
+            if not self._rectangle_selection_dragging:
+                item_id = self._find_topmost_window_at(event.x, event.y)
+                if item_id is None and self.selection:
+                    self.selection.clear()
+                    self._sync_selected_widgets()
+                else:
+                    if self.selection:
+                        if self._rectangle_selection_additive:
+                            self.selection.toggle(item_id)
+                        else:
+                            self.selection.select_only(item_id)
+                        self._sync_selected_widgets()
+            #when dragging is true → select all items fully enclosed by rectangle selection
+            else:
+                enclosed_widgets = self.canvas.find_enclosed(x0n, y0n, x1n, y1n)
+                #filter out everything that's not a window item
+                enclosed_windows = [i for i in enclosed_widgets if self.canvas.type(i) == "window"]
+
+                if self.selection:
+                    if self._rectangle_selection_additive:
+                        for window_id in enclosed_windows:
+                            if window_id not in self.selection.selected_ids():
+                                self.selection.toggle(window_id)    #only toggle widgets that are not yet selected
+                    else:
+                        self.selection.clear()
+                        for window_id in enclosed_windows:
+                            self.selection.toggle(window_id)
+        finally:
+            #remove rectangle selection
+            if self._rectangle_selection_id is not None:
+                self.canvas.delete(self._rectangle_selection_id)
+                self._rectangle_selection_id = None
+            self._rectangle_selection_dragging = False
+            self._rectangle_selection_additive = False
 
     #adders
     def add_label(self):
@@ -136,7 +215,7 @@ class Designer:
             self.canvas.move(item_id, dx, dy)
 
             #update model data
-            widget = self.widget_map[item_id]
+            widget = self.widget_map.get(item_id)
             if widget:
                 widget.x += dx
                 widget.y += dy
