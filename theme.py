@@ -16,3 +16,6 @@ SELECTION_PADDING = 3
 #nudge steps
 NUDGE_SMALL = 1
 NUDGE_BIG = 10
+
+#grid size
+GRID_SIZE = 10

@@ -3,7 +3,7 @@ from tkinter import simpledialog
 from typing import Dict, Optional
 from selection import SelectionManager
 from models import (GUIWindow, BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData)
-from theme import TITLE_BAR_COLOR, TITLE_BAR_TEXT_COLOR, SELECTION_COLOR, SELECTION_WIDTH, SELECTION_DASH, NUDGE_SMALL, NUDGE_BIG
+from theme import *
 from PIL import ImageTk
 
 class Designer:
@@ -89,7 +89,8 @@ class Designer:
         self.toolbar.pack(side="top", fill="x")
 
         #add buttons to toolbar
-        tk.Button(self.toolbar, text="Snap to grid", bg=self.colors["button"]["bg"], fg=self.colors["button"]["fg"]).pack(side="left", padx=2, pady=2)
+        snap_to_grid_button = tk.Button(self.toolbar, text="Snap to grid", bg=self.colors["button"]["bg"], fg=self.colors["button"]["fg"], command=lambda: self._snap_to_grid())
+        snap_to_grid_button.pack(side="left", padx=2, pady=2)
 
     def _create_canvas(self):
         #create canvas
@@ -372,3 +373,21 @@ class Designer:
             if self.canvas.type(item) == "window":
                 return item
         return None
+
+    #snap selected widgets to grid
+    def _snap_to_grid(self):
+        if not self.selection:
+            return
+        for item_id in self.selection.selected_ids():
+            widget = self.widget_map.get(item_id)
+            new_x, new_y = round(widget.x / GRID_SIZE) * GRID_SIZE, round(widget.y / GRID_SIZE) * GRID_SIZE
+            dx, dy = new_x - widget.x, new_y - widget.y
+
+            #move widget in canvas
+            self.canvas.move(item_id, dx, dy)
+
+            #update model data
+            widget.x, widget.y = new_x, new_y
+
+            #update highlight
+            self.selection.refresh(item_id)
