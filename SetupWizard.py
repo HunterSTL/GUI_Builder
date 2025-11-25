@@ -157,7 +157,7 @@ class SetupWizard:
         button_select_icon.grid(row=7, column=3, padx=5, pady=2, sticky="EW")
 
         #create button
-        button_create_gui_window = tk.Button(self.root, text="Create GUI Window", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=self.launch_designer)
+        button_create_gui_window = tk.Button(self.root, text="Launch designer", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=self.launch_designer)
         button_create_gui_window.grid(row=8, column=0, padx=5, pady=10, sticky="W")
 
     #actions

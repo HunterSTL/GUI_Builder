@@ -7,5 +7,6 @@ GUI_Builder
     -SelectionManager.py    Contains the SelectionManager which handles all selection logic
     -ToolbarManager.py      Contains the ToolbarManager which creates the UI for the toolbar and adds menus
     -CanvasManager.py       Contains the CanvasManager which creates the canvas, handles the grid and binds events
-    -app.py                 Contains the mainloop to launch the program
+    -WidgetManager.py       Contains the WidgetManger which stores the created widgets in a widget map (window_id ←→ model)
+    -App.py                 Contains the mainloop to launch the program
 """

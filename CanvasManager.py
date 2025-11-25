@@ -2,7 +2,7 @@ import tkinter as tk
 from Theme import NUDGE_SMALL, NUDGE_BIG
 
 class CanvasManager:
-    def __init__(self, parent: tk.Tk, width: int, height: int, bg_color: str, grid_size: int, grid_color: str):
+    def __init__(self, parent: tk.Toplevel, width: int, height: int, bg_color: str, grid_size: int, grid_color: str):
         self.parent  = parent
         self.width = width
         self.height = height

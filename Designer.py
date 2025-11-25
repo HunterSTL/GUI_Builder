@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox
 from typing import Dict, Optional
 from CanvasManager import CanvasManager
 from SelectionManager import SelectionManager
@@ -27,6 +26,12 @@ class Designer:
         self.click_x: Optional[int] = None
         self.click_y: Optional[int] = None
 
+        #drag state for moving the designer window
+        self._drag_start_x = None
+        self._drag_start_y = None
+        self._win_x = None
+        self._win_y = None
+
         #create title bar
         self._create_title_bar()
 
@@ -46,14 +51,14 @@ class Designer:
         self.selection_manager = SelectionManager(self.canvas)
 
         #create instance of WidgetManager to store created widgets
-        self.widget_manager = WidgetManager(self.top, self.canvas, self.colors, self.selection_manager, self._sync_selected_widgets, self._group_clamped_delta)
+        self.widget_manager = WidgetManager(self.top, self.canvas, self.colors, self.selection_manager, self._on_selection_changed, self._group_clamped_delta)
 
         self.canvas_manager.bind_events(
             self._show_menu,
             {
                 "press": self.selection_manager.handle_canvas_press,
                 "drag": self.selection_manager.handle_canvas_drag,
-                "release": lambda e: self.selection_manager.handle_canvas_release(e, self._sync_selected_widgets)
+                "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed)
             },
             self._move_selection,
             self.widget_manager.delete_selected_widgets
@@ -180,8 +185,5 @@ class Designer:
 
         return dx_clamped, dy_clamped
 
-    #update selected widgets in GUI window
-    def _sync_selected_widgets(self):
-        self.gui_window.selected_widgets = [
-            self.widget_manager.widget_map[i] for i in self.selection_manager.selected_ids() if i in self.widget_manager.widget_map
-        ]
+    def _on_selection_changed(self):
+        print("Selection chanaged")

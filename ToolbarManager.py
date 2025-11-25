@@ -1,7 +1,7 @@
 import tkinter as tk
 
 class ToolbarManager:
-    def __init__(self, parent: tk.Tk, theme: dict, callbacks: dict):
+    def __init__(self, parent: tk.Toplevel, theme: dict, callbacks: dict):
         """
         parent:     parent window (Designer.top)
         theme:      dictionary with colors for toolbar

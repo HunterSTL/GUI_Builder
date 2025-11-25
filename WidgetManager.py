@@ -55,22 +55,21 @@ class WidgetManager:
 
         #bind events
         self._bind_widget_events(widget, window_id)
+
+        #set focus back to canvas
+        self.canvas.focus_set()
         return window_id
 
     def _bind_widget_events(self, widget, window_id):
-        def _on_press(e, i=window_id):
+        def _on_click(e, i=window_id):
             #start drag
             self.selection_manager.start_widget_drag(e)
-            #handle widget click (toggle or select_only based on CTRL key)
+            #handle widget click (toggle or select_only based on CTRL-Key)
             result = self.selection_manager.handle_widget_click(e, i)
             self.sync_callback()
             return result
 
-        #start drag and handle selection of widget
-        widget.bind("<ButtonPress-1>", _on_press)
-
-        #add or remove widget from selection
-        widget.bind("<Control-Button-1>", lambda i=window_id: (self.selection_manager.handle_widget_ctrl_click(i), self.sync_callback())[0])
+        widget.bind("<Button-1>", _on_click)
 
         #move widgets based on mouse movement
         widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.clamped_delta))

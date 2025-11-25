@@ -150,12 +150,6 @@ class SelectionManager:
         self.refresh_all()
         return "break"  #prevent canvas from clearing selection
 
-    #add widget to selection
-    def handle_widget_ctrl_click(self, item_id: int):
-        self.toggle(item_id)
-        self.refresh_all()
-        return "break"
-
     def start_widget_drag(self, event):
         self._widget_drag_start = (event.x_root, event.y_root)
         self._widget_drag_end = (event.x_root, event.y_root)
