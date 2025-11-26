@@ -19,7 +19,6 @@ class AttributesPanelManager:
             self._populate(model)
             return
 
-        #expand main window width to accomodate the attributes panel
         self.root.update_idletasks()
 
         #resize window

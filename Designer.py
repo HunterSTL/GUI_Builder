@@ -42,6 +42,7 @@ class Designer:
         self.main_frame = tk.Frame(self.top, bg=self.theme["background"]["bg"])
         self.canvas_frame = tk.Frame(self.main_frame, bg=self.theme["background"]["bg"])
         self.canvas_frame.pack(side="left", fill="both", expand=True)
+        self.canvas_frame.pack_propagate(False)
         self.attributes_panel_frame = tk.Frame(self.main_frame, width=ATTRIBUTES_PANEL_WIDTH, bg=ATTRIBUTES_PANEL_COLOR)
         self.attributes_panel_frame.pack_propagate(False)   #keep fixed width
 

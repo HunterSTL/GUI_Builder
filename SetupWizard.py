@@ -184,7 +184,8 @@ class SetupWizard:
             return
 
         if int(width_str) < 200 or int(height_str) < 200:
-            messagebox.showerror("Input Error", "Minimum dimensions for the window is 200x200")
+            messagebox.showerror("Input Error", "Minimum window size: 200 x 200 pixels")
+            return
 
         title = self.entry_window_title.get()
         width = int(width_str)
