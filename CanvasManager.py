@@ -2,7 +2,7 @@ import tkinter as tk
 from Theme import NUDGE_SMALL, NUDGE_BIG
 
 class CanvasManager:
-    def __init__(self, parent: tk.Toplevel, width: int, height: int, bg_color: str, grid_size: int, grid_color: str):
+    def __init__(self, parent: tk.Frame, width: int, height: int, bg_color: str, grid_size: int, grid_color: str):
         self.parent  = parent
         self.width = width
         self.height = height
@@ -15,8 +15,10 @@ class CanvasManager:
 
     def create_canvas(self):
         self.canvas = tk.Canvas(self.parent, bg=self.bg_color, highlightthickness=0)
-        self.canvas.pack(fill="both", expand=True)
         return self.canvas
+
+    def pack_canvas(self):
+        self.canvas.pack(side="left", fill="both", expand=True)
 
     def toggle_grid(self):
         self.show_grid = not self.show_grid
@@ -39,6 +41,8 @@ class CanvasManager:
         self.grid_lines.clear()
 
     def bind_events(self, context_menu_callback, selection_callbacks, move_callback, delete_callback):
+        #set focus on canvas when user clicks anywhere on canvas
+        self.canvas.bind("<Button-1>", lambda e: self.canvas.focus_set())
         #bind context menu to right click
         self.canvas.bind("<Button-3>", context_menu_callback)
 
@@ -48,15 +52,14 @@ class CanvasManager:
         self.canvas.bind("<ButtonRelease-1>", selection_callbacks["release"])
 
         #binds events to move selected widgets
-        self.canvas.focus_set()
-        self.parent.bind("<Left>", lambda e: move_callback(-NUDGE_SMALL, 0))
-        self.parent.bind("<Right>", lambda e: move_callback(NUDGE_SMALL, 0))
-        self.parent.bind("<Up>", lambda e: move_callback(0, -NUDGE_SMALL))
-        self.parent.bind("<Down>", lambda e: move_callback(0, NUDGE_SMALL))
-        self.parent.bind("<Shift-Left>", lambda e: move_callback(-NUDGE_BIG, 0))
-        self.parent.bind("<Shift-Right>", lambda e: move_callback(NUDGE_BIG, 0))
-        self.parent.bind("<Shift-Up>", lambda e: move_callback(0, -NUDGE_BIG))
-        self.parent.bind("<Shift-Down>", lambda e: move_callback(0, NUDGE_BIG))
+        self.canvas.bind("<Left>", lambda e: move_callback(-NUDGE_SMALL, 0))
+        self.canvas.bind("<Right>", lambda e: move_callback(NUDGE_SMALL, 0))
+        self.canvas.bind("<Up>", lambda e: move_callback(0, -NUDGE_SMALL))
+        self.canvas.bind("<Down>", lambda e: move_callback(0, NUDGE_SMALL))
+        self.canvas.bind("<Shift-Left>", lambda e: move_callback(-NUDGE_BIG, 0))
+        self.canvas.bind("<Shift-Right>", lambda e: move_callback(NUDGE_BIG, 0))
+        self.canvas.bind("<Shift-Up>", lambda e: move_callback(0, -NUDGE_BIG))
+        self.canvas.bind("<Shift-Down>", lambda e: move_callback(0, NUDGE_BIG))
 
         #delete selected widgets
         self.canvas.bind("<Delete>", lambda e: delete_callback())

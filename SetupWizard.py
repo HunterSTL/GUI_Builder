@@ -22,7 +22,7 @@ class SetupWizard:
         self.root.title("Tkinter GUI Builder – Setup")
 
         #colors pallette from Theme.py
-        self.colors = {
+        self.theme = {
             "background": {"bg": BACKGROUND_COLOR},
             "label": {"bg": BACKGROUND_COLOR, "fg": TEXT_COLOR},
             "entry": {"bg": ENTRY_COLOR, "fg": TEXT_COLOR},
@@ -96,7 +96,7 @@ class SetupWizard:
         #background color
         label_background_color = tk.Label(self.root, text="Background Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
         label_background_color.grid(row=3, column=0, padx=5, sticky="E")
-        self.label_example_background = tk.Label(self.root, bg=self.colors["background"]["bg"])
+        self.label_example_background = tk.Label(self.root, bg=self.theme["background"]["bg"])
         self.label_example_background.grid(row=3, column=1, columnspan=2, padx=1, sticky="EW")
         button_background_color = tk.Button(self.root, text="Select", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=lambda: self.choose_color("background", "bg"))
         button_background_color.grid(row=3, column=3, padx=5, pady=2, sticky="EW")
@@ -104,7 +104,7 @@ class SetupWizard:
         #label colors
         label_label_color = tk.Label(self.root, text="Label Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
         label_label_color.grid(row=4, column=0, padx=5, sticky="E")
-        self.label_example_label = tk.Label(self.root, text="Example", bg=self.colors["label"]["bg"], fg=self.colors["label"]["fg"], anchor="w")
+        self.label_example_label = tk.Label(self.root, text="Example", bg=self.theme["label"]["bg"], fg=self.theme["label"]["fg"], anchor="w")
         self.label_example_label.grid(row=4, column=1, columnspan=2, padx=1, sticky="EW")
         button_label_background_color = tk.Button(self.root, text="Background", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=lambda: self.choose_color("label", "bg"))
         button_label_background_color.grid(row=4, column=3, padx=5, pady=2, sticky="EW")
@@ -114,7 +114,7 @@ class SetupWizard:
         #entry colors
         label_entry_color = tk.Label(self.root, text="Entry Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
         label_entry_color.grid(row=5, column=0, padx=5, sticky="E")
-        self.entry_example_entry = tk.Entry(self.root, bg=self.colors["entry"]["bg"], fg=self.colors["entry"]["fg"])
+        self.entry_example_entry = tk.Entry(self.root, bg=self.theme["entry"]["bg"], fg=self.theme["entry"]["fg"])
         self.entry_example_entry.insert(0, "Example")
         self.entry_example_entry.grid(row=5, column=1, columnspan=2, sticky="EW")
         button_entry_background_color = tk.Button(self.root, text="Background", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=lambda: self.choose_color("entry", "bg"))
@@ -125,7 +125,7 @@ class SetupWizard:
         #button colors
         label_button_color = tk.Label(self.root, text="Button Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
         label_button_color.grid(row=6, column=0, padx=5, sticky="E")
-        self.button_example_button_color = tk.Button(self.root, text="Example", bg=self.colors["button"]["bg"], fg=self.colors["button"]["fg"])
+        self.button_example_button_color = tk.Button(self.root, text="Example", bg=self.theme["button"]["bg"], fg=self.theme["button"]["fg"])
         self.button_example_button_color.grid(row=6, column=1, columnspan=2, sticky="EW")
         button_button_background_color = tk.Button(self.root, text="Background", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=lambda: self.choose_color("button", "bg"))
         button_button_background_color.grid(row=6, column=3, padx=5, pady=2, sticky="EW")
@@ -164,7 +164,7 @@ class SetupWizard:
     def choose_color(self, element_type: str, attribute: str):
         color = colorchooser.askcolor()[1]
         if color:
-            self.colors[element_type][attribute] = color
+            self.theme[element_type][attribute] = color
             self.example_widgets[element_type].config({attribute: color})
 
     def select_icon(self):
@@ -183,10 +183,13 @@ class SetupWizard:
             messagebox.showerror("Input Error", "Enter an integer value for window width and height!")
             return
 
+        if int(width_str) < 200 or int(height_str) < 200:
+            messagebox.showerror("Input Error", "Minimum dimensions for the window is 200x200")
+
         title = self.entry_window_title.get()
         width = int(width_str)
         height = int(height_str)
 
         #hide setup window and launch Designer
         self.root.withdraw()
-        Designer(self.root, title, width, height, self.colors, self.icon)
+        Designer(self.root, title, width, height, self.theme, self.icon)

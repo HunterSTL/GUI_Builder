@@ -18,7 +18,8 @@ class BaseWidgetData:
 
 @dataclass
 class LabelWidgetData(BaseWidgetData):
-    text: str = "Label"
+    text: str = ""
+    type: str = "Label"
 
     def create_id(self):
         self.id = f"label{IdCounters.label}"
@@ -26,13 +27,16 @@ class LabelWidgetData(BaseWidgetData):
 
 @dataclass
 class EntryWidgetData(BaseWidgetData):
+    type: str = "Entry"
+
     def create_id(self):
         self.id = f"entry{IdCounters.entry}"
         IdCounters.entry += 1
 
 @dataclass
 class ButtonWidgetData(BaseWidgetData):
-    text: str = "Button"
+    text: str = ""
+    type: str = "Button"
 
     def create_id(self):
         self.id = f"button{IdCounters.button}"

@@ -60,7 +60,7 @@ class SelectionManager:
         #record start coordinates and whether ctrl is held
         self._rectangle_selection_start = (event.x, event.y)
         self._rectangle_selection_dragging = False
-        self._rectangle_selection_additive = bool(event.state & 0x0004)     #0x0004 = ctrl key
+        self._rectangle_selection_additive = bool(event.state & CTRL_KEY)
 
         #create rectangle outline
         if self._rectangle_selection_id is None:
@@ -141,7 +141,7 @@ class SelectionManager:
 
     #select widget
     def handle_widget_click(self, event, item_id: int):
-        if bool(event.state & 0x0004):
+        if bool(event.state & CTRL_KEY):
             self.toggle(item_id)
         else:
             if item_id not in self.selected_ids():

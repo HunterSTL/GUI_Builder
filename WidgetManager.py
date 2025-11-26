@@ -3,10 +3,10 @@ from tkinter import simpledialog, messagebox
 from DataModels import *
 
 class WidgetManager:
-    def __init__(self, top, canvas, colors, selection_manager, sync_callback, clamped_delta):
+    def __init__(self, top, canvas, theme, selection_manager, sync_callback, clamped_delta):
         self.top = top
         self.canvas = canvas
-        self.colors = colors
+        self.theme = theme
         self.selection_manager = selection_manager
         self.sync_callback = sync_callback
         self.clamped_delta = clamped_delta
@@ -21,15 +21,15 @@ class WidgetManager:
             widget = tk.Label(
                 self.canvas,
                 text=text,
-                bg=self.colors["label"]["bg"],
-                fg=self.colors["label"]["fg"]
+                bg=self.theme["label"]["bg"],
+                fg=self.theme["label"]["fg"]
             )
             model = LabelWidgetData(text=text)
         elif widget_type == "entry":
             widget = tk.Entry(
                 self.canvas,
-                bg=self.colors["entry"]["bg"],
-                fg=self.colors["entry"]["fg"]
+                bg=self.theme["entry"]["bg"],
+                fg=self.theme["entry"]["fg"]
             )
             model = EntryWidgetData()
         elif widget_type == "button":
@@ -39,8 +39,8 @@ class WidgetManager:
             widget = tk.Button(
                 self.canvas,
                 text=text,
-                bg=self.colors["button"]["bg"],
-                fg=self.colors["button"]["fg"]
+                bg=self.theme["button"]["bg"],
+                fg=self.theme["button"]["fg"]
             )
             model = ButtonWidgetData(text=text)
         else:
@@ -98,8 +98,17 @@ class WidgetManager:
         self.sync_callback()
 
     def delete_selected_widgets(self):
-        if not messagebox.askyesno("Delete", "Delete selected widgets"):
+        count_selected_widgets = len(self.selection_manager.selected_ids())
+        if count_selected_widgets == 0:
             return
+        elif count_selected_widgets == 1:
+            messagebox_text = "Delete selected widget?"
+        else:
+            messagebox_text = f"Delete {str(count_selected_widgets)} selected widgets?"
+
+        if not messagebox.askyesno("Delete", messagebox_text):
+            return
+
         for item_id in [i for i in self.selection_manager.selected_ids() if self.canvas.type(i) == "window"]:
             #delete widget
             self.canvas.delete(item_id)

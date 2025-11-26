@@ -4,23 +4,19 @@ from CanvasManager import CanvasManager
 from SelectionManager import SelectionManager
 from ToolbarManager import ToolbarManager
 from WidgetManager import WidgetManager
+from AttributesPanelManager import AttributesPanelManager
 from DataModels import *
 from Theme import *
 from PIL import ImageTk
 
 class Designer:
-    def __init__(self, parent: tk.Tk, title: str, width: int, height: int, colors: dict, icon: ImageTk.PhotoImage):
+    def __init__(self, parent: tk.Tk, title: str, width: int, height: int, theme: dict, icon: ImageTk.PhotoImage):
         self.parent = parent
-        self.colors = colors
+        self.width = width
+        self.height = height
+        self.theme = theme
         self.icon = icon
         self.grid_size = GRID_SIZE
-
-        #create window
-        self.top = tk.Toplevel(parent)
-        self.top.geometry(f"{width}x{height}")
-
-        #create instance of GUIWindow to store dimensions, title and color pallette
-        self.gui_window = GUIWindow(title, width, height, self.colors["background"]["bg"])
 
         #last right-click position for insertion
         self.click_x: Optional[int] = None
@@ -32,15 +28,29 @@ class Designer:
         self._win_x = None
         self._win_y = None
 
+        #create instance of GUIWindow to store dimensions, title and color pallette
+        self.gui_window = GUIWindow(title, self.width, self.height, self.theme["background"]["bg"])
+
+        #create window
+        self.top = tk.Toplevel(parent)
+        self.top.geometry(f"{self.width}x{self.height}")
+
         #create title bar
         self._create_title_bar()
 
+        #create main frame that will host canvas frame and attributes panel frame
+        self.main_frame = tk.Frame(self.top, bg=self.theme["background"]["bg"])
+        self.canvas_frame = tk.Frame(self.main_frame, bg=self.theme["background"]["bg"])
+        self.canvas_frame.pack(side="left", fill="both", expand=True)
+        self.attributes_panel_frame = tk.Frame(self.main_frame, width=ATTRIBUTES_PANEL_WIDTH, bg=ATTRIBUTES_PANEL_COLOR)
+        self.attributes_panel_frame.pack_propagate(False)   #keep fixed width
+
         #create instance of CanvasManager
         self.canvas_manager = CanvasManager(
-            parent=self.top,
+            parent=self.canvas_frame,
             width=width,
             height=height,
-            bg_color=self.colors["background"]["bg"],
+            bg_color=self.theme["background"]["bg"],
             grid_size=GRID_SIZE,
             grid_color=GRID_COLOR
         )
@@ -51,7 +61,7 @@ class Designer:
         self.selection_manager = SelectionManager(self.canvas)
 
         #create instance of WidgetManager to store created widgets
-        self.widget_manager = WidgetManager(self.top, self.canvas, self.colors, self.selection_manager, self._on_selection_changed, self._group_clamped_delta)
+        self.widget_manager = WidgetManager(self.top, self.canvas, self.theme, self.selection_manager, self._on_selection_changed, self._group_clamped_delta)
 
         self.canvas_manager.bind_events(
             self._show_menu,
@@ -82,6 +92,27 @@ class Designer:
         )
 
         self.toolbar_manger.create_toolbar()
+
+        #pack content frame after creating toolbar so the toolbar is on top
+        self.main_frame.pack(side="top", fill="both", expand=True)
+
+        #pack canvas after creating toolbar so the toolbar is on top
+        self.canvas_manager.pack_canvas()
+
+        #create instance of AttributesPanelManager to show/hide the attribute panel for a selected widget
+        self.attributes_panel_manager = AttributesPanelManager(
+            root=self.top,
+            frame=self.attributes_panel_frame,
+            theme={
+                "background_color": ATTRIBUTES_PANEL_COLOR,
+                "text_color": TEXT_COLOR
+            },
+            canvas_width=self.width,
+            canvas_height=self.height,
+            panel_width = ATTRIBUTES_PANEL_WIDTH,
+            selection_manager=self.selection_manager,
+            widget_manager=self.widget_manager
+        )
 
         self._add_widget_menu()
 
@@ -186,4 +217,11 @@ class Designer:
         return dx_clamped, dy_clamped
 
     def _on_selection_changed(self):
-        print("Selection chanaged")
+        selected_ids = self.selection_manager.selected_ids()
+        if len(selected_ids) == 1:
+            model = self.widget_manager.widget_map[next(iter(selected_ids))]
+            print(model)
+            self.attributes_panel_manager.show(model)
+        else:
+            self.attributes_panel_manager.hide()
+            pass
