@@ -18,40 +18,56 @@ class WidgetManager:
             text = simpledialog.askstring("Label Text", "Enter label text:", parent=self.top)
             if text is None:
                 return
+
+            bg = self.theme["label"]["bg"]
+            fg = self.theme["label"]["fg"]
+
             widget = tk.Label(
                 self.canvas,
                 text=text,
-                bg=self.theme["label"]["bg"],
-                fg=self.theme["label"]["fg"]
+                bg=bg,
+                fg=fg
             )
-            model = LabelWidgetData(text=text)
+            model = LabelWidgetData(x=x, y=y, bg=bg, fg=fg, text=text)
         elif widget_type == "entry":
+            bg = self.theme["entry"]["bg"]
+            fg = self.theme["entry"]["fg"]
+
             widget = tk.Entry(
                 self.canvas,
-                bg=self.theme["entry"]["bg"],
-                fg=self.theme["entry"]["fg"]
+                bg=bg,
+                fg=fg
             )
-            model = EntryWidgetData()
+            model = EntryWidgetData(x=x, y=y, bg=bg, fg=fg)
         elif widget_type == "button":
             text = simpledialog.askstring("Button Text", "Enter button text:", parent=self.top)
             if text is None:
                 return
+
+            bg = self.theme["button"]["bg"]
+            fg = self.theme["button"]["fg"]
+
             widget = tk.Button(
                 self.canvas,
                 text=text,
-                bg=self.theme["button"]["bg"],
-                fg=self.theme["button"]["fg"]
+                bg=bg,
+                fg=fg
             )
-            model = ButtonWidgetData(text=text)
+            model = ButtonWidgetData(x=x, y=y, bg=bg, fg=fg, text=text)
         else:
             return
 
         model.create_id()
-        model.x, model.y = x, y
 
         #insert widget into canvas
         window_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor)
-        self.widget_map[window_id] = model
+
+        #populate model width and height after creating window and updating widget, otherwise both values are 1
+        widget.update()
+        model.width, model.height = widget.winfo_width(), widget.winfo_height()
+
+        #store both the data model and the tkinter widget in the widget map with the window_id as the key
+        self.widget_map[window_id] = {"model": model, "widget": widget}
 
         #bind events
         self._bind_widget_events(widget, window_id)
@@ -83,7 +99,7 @@ class WidgetManager:
     #snap selected widgets to grid
     def snap_to_grid(self, grid_size: int):
         for item_id in self.selection_manager.selected_ids():
-            model = self.widget_map.get(item_id)
+            model = self.widget_map.get(item_id)["model"]
             new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
             dx, dy = new_x - model.x, new_y - model.y
 

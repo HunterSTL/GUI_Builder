@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
-from Theme import (BACKGROUND_COLOR, TEXT_COLOR)
 
 class IdCounters:
     label = 1
@@ -10,10 +9,12 @@ class IdCounters:
 @dataclass
 class BaseWidgetData:
     id: Optional[str] = None
-    x: int = 0
-    y: int = 0
-    bg: str = BACKGROUND_COLOR
-    fg: str = TEXT_COLOR
+    x: int = None
+    y: int = None
+    bg: str = None
+    fg: str = None
+    width: int = None
+    height: int = None
     anchor: str = "sw"
 
 @dataclass

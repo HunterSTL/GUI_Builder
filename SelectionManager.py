@@ -169,7 +169,7 @@ class SelectionManager:
         #move selected widgets
         for item_id in self.selected_ids():
             self.canvas.move(item_id, dx, dy)
-            model = widget_map.get(item_id)
+            model = widget_map.get(item_id)["model"]
             if model:
                 model.x += dx
                 model.y += dy

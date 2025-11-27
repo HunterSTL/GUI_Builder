@@ -45,6 +45,7 @@ class Designer:
         self.canvas_frame.pack_propagate(False)
         self.attributes_panel_frame = tk.Frame(self.main_frame, width=ATTRIBUTES_PANEL_WIDTH, bg=ATTRIBUTES_PANEL_COLOR)
         self.attributes_panel_frame.pack_propagate(False)   #keep fixed width
+        self.attributes_panel_frame.grid_propagate(False)
 
         #create instance of CanvasManager
         self.canvas_manager = CanvasManager(
@@ -190,7 +191,7 @@ class Designer:
             self.canvas.move(item_id, dx, dy)
 
             #update model data
-            model = self.widget_manager.widget_map.get(item_id)
+            model = self.widget_manager.widget_map.get(item_id)["model"]
             if model:
                 model.x += dx
                 model.y += dy
@@ -220,9 +221,8 @@ class Designer:
     def _on_selection_changed(self):
         selected_ids = self.selection_manager.selected_ids()
         if len(selected_ids) == 1:
-            model = self.widget_manager.widget_map[next(iter(selected_ids))]
-            print(model)
+            item_id = next(iter(selected_ids))
+            model = self.widget_manager.widget_map.get(item_id)["model"]
             self.attributes_panel_manager.show(model)
         else:
             self.attributes_panel_manager.hide()
-            pass

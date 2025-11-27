@@ -37,5 +37,58 @@ GRID_SIZE = 10
 ATTRIBUTES_PANEL_COLOR = "#666666"
 ATTRIBUTES_PANEL_WIDTH = 200
 
+#attributes that can be shown in the attributes panel including the type of widget to display the value with (text field, numeric input, color picker, dropwodn etc.)
+ATTRIBUTE_CONFIG = {
+    "Label": {
+        "type": "label",
+        "id": "entry",
+        "x": "spinbox",
+        "y": "spinbox",
+        "width": "spinbox",
+        "height": "spinbox",
+        "text": "entry",
+        "bg": "colorpicker",
+        "fg": "colorpicker",
+        "anchor": "combobox"
+    },
+    "Entry": {
+        "type": "label",
+        "id": "entry",
+        "x": "spinbox",
+        "y": "spinbox",
+        "width": "spinbox",
+        "height": "spinbox",
+        "bg": "colorpicker",
+        "fg": "colorpicker",
+        "anchor": "combobox"
+    },
+    "Button": {
+        "type": "label",
+        "id": "entry",
+        "x": "spinbox",
+        "y": "spinbox",
+        "width": "spinbox",
+        "height": "spinbox",
+        "text": "entry",
+        "bg": "colorpicker",
+        "fg": "colorpicker",
+        "anchor": "combobox"
+    }
+}
+
+#mapping internal attribute names to display names for the attribute panel
+DISPLAY_NAMES = {
+    "type": "Widget Type:",
+    "id": "Widget Name:",
+    "x": "X Position:",
+    "y": "Y Position:",
+    "width": "Width:",
+    "height": "Height:",
+    "text": "Text:",
+    "bg": "BG Color:",
+    "fg": "FG Color:",
+    "anchor": "Anchor:"
+}
+
 #CTRL-Key
 CTRL_KEY = 0x0004
