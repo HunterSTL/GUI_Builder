@@ -63,7 +63,16 @@ class Designer:
         self.selection_manager = SelectionManager(self.canvas)
 
         #create instance of WidgetManager to store created widgets
-        self.widget_manager = WidgetManager(self.top, self.canvas, self.theme, self.selection_manager, self._on_selection_changed, self._group_clamped_delta)
+        self.widget_manager = WidgetManager(
+            self.top,
+            self.canvas,
+            self.theme,
+            self.selection_manager,
+            self._on_selection_changed,
+            self._group_clamped_delta,
+            panel_update=lambda model:
+            self.attributes_panel_manager.update_variable_from_model(model, ["x", "y"])
+        )
 
         self.canvas_manager.bind_events(
             self._show_menu,
@@ -195,6 +204,7 @@ class Designer:
             if model:
                 model.x += dx
                 model.y += dy
+                self.attributes_panel_manager.update_variable_from_model(model, attributes=["x", "y"])
 
             #update highlight
             self.selection_manager.refresh(item_id)

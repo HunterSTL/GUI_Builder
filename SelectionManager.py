@@ -155,7 +155,7 @@ class SelectionManager:
         self._widget_drag_end = (event.x_root, event.y_root)
         self._dragging_widgets = False
 
-    def handle_widget_drag(self, event, widget_map, clamped_delta):
+    def handle_widget_drag(self, event, widget_map, clamped_delta, panel_update=None):
         if not self._widget_drag_start:
             return "break"
 
@@ -173,6 +173,8 @@ class SelectionManager:
             if model:
                 model.x += dx
                 model.y += dy
+                if panel_update and len(self.selected_ids()) == 1:
+                    panel_update(model)
 
             self.refresh(item_id)
 

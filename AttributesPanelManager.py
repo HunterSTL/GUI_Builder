@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 from Theme import *
 
 class AttributesPanelManager:
@@ -12,10 +11,10 @@ class AttributesPanelManager:
         self.panel_width = panel_width
         self.selection_manager = selection_manager
         self.widget_manager = widget_manager
-
         self._visible = False
-
         self.frame.columnconfigure(0, minsize=50)
+        self._variables = {}    #{attribute_name: tk.Variable}
+        self._silent_update = False
 
     def show(self, model):
         if self._visible:
@@ -66,6 +65,43 @@ class AttributesPanelManager:
     def _clear_panel(self):
         for widget in self.frame.winfo_children():
             widget.destroy()
+        self._variables.clear()
+
+    def _bind_variables(self, attribute: str, variable: tk.Variable, model):
+        def _on_write(*_):
+            if self._silent_update:
+                return
+
+            value = variable.get()
+
+            if attribute in ("x", "y", "width", "height"):
+                try:
+                    value = int(value)
+                except ValueError:
+                    return
+
+            #update model
+            setattr(model, attribute, value)
+
+            #update widget
+            selected_widgets = list(self.selection_manager.selected_ids())
+            if len(selected_widgets) == 1:
+                widget_id = selected_widgets[0]
+                self.widget_manager.update_widget_attribute(widget_id, attribute, value)
+
+        self._variables[attribute] = variable
+        variable.trace_add("write", _on_write)
+
+    def update_variable_from_model(self, model, attributes=None):
+        self._silent_update = True
+        for attribute, variable in self._variables.items():
+            if attributes and attribute not in attributes:
+                continue
+            try:
+                variable.set(getattr(model, attribute))
+            except Exception:
+                variable.set(str(getattr(model, attribute)))
+        self._silent_update = False
 
     def _create_displayname_label(self, attribute, row):
         tk.Label(
@@ -85,24 +121,28 @@ class AttributesPanelManager:
         ).grid(column=1, row=row, sticky="W")
 
     def _create_entry(self, model, attribute, row):
+        variable = tk.StringVar(value=str(getattr(model, attribute)))
         entry = tk.Entry(
             self.frame,
             bg=ENTRY_COLOR,
             fg=TEXT_COLOR,
-            width=18
+            width=18,
+            textvariable=variable
         )
-        entry.insert(0, getattr(model, attribute))
         entry.grid(column=1, row=row)
+        self._bind_variables(attribute, variable, model)
 
     def _create_spinbox(self, model, attribute, row):
         if attribute == "x":
             max_value = self.canvas_width
         elif attribute == "y":
             max_value = self.canvas_height
-        else:
-            max_value = 0
+        elif attribute == "width":
+            max_value = self.canvas_width // 2
+        elif attribute == "height":
+            max_value = self.canvas_height // 2
 
-        attribute_value = tk.IntVar(value=getattr(model, attribute))
+        variable = tk.IntVar(value=getattr(model, attribute))
         spinbox = tk.Spinbox(
             self.frame,
             from_=0,
@@ -112,9 +152,10 @@ class AttributesPanelManager:
             fg=TEXT_COLOR,
             buttonbackground=ENTRY_COLOR,
             increment=1,
-            textvariable=attribute_value
+            textvariable=variable
         )
         spinbox.grid(column=1, row=row, sticky="W")
+        self._bind_variables(attribute, variable, model)
 
     def _create_colorpicker(self, model, attribute, row):
         tk.Label(
@@ -126,7 +167,15 @@ class AttributesPanelManager:
 
     def _create_combobox(self, model, attribute, row):
         if attribute == "anchor":
-            options = ["n", "ne", "e", "se", "s", "sw", "w", "nw", "center"]
-            combobox = ttk.Combobox(self.frame, values=options, width=6)
-            combobox.set(model.anchor)
-            combobox.grid(column=1, row=row, sticky="W")
+            variable = tk.StringVar(value=str(getattr(model, attribute)))
+            spinbox = tk.Spinbox(
+                self.frame,
+                values=("n", "ne", "e", "se", "s", "sw", "w", "nw", "center"),
+                width=6,
+                bg=ENTRY_COLOR,
+                fg=TEXT_COLOR,
+                buttonbackground=ENTRY_COLOR,
+                textvariable=variable
+            )
+            spinbox.grid(column=1, row=row, sticky="W")
+            self._bind_variables(attribute, variable, model)

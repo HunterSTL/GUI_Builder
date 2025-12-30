@@ -3,13 +3,14 @@ from tkinter import simpledialog, messagebox
 from DataModels import *
 
 class WidgetManager:
-    def __init__(self, top, canvas, theme, selection_manager, sync_callback, clamped_delta):
+    def __init__(self, top, canvas, theme, selection_manager, sync_callback, clamped_delta, panel_update=None):
         self.top = top
         self.canvas = canvas
         self.theme = theme
         self.selection_manager = selection_manager
         self.sync_callback = sync_callback
         self.clamped_delta = clamped_delta
+        self.panel_update = panel_update
         self.widget_map = {}
 
     def add_widget(self, widget_type: str, x: int, y: int):
@@ -88,7 +89,7 @@ class WidgetManager:
         widget.bind("<Button-1>", _on_click)
 
         #move widgets based on mouse movement
-        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.clamped_delta))
+        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.clamped_delta, self.panel_update))
 
         #reset drag state
         widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
@@ -133,3 +134,39 @@ class WidgetManager:
             #clear selection
         self.selection_manager.clear()
         self.sync_callback()
+
+    def update_widget_attribute(self, item_id, attribute, value):
+        #apply an attribute change from the AttributesPanel to the widget
+        model = self.widget_map.get(item_id)["model"]
+        widget = self.widget_map.get(item_id)["widget"]
+        if not widget:
+            return
+
+        if attribute in ("x", "y"):
+            x, y = model.x, model.y
+            self.canvas.coords(item_id, x, y)
+            self.canvas.update_idletasks()
+            self.selection_manager.refresh(item_id) #update selection outline
+        elif attribute in ("width", "height"):
+            self.canvas.itemconfig(item_id, **{attribute: value})
+            self.canvas.update_idletasks()
+            self.selection_manager.refresh(item_id)
+        elif attribute == "text":
+            widget.config(text=value)
+            widget.update()
+            model.width, model.height = widget.winfo_width(), widget.winfo_height()
+            self.selection_manager.refresh(item_id)
+        elif attribute in ("bg", "fg"):
+            widget.config(**{attribute: value})
+            widget.update()
+            model.width, model.height = widget.winfo_width(), widget.winfo_height()
+            self.selection_manager.refresh(item_id)
+        elif attribute == "anchor":
+            try:
+                self.canvas.itemconfig(item_id, anchor=value)
+            except Exception:
+                widget.config(anchor=value)
+            self.canvas.update_idletasks()
+            self.selection_manager.refresh(item_id)
+        else:
+            pass
