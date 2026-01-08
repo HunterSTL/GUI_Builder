@@ -162,13 +162,16 @@ class WidgetManager:
             return
 
         if attribute in ("x", "y"):
-            x, y = model.x, model.y
+            if attribute == "x":
+                x, y = value, model.y
+            elif attribute == "y":
+                x, y = model.x, value
+            else:
+                return
             self.canvas.coords(item_id, x, y)
-            self.canvas.update_idletasks()
             self.selection_manager.refresh(item_id) #update selection outline
         elif attribute in ("width", "height"):
             self.canvas.itemconfig(item_id, **{attribute: value})
-            self.canvas.update_idletasks()
             self.selection_manager.refresh(item_id)
         elif attribute == "text":
             widget.config(text=value)
@@ -185,7 +188,6 @@ class WidgetManager:
                 self.canvas.itemconfig(item_id, anchor=value)
             except Exception:
                 widget.config(anchor=value)
-            self.canvas.update_idletasks()
             self.selection_manager.refresh(item_id)
         else:
-            pass
+            return

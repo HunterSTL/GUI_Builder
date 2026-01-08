@@ -80,14 +80,15 @@ class AttributesPanelManager:
                 except ValueError:
                     return
 
+            #update widget
+            item_id = self.selection_manager.last_selected_id()
+            self.widget_manager.update_widget_attribute(item_id, attribute, value)
+
             #update model
             setattr(model, attribute, value)
 
-            #update widget
-            selected_widgets = list(self.selection_manager.selected_ids())
-            if len(selected_widgets) == 1:
-                widget_id = selected_widgets[0]
-                self.widget_manager.update_widget_attribute(widget_id, attribute, value)
+            #refresh outline
+            self.selection_manager.refresh(item_id)
 
         self._variables[attribute] = variable
         variable.trace_add("write", _on_write)
@@ -141,6 +142,8 @@ class AttributesPanelManager:
             max_value = self.canvas_width // 2
         elif attribute == "height":
             max_value = self.canvas_height // 2
+        else:
+            max_value = 0
 
         variable = tk.IntVar(value=getattr(model, attribute))
         spinbox = tk.Spinbox(
