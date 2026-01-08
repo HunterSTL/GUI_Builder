@@ -13,6 +13,7 @@ class AttributesPanelManager:
         self.widget_manager = widget_manager
         self._visible = False
         self.frame.columnconfigure(0, minsize=50)
+        self._spinboxes = {}
         self._variables = {}    #{attribute_name: tk.Variable}
         self._silent_update = False
 
@@ -21,8 +22,6 @@ class AttributesPanelManager:
             #already visible → refresh contents
             self._populate(model)
             return
-
-        self.root.update_idletasks()
 
         #resize window
         self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.canvas_height}")
@@ -66,6 +65,7 @@ class AttributesPanelManager:
         for widget in self.frame.winfo_children():
             widget.destroy()
         self._variables.clear()
+        self._spinboxes.clear()
 
     def _bind_variables(self, attribute: str, variable: tk.Variable, model):
         def _on_write(*_):
@@ -74,7 +74,7 @@ class AttributesPanelManager:
 
             value = variable.get()
 
-            if attribute in ("x", "y", "width", "height"):
+            if attribute in ["x", "y", "width", "height"]:
                 try:
                     value = int(value)
                 except ValueError:
@@ -86,6 +86,10 @@ class AttributesPanelManager:
 
             #update model
             setattr(model, attribute, value)
+
+            #update max_value for spinboxes
+            if attribute in ["anchor", "width", "height"]:
+                self._update_spinbox_limits(model)
 
             #refresh outline
             self.selection_manager.refresh(item_id)
@@ -134,21 +138,26 @@ class AttributesPanelManager:
         self._bind_variables(attribute, variable, model)
 
     def _create_spinbox(self, model, attribute, row):
+        min_value = 0
+        max_value = 0
+
         if attribute == "x":
-            max_value = self.canvas_width
+            min_value = self._compute_minimum_x(model)
+            max_value = self._compute_maximum_x(model)
         elif attribute == "y":
-            max_value = self.canvas_height
+            min_value = self._compute_minimum_y(model)
+            max_value = self._compute_maximum_y(model)
         elif attribute == "width":
+            min_value = 1
             max_value = self.canvas_width // 2
         elif attribute == "height":
+            min_value = 1
             max_value = self.canvas_height // 2
-        else:
-            max_value = 0
 
         variable = tk.IntVar(value=getattr(model, attribute))
         spinbox = tk.Spinbox(
             self.frame,
-            from_=0,
+            from_=min_value,
             to=max_value,
             width=5,
             bg=ENTRY_COLOR,
@@ -158,6 +167,10 @@ class AttributesPanelManager:
             textvariable=variable
         )
         spinbox.grid(column=1, row=row, sticky="W")
+
+        #store spinbox so the max value can be adjusted later if size or anchor change
+        self._spinboxes[attribute] = spinbox
+
         self._bind_variables(attribute, variable, model)
 
     def _create_colorpicker(self, model, attribute, row):
@@ -181,4 +194,56 @@ class AttributesPanelManager:
                 textvariable=variable
             )
             spinbox.grid(column=1, row=row, sticky="W")
+
+            #force-sync after widget exists
+            self._silent_update = True
+            variable.set(str(getattr(model, attribute)))
+            self._silent_update = False
+
             self._bind_variables(attribute, variable, model)
+
+    def _compute_maximum_x(self, model):
+        if model.anchor in ["sw", "w", "nw"]:
+            return self.canvas_width - model.width
+        elif model.anchor in ["ne", "e", "se"]:
+            return self.canvas_width
+        elif model.anchor in ["n", "s", "center"]:
+            return self.canvas_width - (model.width // 2)
+        return self.canvas_width
+
+    def _compute_minimum_x(self, model):
+        if model.anchor in ["sw", "w", "nw"]:
+            return 0
+        elif model.anchor in ["ne", "e", "se"]:
+            return model.width
+        elif model.anchor in ["n", "s", "center"]:
+            return model.width // 2
+        return 0
+
+    def _compute_maximum_y(self, model):
+        if model.anchor in ["sw", "s", "se"]:
+            return self.canvas_height
+        elif model.anchor in ["nw", "n", "ne"]:
+            return self.canvas_height - model.height
+        elif model.anchor in ["w", "e", "center"]:
+            return self.canvas_height - (model.height // 2)
+        return self.canvas_height
+
+    def _compute_minimum_y(self, model):
+        if model.anchor in ["sw", "s", "se"]:
+            return model.height
+        elif model.anchor in ["nw", "n", "ne"]:
+            return 0
+        elif model.anchor in ["w", "e", "center"]:
+            return model.height // 2
+        return 0
+
+    def _update_spinbox_limits(self, model):
+        if "x" in self._spinboxes:
+            new_min_value = self._compute_minimum_x(model)
+            new_max_value = self._compute_maximum_x(model)
+            self._spinboxes["x"].config(from_=new_min_value, to=new_max_value)
+        if "y" in self._spinboxes:
+            new_min_value = self._compute_minimum_y(model)
+            new_max_value = self._compute_maximum_y(model)
+            self._spinboxes["y"].config(from_=new_min_value, to=new_max_value)

@@ -13,8 +13,8 @@ class WidgetManager:
         self.panel_update = panel_update
         self.widget_map = {}
 
+    #create widget and model based on type
     def add_widget(self, widget_type: str, x: int, y: int):
-        #create widget and model based on type
         if widget_type == "label":
             text = simpledialog.askstring("Label Text", "Enter label text:", parent=self.top)
             if text is None:
@@ -92,8 +92,8 @@ class WidgetManager:
         #keep outlines in sync when widget resizes
         widget.bind("<Configure>", lambda e, i=window_id: self.selection_manager and self.selection_manager.refresh(i))
 
+    #snap selected widgets to grid
     def snap_to_grid(self, grid_size: int):
-        #snap selected widgets to grid
         for item_id in self.selection_manager.selected_ids():
             model = self.widget_map.get(item_id)["model"]
             new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
@@ -103,8 +103,8 @@ class WidgetManager:
             self.selection_manager.refresh(item_id)     #update highlight
         self.sync_callback()
 
+    #align selected widgets based on last selected widget
     def align(self, direction: str):
-        #align selected widgets based on last selected widget
         selected_widgets = self.selection_manager.selected_ids()
         last_selected_widget = self.selection_manager.last_selected_id()
         reference_model = self.widget_map.get(last_selected_widget)["model"]
@@ -154,8 +154,8 @@ class WidgetManager:
         self.selection_manager.clear()
         self.sync_callback()
 
+    #apply an attribute change from the AttributesPanel to the widget
     def update_widget_attribute(self, item_id, attribute, value):
-        #apply an attribute change from the AttributesPanel to the widget
         model = self.widget_map.get(item_id)["model"]
         widget = self.widget_map.get(item_id)["widget"]
         if not widget:
