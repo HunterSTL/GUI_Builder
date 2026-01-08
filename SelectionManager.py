@@ -48,6 +48,9 @@ class SelectionManager:
     def selected_ids(self) -> frozenset[int]:
         return frozenset(self._selected)    #frozenset so external code can't mutate the collection
 
+    def last_selected_id(self):
+        return self._last_selected
+
     def refresh(self, item_id: int):
         self._ensure_highlight(item_id)
 

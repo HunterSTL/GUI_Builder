@@ -27,7 +27,9 @@ class ToolbarManager:
         #use callbacks for actions
         widget_menu.add_command(label="Snap to grid", command=self.callbacks["snap_to_grid"])
         widget_menu.add_command(label="Align left", command=self.callbacks["align_left"])
+        widget_menu.add_command(label="Align right", command=self.callbacks["align_right"])
         widget_menu.add_command(label="Align top", command=self.callbacks["align_top"])
+        widget_menu.add_command(label="Align bottom", command=self.callbacks["align_bottom"])
 
     def _add_grid_menu(self):
         grid_menu_button = tk.Menubutton(self.toolbar, text="Grid", bg=self.theme.get("button_color"), fg=self.theme.get("text_color"), relief="raised", width=10)

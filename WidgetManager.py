@@ -19,10 +19,8 @@ class WidgetManager:
             text = simpledialog.askstring("Label Text", "Enter label text:", parent=self.top)
             if text is None:
                 return
-
             bg = self.theme["label"]["bg"]
             fg = self.theme["label"]["fg"]
-
             widget = tk.Label(
                 self.canvas,
                 text=text,
@@ -33,7 +31,6 @@ class WidgetManager:
         elif widget_type == "entry":
             bg = self.theme["entry"]["bg"]
             fg = self.theme["entry"]["fg"]
-
             widget = tk.Entry(
                 self.canvas,
                 bg=bg,
@@ -44,10 +41,8 @@ class WidgetManager:
             text = simpledialog.askstring("Button Text", "Enter button text:", parent=self.top)
             if text is None:
                 return
-
             bg = self.theme["button"]["bg"]
             fg = self.theme["button"]["fg"]
-
             widget = tk.Button(
                 self.canvas,
                 text=text,
@@ -97,21 +92,45 @@ class WidgetManager:
         #keep outlines in sync when widget resizes
         widget.bind("<Configure>", lambda e, i=window_id: self.selection_manager and self.selection_manager.refresh(i))
 
-    #snap selected widgets to grid
     def snap_to_grid(self, grid_size: int):
+        #snap selected widgets to grid
         for item_id in self.selection_manager.selected_ids():
             model = self.widget_map.get(item_id)["model"]
             new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
             dx, dy = new_x - model.x, new_y - model.y
+            self.canvas.move(item_id, dx, dy)           #move widget in canvas
+            model.x, model.y = new_x, new_y             #update model data
+            self.selection_manager.refresh(item_id)     #update highlight
+        self.sync_callback()
 
-            #move widget in canvas
-            self.canvas.move(item_id, dx, dy)
+    def align(self, direction: str):
+        #align selected widgets based on last selected widget
+        selected_widgets = self.selection_manager.selected_ids()
+        last_selected_widget = self.selection_manager.last_selected_id()
+        reference_model = self.widget_map.get(last_selected_widget)["model"]
 
-            #update model data
-            model.x, model.y = new_x, new_y
-
-            #update highlight
-            self.selection_manager.refresh(item_id)
+        for item_id in selected_widgets:
+            if not item_id == last_selected_widget:
+                model = self.widget_map.get(item_id)["model"]
+                if direction == "left":
+                    dx = reference_model.x - model.x            #compute delta x
+                    self.canvas.move(item_id, dx, 0)            #move widget in canvas
+                    model.x += dx                               #update model data
+                elif direction == "right":
+                    dx = (reference_model.x + reference_model.width) - (model.x + model.width)
+                    self.canvas.move(item_id, dx, 0)
+                    model.x += dx
+                elif direction == "top":
+                    dy = (reference_model.y - reference_model.height) - (model.y - model.height)
+                    self.canvas.move(item_id, 0, dy)
+                    model.y += dy
+                elif direction == "bottom":
+                    dy = reference_model.y - model.y
+                    self.canvas.move(item_id, 0, dy)
+                    model.y += dy
+                else:
+                    return
+                self.selection_manager.refresh(item_id) #update highlight
         self.sync_callback()
 
     def delete_selected_widgets(self):
