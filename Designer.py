@@ -9,10 +9,13 @@ from Theme import *
 from PIL import ImageTk
 
 class Designer:
-    def __init__(self, parent: tk.Tk, title: str, width: int, height: int, theme: dict, icon: ImageTk.PhotoImage):
+    def __init__(self, parent: tk.Tk, title: str, canvas_width: int, canvas_height: int, title_bar_height: int, toolbar_height: int, theme: dict, icon: ImageTk.PhotoImage):
         self.parent = parent
-        self.width = width
-        self.height = height
+        self.title = title
+        self.canvas_width = canvas_width
+        self.canvas_height = canvas_height
+        self.title_bar_height = title_bar_height
+        self.toolbar_height = toolbar_height
         self.theme = theme
         self.icon = icon
         self.grid_size = GRID_SIZE
@@ -27,20 +30,17 @@ class Designer:
         self._win_x = None
         self._win_y = None
 
-        #create instance of GUIWindow to store dimensions, title and color pallette
-        self.gui_window = GUIWindow(title, self.width, self.height, self.theme["background"]["bg"])
-
         #create window
         self.top = tk.Toplevel(parent)
-        self.top.geometry(f"{self.width}x{self.height}")
+        self.top.geometry(f"{self.canvas_width}x{(self.canvas_height + self.title_bar_height + self.toolbar_height)}")
 
         #create title bar
         self._create_title_bar()
 
         #create main frame that will host canvas frame and attributes panel frame
         self.main_frame = tk.Frame(self.top, bg=self.theme["background"]["bg"])
-        self.canvas_frame = tk.Frame(self.main_frame, bg=self.theme["background"]["bg"])
-        self.canvas_frame.pack(side="left", fill="both", expand=True)
+        self.canvas_frame = tk.Frame(self.main_frame, width=self.canvas_width, height=self.canvas_height, bg=self.theme["background"]["bg"])
+        self.canvas_frame.pack(side="left")
         self.canvas_frame.pack_propagate(False)
         self.attributes_panel_frame = tk.Frame(self.main_frame, width=ATTRIBUTES_PANEL_WIDTH, bg=ATTRIBUTES_PANEL_COLOR)
         self.attributes_panel_frame.pack_propagate(False)   #keep fixed width
@@ -49,8 +49,8 @@ class Designer:
         #create instance of CanvasManager
         self.canvas_manager = CanvasManager(
             parent=self.canvas_frame,
-            width=width,
-            height=height,
+            width=canvas_width,
+            height=canvas_height,
             bg_color=self.theme["background"]["bg"],
             grid_size=GRID_SIZE,
             grid_color=GRID_COLOR
@@ -87,6 +87,7 @@ class Designer:
         #create instance of ToolbarManager to store theme and function callbacks
         self.toolbar_manger = ToolbarManager(
             parent=self.top,
+            height=self.toolbar_height,
             theme={
                 "toolbar_color": TOOLBAR_COLOR,
                 "button_color": BUTTON_COLOR,
@@ -119,8 +120,9 @@ class Designer:
                 "background_color": ATTRIBUTES_PANEL_COLOR,
                 "text_color": TEXT_COLOR
             },
-            canvas_width=self.width,
-            canvas_height=self.height,
+            canvas_width=self.canvas_width,
+            canvas_height=self.canvas_height,
+            window_height=self.canvas_height + self.title_bar_height + self.toolbar_height,
             panel_width = ATTRIBUTES_PANEL_WIDTH,
             selection_manager=self.selection_manager,
             widget_manager=self.widget_manager
@@ -143,8 +145,9 @@ class Designer:
 
         #create custom title bar
         self.top.overrideredirect(True)
-        title_bar = tk.Frame(self.top, bg=TITLE_BAR_COLOR)
+        title_bar = tk.Frame(self.top, height=TITLE_BAR_HEIGHT, bg=TITLE_BAR_COLOR)
         title_bar.pack(fill="x")
+        title_bar.pack_propagate(False)
         title_bar.bind("<Button-1>", start_move)
         title_bar.bind("<B1-Motion>", do_move)
 
@@ -155,7 +158,7 @@ class Designer:
         icon_label.bind("<B1-Motion>", do_move)
 
         #add title
-        title_label = tk.Label(title_bar, text=self.gui_window.title, bg=TITLE_BAR_COLOR, fg=TITLE_BAR_TEXT_COLOR)
+        title_label = tk.Label(title_bar, text=self.title, bg=TITLE_BAR_COLOR, fg=TITLE_BAR_TEXT_COLOR)
         title_label.pack(side="left")
         title_label.bind("<Button-1>", start_move)
         title_label.bind("<B1-Motion>", do_move)

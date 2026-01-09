@@ -42,10 +42,3 @@ class ButtonWidgetData(BaseWidgetData):
     def create_id(self):
         self.id = f"button{IdCounters.button}"
         IdCounters.button += 1
-
-@dataclass
-class GUIWindow:
-    title: str
-    width: int
-    height: int
-    bg_color: str

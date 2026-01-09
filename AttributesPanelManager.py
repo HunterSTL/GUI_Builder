@@ -2,12 +2,13 @@ import tkinter as tk
 from Theme import *
 
 class AttributesPanelManager:
-    def __init__(self, root, frame, theme, canvas_width, canvas_height, panel_width, selection_manager, widget_manager):
+    def __init__(self, root, frame, theme, canvas_width, canvas_height, window_height, panel_width, selection_manager, widget_manager):
         self.root = root
         self.frame = frame
         self.theme = theme
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
+        self.window_height = window_height
         self.panel_width = panel_width
         self.selection_manager = selection_manager
         self.widget_manager = widget_manager
@@ -24,7 +25,7 @@ class AttributesPanelManager:
             return
 
         #resize window
-        self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.canvas_height}")
+        self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.window_height}")
 
         #pack attributes panel
         self.frame.pack(side="right", fill="y")
@@ -38,7 +39,7 @@ class AttributesPanelManager:
             return
 
         #resize window
-        self.root.geometry(f"{self.canvas_width}x{self.canvas_height}")
+        self.root.geometry(f"{self.canvas_width}x{self.window_height}")
 
         #remove attributes panel
         self.frame.pack_forget()

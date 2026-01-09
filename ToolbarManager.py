@@ -1,20 +1,22 @@
 import tkinter as tk
 
 class ToolbarManager:
-    def __init__(self, parent: tk.Toplevel, theme: dict, callbacks: dict):
+    def __init__(self, parent: tk.Toplevel, height: int, theme: dict, callbacks: dict):
         """
         parent:     parent window (Designer.top)
         theme:      dictionary with colors for toolbar
         callbacks:  dictionary of functions (snap_to_grid, toggle_grid etc.)
         """
         self.parent = parent
+        self.height = height
         self.theme = theme
         self.callbacks = callbacks
         self.toolbar = None
 
     def create_toolbar(self):
-        self.toolbar = tk.Frame(self.parent, bg=self.theme.get("toolbar_color"))
+        self.toolbar = tk.Frame(self.parent, height=self.height, bg=self.theme.get("toolbar_color"))
         self.toolbar.pack(side="top", fill="x")
+        self.toolbar.pack_propagate(False)
         self._add_widget_menu()
         self._add_grid_menu()
 

@@ -188,9 +188,9 @@ class SetupWizard:
             return
 
         title = self.entry_window_title.get()
-        width = int(width_str)
-        height = int(height_str)
+        canvas_width = int(width_str)
+        canvas_height = int(height_str)
 
         #hide setup window and launch Designer
         self.root.withdraw()
-        Designer(self.root, title, width, height, self.theme, self.icon)
+        Designer(self.root, title, canvas_width, canvas_height, TITLE_BAR_HEIGHT, TOOLBAR_HEIGHT, self.theme, self.icon)

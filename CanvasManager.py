@@ -14,11 +14,11 @@ class CanvasManager:
         self.show_grid = False
 
     def create_canvas(self):
-        self.canvas = tk.Canvas(self.parent, bg=self.bg_color, highlightthickness=0)
+        self.canvas = tk.Canvas(self.parent, width=self.width, height=self.height, bg=self.bg_color, highlightthickness=0)
         return self.canvas
 
     def pack_canvas(self):
-        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.pack(side="left")
 
     def toggle_grid(self):
         self.show_grid = not self.show_grid
