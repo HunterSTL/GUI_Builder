@@ -38,6 +38,7 @@ GRID_SIZE = 10
 #attributes panel
 ATTRIBUTES_PANEL_COLOR = "#666666"
 ATTRIBUTES_PANEL_WIDTH = 200
+ATTRIBUTES_PANEL_HEIGHT = 500
 
 #attributes that can be shown in the attributes panel including the type of widget to display the value with (text field, numeric input, color picker, dropwodn etc.)
 ATTRIBUTE_CONFIG = {

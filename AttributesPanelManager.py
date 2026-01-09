@@ -2,7 +2,7 @@ import tkinter as tk
 from Theme import *
 
 class AttributesPanelManager:
-    def __init__(self, root, frame, theme, canvas_width, canvas_height, window_height, panel_width, selection_manager, widget_manager):
+    def __init__(self, root, frame, theme, canvas_width, canvas_height, window_height, panel_width, panel_height, selection_manager, widget_manager):
         self.root = root
         self.frame = frame
         self.theme = theme
@@ -10,6 +10,7 @@ class AttributesPanelManager:
         self.canvas_height = canvas_height
         self.window_height = window_height
         self.panel_width = panel_width
+        self.panel_height = panel_height
         self.selection_manager = selection_manager
         self.widget_manager = widget_manager
         self._visible = False
@@ -25,7 +26,10 @@ class AttributesPanelManager:
             return
 
         #resize window
-        self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.window_height}")
+        if self.panel_height > self.window_height:
+            self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.panel_height}")
+        else:
+            self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.window_height}")
 
         #pack attributes panel
         self.frame.pack(side="right", fill="y")
@@ -155,7 +159,25 @@ class AttributesPanelManager:
             min_value = 1
             max_value = self.canvas_height // 2
 
-        variable = tk.IntVar(value=getattr(model, attribute))
+        variable = tk.StringVar(value=str(getattr(model, attribute)))
+
+        #validate user input so spinbox limits are enforced even with manual input
+        def _validate_spinbox(proposed: str, action: str, inserted: str):
+            #allow empty during editing
+            if proposed == "":
+                return True
+            #only allow digits
+            if not proposed.isdigit():
+                return False
+            #only allow in range of the spinbox limit
+            try:
+                value = int(proposed)
+            except ValueError:
+                return False
+            return min_value <= value <= max_value
+
+        validation_command = (self.frame.register(_validate_spinbox), "%P", "%d", "%S")
+
         spinbox = tk.Spinbox(
             self.frame,
             from_=min_value,
@@ -165,7 +187,10 @@ class AttributesPanelManager:
             fg=TEXT_COLOR,
             buttonbackground=ENTRY_COLOR,
             increment=1,
-            textvariable=variable
+            textvariable=variable,
+            validate="key",
+            validatecommand=validation_command,
+            wrap=False
         )
         spinbox.grid(column=1, row=row, sticky="W")
 

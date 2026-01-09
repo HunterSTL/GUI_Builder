@@ -39,11 +39,15 @@ class Designer:
 
         #create main frame that will host canvas frame and attributes panel frame
         self.main_frame = tk.Frame(self.top, bg=self.theme["background"]["bg"])
+
+        #create canvas frame
         self.canvas_frame = tk.Frame(self.main_frame, width=self.canvas_width, height=self.canvas_height, bg=self.theme["background"]["bg"])
-        self.canvas_frame.pack(side="left")
-        self.canvas_frame.pack_propagate(False)
+        self.canvas_frame.pack(side="left", anchor="nw")
+        self.canvas_frame.pack_propagate(False) #keep fixed size
+
+        #create attributes panel frame
         self.attributes_panel_frame = tk.Frame(self.main_frame, width=ATTRIBUTES_PANEL_WIDTH, bg=ATTRIBUTES_PANEL_COLOR)
-        self.attributes_panel_frame.pack_propagate(False)   #keep fixed width
+        self.attributes_panel_frame.pack_propagate(False)
         self.attributes_panel_frame.grid_propagate(False)
 
         #create instance of CanvasManager
@@ -123,7 +127,8 @@ class Designer:
             canvas_width=self.canvas_width,
             canvas_height=self.canvas_height,
             window_height=self.canvas_height + self.title_bar_height + self.toolbar_height,
-            panel_width = ATTRIBUTES_PANEL_WIDTH,
+            panel_width=ATTRIBUTES_PANEL_WIDTH,
+            panel_height=ATTRIBUTES_PANEL_HEIGHT,
             selection_manager=self.selection_manager,
             widget_manager=self.widget_manager
         )
