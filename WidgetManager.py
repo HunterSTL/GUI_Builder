@@ -3,12 +3,13 @@ from tkinter import simpledialog, messagebox
 from DataModels import *
 
 class WidgetManager:
-    def __init__(self, top, canvas, theme, selection_manager, sync_callback, clamped_delta, panel_update=None):
+    def __init__(self, top, canvas, theme, selection_manager, sync_callback, group_clamped_delta, clamped_delta, panel_update=None):
         self.top = top
         self.canvas = canvas
         self.theme = theme
         self.selection_manager = selection_manager
         self.sync_callback = sync_callback
+        self.group_clamped_delta = group_clamped_delta
         self.clamped_delta = clamped_delta
         self.panel_update = panel_update
         self.widget_map = {}
@@ -84,7 +85,7 @@ class WidgetManager:
         widget.bind("<Button-1>", _on_click)
 
         #move widgets based on mouse movement
-        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.clamped_delta, self.panel_update))
+        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.group_clamped_delta, self.panel_update))
 
         #reset drag state
         widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
@@ -105,31 +106,43 @@ class WidgetManager:
 
     #align selected widgets based on last selected widget
     def align(self, direction: str):
+        def _bbox(_item_id):
+            bbox = self.canvas.bbox(_item_id)
+            x1, y1, x2, y2 = bbox
+            return {
+                "left": x1,
+                "top": y1,
+                "right": x2,
+                "bottom": y2
+            }
+
         selected_widgets = self.selection_manager.selected_ids()
         last_selected_widget = self.selection_manager.last_selected_id()
-        reference_model = self.widget_map.get(last_selected_widget)["model"]
+        reference_model_bbox = _bbox(last_selected_widget)
 
         for item_id in selected_widgets:
             if not item_id == last_selected_widget:
-                model = self.widget_map.get(item_id)["model"]
+                model = self.widget_map[item_id]["model"]
+                model_bbox = _bbox(item_id)
                 if direction == "left":
-                    dx = reference_model.x - model.x            #compute delta x
-                    self.canvas.move(item_id, dx, 0)            #move widget in canvas
-                    model.x += dx                               #update model data
+                    dx, dy = reference_model_bbox["left"] - model_bbox["left"], 0
                 elif direction == "right":
-                    dx = (reference_model.x + reference_model.width) - (model.x + model.width)
-                    self.canvas.move(item_id, dx, 0)
-                    model.x += dx
+                    dx, dy = reference_model_bbox["right"] - model_bbox["right"], 0
                 elif direction == "top":
-                    dy = (reference_model.y - reference_model.height) - (model.y - model.height)
-                    self.canvas.move(item_id, 0, dy)
-                    model.y += dy
+                    dx, dy = 0, reference_model_bbox["top"] - model_bbox["top"]
                 elif direction == "bottom":
-                    dy = reference_model.y - model.y
-                    self.canvas.move(item_id, 0, dy)
-                    model.y += dy
+                    dx, dy = 0, reference_model_bbox["bottom"] - model_bbox["bottom"]
                 else:
-                    return
+                    dx, dy = 0, 0
+
+                #clamp to canvas bounds
+                if callable(self.clamped_delta):
+                    dx, dy = self.clamped_delta(item_id, dx, dy)
+
+                #move widget and update model
+                self.canvas.move(item_id, dx, dy)
+                model.x += dx
+                model.y += dy
                 self.selection_manager.refresh(item_id) #update highlight
         self.sync_callback()
 

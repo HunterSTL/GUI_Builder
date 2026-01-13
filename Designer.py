@@ -73,6 +73,7 @@ class Designer:
             self.selection_manager,
             self._on_selection_changed,
             self._group_clamped_delta,
+            self._clamped_delta,
             panel_update=lambda model:
             self.attributes_panel_manager.update_variable_from_model(model, ["x", "y"])
         )
@@ -234,6 +235,24 @@ class Designer:
             max_dy = canvas_height - y1
             dx_clamped = max(min_dx, min(max_dx, dx_clamped))
             dy_clamped = max(min_dy, min(max_dy, dy_clamped))
+
+        return dx_clamped, dy_clamped
+
+    #compute clamped delta, so that widget cannot be moved outside the GUI window
+    def _clamped_delta(self, item_id, dx: int, dy: int) -> tuple[int, int]:
+        canvas_width, canvas_height = self.canvas.winfo_width(), self.canvas.winfo_height()
+        dx_clamped, dy_clamped = dx, dy
+
+        bbox = self.canvas.bbox(item_id)
+        if not bbox:
+            return 0, 0
+        x0, y0, x1, y1 = bbox
+        min_dx = -x0
+        max_dx = canvas_width - x1
+        min_dy = -y0
+        max_dy = canvas_height - y1
+        dx_clamped = max(min_dx, min(max_dx, dx_clamped))
+        dy_clamped = max(min_dy, min(max_dy, dy_clamped))
 
         return dx_clamped, dy_clamped
 
