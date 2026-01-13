@@ -1,10 +1,15 @@
 import tkinter as tk
-from Theme import *
 from typing import Dict, Optional, Set
 
 class SelectionManager:
-    def __init__(self, canvas: tk.Canvas):
+    def __init__(self, canvas: tk.Canvas, ctrl_key, selection_color, selection_width, selection_dash, selection_padding, last_selected_color):
         self.canvas = canvas
+        self.ctrl_key = ctrl_key
+        self.selection_color = selection_color
+        self.selection_width = selection_width
+        self.selection_dash = selection_dash
+        self.selection_padding = selection_padding
+        self.last_selected_color = last_selected_color
         self._selected: Set[int] = set()          #selected canvas item IDs (window items)
         self._rects: Dict[int, int] = {}          #window_id -> rectangle_id
         self._last_selected = None
@@ -63,13 +68,13 @@ class SelectionManager:
         #record start coordinates and whether ctrl is held
         self._rectangle_selection_start = (event.x, event.y)
         self._rectangle_selection_dragging = False
-        self._rectangle_selection_additive = bool(event.state & CTRL_KEY)
+        self._rectangle_selection_additive = bool(event.state & self.ctrl_key)
 
         #create rectangle outline
         if self._rectangle_selection_id is None:
             self._rectangle_selection_id = self.canvas.create_rectangle(
                 event.x, event.y, event.x, event.y,
-                outline=SELECTION_COLOR, width=SELECTION_WIDTH, dash=SELECTION_DASH, fill=""
+                outline=self.selection_color, width=self.selection_width, dash=self.selection_dash, fill=""
             )
         else:
             self.canvas.coords(self._rectangle_selection_id, event.x, event.y, event.x, event.y)
@@ -144,7 +149,7 @@ class SelectionManager:
 
     #select widget
     def handle_widget_click(self, event, item_id: int):
-        if bool(event.state & CTRL_KEY):
+        if bool(event.state & self.ctrl_key):
             self.toggle(item_id)
         else:
             if item_id not in self.selected_ids():
@@ -209,12 +214,12 @@ class SelectionManager:
             return  #item is outside view
 
         x1, y1, x2, y2 = bbox
-        x1 -= SELECTION_PADDING
-        y1 -= SELECTION_PADDING
-        x2 += SELECTION_PADDING
-        y2 += SELECTION_PADDING
+        x1 -= self.selection_padding
+        y1 -= self.selection_padding
+        x2 += self.selection_padding
+        y2 += self.selection_padding
 
-        outline_color = LAST_SELECTED_COLOR if self._last_selected == item_id else SELECTION_COLOR
+        outline_color = self.last_selected_color if self._last_selected == item_id else self.selection_color
         rect_id = self._rects.get(item_id)
 
         if rect_id and self.canvas.type(rect_id) == "rectangle":
@@ -224,8 +229,8 @@ class SelectionManager:
             rect_id = self.canvas.create_rectangle(
                 x1, y1, x2, y2,
                 outline=outline_color,
-                width=SELECTION_WIDTH,
-                dash=SELECTION_DASH,
+                width=self.selection_width,
+                dash=self.selection_dash,
                 fill="",
             )
             self._rects[item_id] = rect_id

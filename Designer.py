@@ -57,13 +57,23 @@ class Designer:
             height=canvas_height,
             bg_color=self.theme["background"]["bg"],
             grid_size=GRID_SIZE,
-            grid_color=GRID_COLOR
+            grid_color=GRID_COLOR,
+            nudge_small=NUDGE_SMALL,
+            nudge_big=NUDGE_BIG
         )
 
         self.canvas = self.canvas_manager.create_canvas()
 
         #create instance of SelectionManager to store selected widgets
-        self.selection_manager = SelectionManager(self.canvas)
+        self.selection_manager = SelectionManager(
+            self.canvas,
+            CTRL_KEY,
+            SELECTION_COLOR,
+            SELECTION_WIDTH,
+            SELECTION_DASH,
+            SELECTION_PADDING,
+            LAST_SELECTED_COLOR
+        )
 
         #create instance of WidgetManager to store created widgets
         self.widget_manager = WidgetManager(
@@ -78,16 +88,18 @@ class Designer:
             self.attributes_panel_manager.update_variable_from_model(model, ["x", "y"])
         )
 
-        self.canvas_manager.bind_events(
-            self._show_menu,
-            {
+        self.canvas_manager.bind_events({
+            "show_menu": self._show_menu,
+            "selection": {
                 "press": self.selection_manager.handle_canvas_press,
                 "drag": self.selection_manager.handle_canvas_drag,
                 "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed)
             },
-            self._move_selection,
-            self.widget_manager.delete_selected_widgets
-        )
+            "move": self._move_selection,
+            "delete": self.widget_manager.delete_selected_widgets,
+            "align": self.widget_manager.align,
+            "snap": self.widget_manager.snap_to_grid
+        })
 
         #create instance of ToolbarManager to store theme and function callbacks
         self.toolbar_manger = ToolbarManager(

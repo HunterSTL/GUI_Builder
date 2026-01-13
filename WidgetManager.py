@@ -122,7 +122,7 @@ class WidgetManager:
 
         for item_id in selected_widgets:
             if not item_id == last_selected_widget:
-                model = self.widget_map[item_id]["model"]
+                model = self.widget_map.get(item_id)["model"]
                 model_bbox = _bbox(item_id)
                 if direction == "left":
                     dx, dy = reference_model_bbox["left"] - model_bbox["left"], 0
