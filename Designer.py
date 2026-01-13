@@ -112,6 +112,7 @@ class Designer:
                 "menu_color": MENU_COLOR
             },
             callbacks={
+                "delete": lambda: self.widget_manager.delete_selected_widgets(),
                 "snap_to_grid": lambda: self.widget_manager.snap_to_grid(self.grid_size),
                 "align_left": lambda: self.widget_manager.align("left"),
                 "align_right": lambda: self.widget_manager.align("right"),

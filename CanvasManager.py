@@ -15,11 +15,19 @@ class CanvasManager:
         self.show_grid = False
 
     def create_canvas(self):
-        self.canvas = tk.Canvas(self.parent, width=self.width, height=self.height, bg=self.bg_color, highlightthickness=0)
+        self.canvas = tk.Canvas(
+            self.parent,
+            width=self.width,
+            height=self.height,
+            bg=self.bg_color,
+            highlightthickness=0,
+            takefocus=1
+        )
         return self.canvas
 
     def pack_canvas(self):
         self.canvas.pack(side="left")
+        self.canvas.after(0, self.canvas.focus_set)
 
     def toggle_grid(self):
         self.show_grid = not self.show_grid
@@ -43,7 +51,8 @@ class CanvasManager:
 
     def bind_events(self, callbacks):
         #set focus on canvas when user clicks anywhere on canvas
-        self.canvas.bind("<Button-1>", lambda e: self.canvas.focus_set())
+        self.canvas.bind("<Enter>",     lambda e: self.canvas.focus_set(), add="+")
+        self.canvas.bind("<Button-1>", lambda e: self.canvas.focus_set(), add="+")
         #bind context menu to right click
         self.canvas.bind("<Button-3>", callbacks["show_menu"])
 
@@ -54,7 +63,7 @@ class CanvasManager:
         self.canvas.bind("<ButtonRelease-1>", selection_callbacks["release"])
 
         #delete selected widgets
-        self.canvas.bind("<Delete>", lambda e: callbacks["delete"])
+        self.canvas.bind("<Delete>", lambda e: callbacks["delete"]())
 
         #binds events to move selected widgets
         self.canvas.bind("<Left>", lambda e: callbacks["move"](-self.nudge_small, 0))

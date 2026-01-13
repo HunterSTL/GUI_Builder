@@ -27,15 +27,45 @@ class ToolbarManager:
         widget_menu_button.pack(side="left")
 
         #use callbacks for actions
-        widget_menu.add_command(label="Snap to grid", command=self.callbacks["snap_to_grid"])
-        widget_menu.add_command(label="Align left", command=self.callbacks["align_left"])
-        widget_menu.add_command(label="Align right", command=self.callbacks["align_right"])
-        widget_menu.add_command(label="Align top", command=self.callbacks["align_top"])
-        widget_menu.add_command(label="Align bottom", command=self.callbacks["align_bottom"])
+        widget_menu.add_command(
+            label="Delete",
+            command=self.callbacks["delete"],
+            accelerator="[Del]"
+        )
+        widget_menu.add_command(
+            label="Snap to grid",
+            command=self.callbacks["snap_to_grid"],
+            accelerator="[S]"
+        )
+        widget_menu.add_command(
+            label="Align left",
+            command=self.callbacks["align_left"],
+            accelerator="[CTRL] + [←]"
+        )
+        widget_menu.add_command(
+            label="Align right",
+            command=self.callbacks["align_right"],
+            accelerator="[CTRL] + [→]"
+        )
+        widget_menu.add_command(
+            label="Align top",
+            command=self.callbacks["align_top"],
+            accelerator="[CTRL] + [↑]"
+        )
+        widget_menu.add_command(
+            label="Align bottom",
+            command=self.callbacks["align_bottom"],
+            accelerator="[CTRL] + [↓]"
+        )
 
     def _add_grid_menu(self):
         grid_menu_button = tk.Menubutton(self.toolbar, text="Grid", bg=self.theme.get("button_color"), fg=self.theme.get("text_color"), relief="raised", width=10)
         grid_menu = tk.Menu(grid_menu_button, bg=self.theme.get("menu_color"), fg=self.theme.get("text_color"), tearoff=0)
         grid_menu_button.config(menu=grid_menu)
         grid_menu_button.pack(side="left")
-        grid_menu.add_checkbutton(label="Visualize grid", command=self.callbacks["toggle_grid"])
+
+        grid_menu.add_checkbutton(
+            label="Visualize grid",
+            command=self.callbacks["toggle_grid"],
+            accelerator="[G]"
+        )
