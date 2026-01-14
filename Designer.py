@@ -112,13 +112,14 @@ class Designer:
                 "menu_color": MENU_COLOR
             },
             callbacks={
-                "delete": lambda: self.widget_manager.delete_selected_widgets(),
-                "snap_to_grid": lambda: self.widget_manager.snap_to_grid(self.grid_size),
+                "delete": self.widget_manager.delete_selected_widgets,
+                "snap_to_grid": lambda: self.widget_manager.snap_to_grid(self.canvas_manager.grid_size),
                 "align_left": lambda: self.widget_manager.align("left"),
                 "align_right": lambda: self.widget_manager.align("right"),
                 "align_top": lambda: self.widget_manager.align("top"),
                 "align_bottom": lambda: self.widget_manager.align("bottom"),
-                "toggle_grid": self.canvas_manager.toggle_grid
+                "toggle_grid": self.canvas_manager.toggle_grid,
+                "change_grid_size": self.canvas_manager.change_grid_size
             }
         )
 

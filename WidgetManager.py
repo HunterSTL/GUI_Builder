@@ -17,7 +17,7 @@ class WidgetManager:
     #create widget and model based on type
     def add_widget(self, widget_type: str, x: int, y: int):
         if widget_type == "label":
-            text = simpledialog.askstring("Label Text", "Enter label text:", parent=self.top)
+            text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
             if text is None:
                 return
             bg = self.theme["label"]["bg"]
@@ -39,7 +39,7 @@ class WidgetManager:
             )
             model = EntryWidgetData(x=x, y=y, bg=bg, fg=fg)
         elif widget_type == "button":
-            text = simpledialog.askstring("Button Text", "Enter button text:", parent=self.top)
+            text = simpledialog.askstring("Button text", "Enter button text:", parent=self.top)
             if text is None:
                 return
             bg = self.theme["button"]["bg"]

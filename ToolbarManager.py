@@ -69,3 +69,8 @@ class ToolbarManager:
             command=self.callbacks["toggle_grid"],
             accelerator="[G]"
         )
+        grid_menu.add_command(
+            label="Change grid size",
+            command=self.callbacks["change_grid_size"],
+            accelerator="[CTRL] + [G]"
+        )

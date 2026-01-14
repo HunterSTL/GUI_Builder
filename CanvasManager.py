@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import simpledialog
 
 class CanvasManager:
     def __init__(self, parent: tk.Frame, width: int, height: int, bg_color: str, grid_size: int, grid_color: str, nudge_small: int, nudge_big: int):
@@ -49,6 +50,18 @@ class CanvasManager:
             self.canvas.delete(line)
         self.grid_lines.clear()
 
+    def change_grid_size(self):
+        new_grid_size = simpledialog.askinteger("Grid size", "Enter new grid size:", minvalue=5, maxvalue=100, parent=self.parent)
+
+        if new_grid_size is None:
+            return
+
+        self.grid_size = new_grid_size
+
+        if self.show_grid:  #redraw grid if it's already shown
+            self.clear_grid()
+            self.draw_grid()
+
     def bind_events(self, callbacks):
         #set focus on canvas when user clicks anywhere on canvas
         self.canvas.bind("<Enter>",     lambda e: self.canvas.focus_set(), add="+")
@@ -83,6 +96,9 @@ class CanvasManager:
 
         #toggle grid
         self.canvas.bind("<Key-g>", lambda e: self.toggle_grid())
+
+        #change grid size
+        self.canvas.bind("<Control-g>", lambda e: self.change_grid_size())
 
         #snap selected widgets to grid
         self.canvas.bind("<Key-s>", lambda e: callbacks["snap"](self.grid_size))
