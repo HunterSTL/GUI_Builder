@@ -30,6 +30,11 @@ class SetupWizard:
             "toolbar": {"bg": TOOLBAR_COLOR}
         }
 
+        self._win_x = None
+        self._win_y = None
+        self._drag_start_x = None
+        self._drag_start_y = None
+
         self._create_title_bar()
         self._build_setup_ui()
 
@@ -76,13 +81,13 @@ class SetupWizard:
     def _build_setup_ui(self):
         #window title
         label_window_title = tk.Label(self.root, text="Window Title:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
-        label_window_title.grid(row=1, column=0, padx=5, sticky="E")
+        label_window_title.grid(row=1, column=0, padx=5, sticky="W")
         self.entry_window_title = tk.Entry(self.root, bg=ENTRY_COLOR, fg=TEXT_COLOR)
         self.entry_window_title.grid(row=1, column=1, columnspan=3, pady=3, sticky="EW")
 
         #width / height
         label_window_width = tk.Label(self.root, text="Window Width:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
-        label_window_width.grid(row=2, column=0, padx=5, sticky="E")
+        label_window_width.grid(row=2, column=0, padx=5, sticky="W")
         self.entry_window_width = tk.Entry(self.root, width=15, bg=ENTRY_COLOR, fg=TEXT_COLOR)
         self.entry_window_width.insert(0, "800")
         self.entry_window_width.grid(row=2, column=1, pady=3, sticky="EW")
@@ -95,7 +100,7 @@ class SetupWizard:
 
         #background color
         label_background_color = tk.Label(self.root, text="Background Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
-        label_background_color.grid(row=3, column=0, padx=5, sticky="E")
+        label_background_color.grid(row=3, column=0, padx=5, sticky="W")
         self.label_example_background = tk.Label(self.root, bg=self.theme["background"]["bg"])
         self.label_example_background.grid(row=3, column=1, columnspan=2, padx=1, sticky="EW")
         button_background_color = tk.Button(self.root, text="Select", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=lambda: self.choose_color("background", "bg"))
@@ -103,7 +108,7 @@ class SetupWizard:
 
         #label colors
         label_label_color = tk.Label(self.root, text="Label Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
-        label_label_color.grid(row=4, column=0, padx=5, sticky="E")
+        label_label_color.grid(row=4, column=0, padx=5, sticky="W")
         self.label_example_label = tk.Label(self.root, text="Example", bg=self.theme["label"]["bg"], fg=self.theme["label"]["fg"], anchor="w")
         self.label_example_label.grid(row=4, column=1, columnspan=2, padx=1, sticky="EW")
         button_label_background_color = tk.Button(self.root, text="Background", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=lambda: self.choose_color("label", "bg"))
@@ -113,7 +118,7 @@ class SetupWizard:
 
         #entry colors
         label_entry_color = tk.Label(self.root, text="Entry Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
-        label_entry_color.grid(row=5, column=0, padx=5, sticky="E")
+        label_entry_color.grid(row=5, column=0, padx=5, sticky="W")
         self.entry_example_entry = tk.Entry(self.root, bg=self.theme["entry"]["bg"], fg=self.theme["entry"]["fg"])
         self.entry_example_entry.insert(0, "Example")
         self.entry_example_entry.grid(row=5, column=1, columnspan=2, sticky="EW")
@@ -124,7 +129,7 @@ class SetupWizard:
 
         #button colors
         label_button_color = tk.Label(self.root, text="Button Color:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
-        label_button_color.grid(row=6, column=0, padx=5, sticky="E")
+        label_button_color.grid(row=6, column=0, padx=5, sticky="W")
         self.button_example_button_color = tk.Button(self.root, text="Example", bg=self.theme["button"]["bg"], fg=self.theme["button"]["fg"])
         self.button_example_button_color.grid(row=6, column=1, columnspan=2, sticky="EW")
         button_button_background_color = tk.Button(self.root, text="Background", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=lambda: self.choose_color("button", "bg"))
@@ -142,7 +147,7 @@ class SetupWizard:
 
         #icon
         label_icon = tk.Label(self.root, text="Icon:", bg=BACKGROUND_COLOR, fg=TEXT_COLOR)
-        label_icon.grid(row=7, column=0, sticky="E")
+        label_icon.grid(row=7, column=0, padx=5, sticky="W")
 
         icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
         self.icon = load_icon(icon_path, (20, 20))
@@ -158,7 +163,7 @@ class SetupWizard:
 
         #create button
         button_create_gui_window = tk.Button(self.root, text="Launch designer", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=self.launch_designer)
-        button_create_gui_window.grid(row=8, column=0, padx=5, pady=10, sticky="W")
+        button_create_gui_window.grid(row=8, column=0, padx=5, pady=5, sticky="W")
 
     #actions
     def choose_color(self, element_type: str, attribute: str):

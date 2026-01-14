@@ -29,6 +29,7 @@ class SelectionManager:
         for item_id in list(self._selected):
             self._remove_highlight(item_id)
         self._selected.clear()
+        self._last_selected = None
 
     def select_only(self, item_id: Optional[int]):
         if item_id is None:

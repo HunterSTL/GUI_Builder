@@ -120,7 +120,7 @@ class AttributesPanelManager:
             bg=self.theme.get("background_color"),
             fg=self.theme.get("text_color"),
             pady=3
-        ).grid(column=0, row=row, sticky="E")
+        ).grid(column=0, row=row, sticky="W")
 
     def _create_label(self, model, attribute, row):
         tk.Label(
@@ -162,7 +162,7 @@ class AttributesPanelManager:
         variable = tk.StringVar(value=str(getattr(model, attribute)))
 
         #validate user input so spinbox limits are enforced even with manual input
-        def _validate_spinbox(proposed: str, action: str, inserted: str):
+        def _validate_spinbox(proposed: str):
             #allow empty during editing
             if proposed == "":
                 return True
@@ -176,7 +176,7 @@ class AttributesPanelManager:
                 return False
             return min_value <= value <= max_value
 
-        validation_command = (self.frame.register(_validate_spinbox), "%P", "%d", "%S")
+        validation_command = (self.frame.register(_validate_spinbox), "%P")
 
         spinbox = tk.Spinbox(
             self.frame,
@@ -237,7 +237,8 @@ class AttributesPanelManager:
             return self.canvas_width - (model.width // 2)
         return self.canvas_width
 
-    def _compute_minimum_x(self, model):
+    @staticmethod
+    def _compute_minimum_x(model):
         if model.anchor in ["sw", "w", "nw"]:
             return 0
         elif model.anchor in ["ne", "e", "se"]:
@@ -255,7 +256,8 @@ class AttributesPanelManager:
             return self.canvas_height - (model.height // 2)
         return self.canvas_height
 
-    def _compute_minimum_y(self, model):
+    @staticmethod
+    def _compute_minimum_y(model):
         if model.anchor in ["sw", "s", "se"]:
             return model.height
         elif model.anchor in ["nw", "n", "ne"]:

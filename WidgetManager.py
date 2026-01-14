@@ -107,6 +107,9 @@ class WidgetManager:
 
         selected_widgets = self.selection_manager.selected_ids()
         last_selected_widget = self.selection_manager.last_selected_id()
+        if last_selected_widget is None:
+            return
+
         reference_model_bbox = _bbox(last_selected_widget)
 
         for item_id in selected_widgets:
@@ -232,5 +235,6 @@ class WidgetManager:
         elif anchor in ["w", "e", "center"]:
             return height // 2, canvas_height - (height // 2)
 
-    def _clamp(self, value, minimum, maximum):
+    @staticmethod
+    def _clamp(value, minimum, maximum):
         return max(minimum, min(maximum, value))
