@@ -56,12 +56,21 @@ class WidgetManager:
 
         model.create_id()
 
+        #calculate clamped x and y to prevent the widget from being created (partially) outside the canvas
+        widget.update_idletasks()
+        required_width, required_height = widget.winfo_reqwidth(), widget.winfo_reqheight()
+        min_x, max_x = self._allowed_x_range(required_width, model.anchor)
+        min_y, max_y = self._allowed_y_range(required_height, model.anchor)
+        clamped_x = self._clamp(x, min_x, max_x)
+        clamped_y = self._clamp(y, min_y, max_y)
+
         #insert widget into canvas
-        window_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor)
+        window_id = self.canvas.create_window(clamped_x, clamped_y, window=widget, anchor=model.anchor)
 
         #populate model width and height after creating window and updating widget, otherwise both values are 1
         widget.update()
         model.width, model.height = widget.winfo_width(), widget.winfo_height()
+        model.x, model.y = clamped_x, clamped_y
 
         #store both the data model and the tkinter widget in the widget map with the window_id as the key
         self.widget_map[window_id] = {"model": model, "widget": widget}
@@ -72,26 +81,6 @@ class WidgetManager:
         #set focus back to canvas
         self.canvas.focus_set()
         return window_id
-
-    def _bind_widget_events(self, widget, window_id):
-        def _on_click(e, i=window_id):
-            #start drag
-            self.selection_manager.start_widget_drag(e)
-            #handle widget click (toggle or select_only based on CTRL-Key)
-            result = self.selection_manager.handle_widget_click(e, i)
-            self.sync_callback()
-            return result
-
-        widget.bind("<Button-1>", _on_click)
-
-        #move widgets based on mouse movement
-        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.group_clamped_delta, self.panel_update))
-
-        #reset drag state
-        widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
-
-        #keep outlines in sync when widget resizes
-        widget.bind("<Configure>", lambda e, i=window_id: self.selection_manager and self.selection_manager.refresh(i))
 
     #snap selected widgets to grid
     def snap_to_grid(self, grid_size: int):
@@ -204,3 +193,44 @@ class WidgetManager:
             self.selection_manager.refresh(item_id)
         else:
             return
+
+    def _bind_widget_events(self, widget, window_id):
+        def _on_click(e, i=window_id):
+            #start drag
+            self.selection_manager.start_widget_drag(e)
+            #handle widget click (toggle or select_only based on CTRL-Key)
+            result = self.selection_manager.handle_widget_click(e, i)
+            self.sync_callback()
+            return result
+
+        widget.bind("<Button-1>", _on_click)
+
+        #move widgets based on mouse movement
+        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.group_clamped_delta, self.panel_update))
+
+        #reset drag state
+        widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
+
+        #keep outlines in sync when widget resizes
+        widget.bind("<Configure>", lambda e, i=window_id: self.selection_manager and self.selection_manager.refresh(i))
+
+    def _allowed_x_range(self, width, anchor):
+        canvas_width = int(self.canvas.winfo_width())
+        if anchor in ["sw", "w", "nw"]:
+            return 0, canvas_width - width
+        elif anchor in ["ne", "e", "se"]:
+            return width, canvas_width
+        elif anchor in ["n", "s", "center"]:
+            return width // 2, canvas_width - (width // 2)
+
+    def _allowed_y_range(self, height, anchor):
+        canvas_height = int(self.canvas.winfo_height())
+        if anchor in ["sw", "s", "se"]:
+            return height, canvas_height
+        elif anchor in ["nw", "n", "ne"]:
+            return 0, canvas_height - height
+        elif anchor in ["w", "e", "center"]:
+            return height // 2, canvas_height - (height // 2)
+
+    def _clamp(self, value, minimum, maximum):
+        return max(minimum, min(maximum, value))
