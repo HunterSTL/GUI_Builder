@@ -1,12 +1,13 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 from DataModels import *
+from ProjectDocument import ProjectDocument
 
 class WidgetManager:
-    def __init__(self, top, canvas, theme, selection_manager, sync_callback, group_clamped_delta, clamped_delta, panel_update=None):
+    def __init__(self, top, canvas, project_document: ProjectDocument, selection_manager, sync_callback, group_clamped_delta, clamped_delta, panel_update=None):
         self.top = top
         self.canvas = canvas
-        self.theme = theme
+        self.project_document = project_document
         self.selection_manager = selection_manager
         self.sync_callback = sync_callback
         self.group_clamped_delta = group_clamped_delta
@@ -20,8 +21,8 @@ class WidgetManager:
             text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
             if text is None:
                 return
-            bg = self.theme["label"]["bg"]
-            fg = self.theme["label"]["fg"]
+            bg = self.project_document.theme["label"]["bg"]
+            fg = self.project_document.theme["label"]["fg"]
             widget = tk.Label(
                 self.canvas,
                 text=text,
@@ -30,8 +31,8 @@ class WidgetManager:
             )
             model = LabelWidgetData(x=x, y=y, bg=bg, fg=fg, text=text)
         elif widget_type == "entry":
-            bg = self.theme["entry"]["bg"]
-            fg = self.theme["entry"]["fg"]
+            bg = self.project_document.theme["entry"]["bg"]
+            fg = self.project_document.theme["entry"]["fg"]
             widget = tk.Entry(
                 self.canvas,
                 bg=bg,
@@ -42,8 +43,8 @@ class WidgetManager:
             text = simpledialog.askstring("Button text", "Enter button text:", parent=self.top)
             if text is None:
                 return
-            bg = self.theme["button"]["bg"]
-            fg = self.theme["button"]["fg"]
+            bg = self.project_document.theme["button"]["bg"]
+            fg = self.project_document.theme["button"]["fg"]
             widget = tk.Button(
                 self.canvas,
                 text=text,
@@ -74,6 +75,37 @@ class WidgetManager:
 
         #store both the data model and the tkinter widget in the widget map with the window_id as the key
         self.widget_map[window_id] = {"model": model, "widget": widget}
+        #also append the new model to the project_document
+        self.project_document.widget_models.append(model)
+
+        #bind events
+        self._bind_widget_events(widget, window_id)
+
+        #set focus back to canvas
+        self.canvas.focus_set()
+        return window_id
+
+    #create widget from model
+    def add_widget_from_model(self, model):
+        model_type = getattr(model, "type", "").lower()
+        if model_type == "label":
+            widget = tk.Label(self.canvas, text=model.text, bg=model.bg, fg=model.fg)
+        elif model_type == "entry":
+            widget = tk.Entry(self.canvas, bg=model.bg, fg=model.fg)
+        elif model_type == "button":
+            widget = tk.Button(self.canvas, text=model.text, bg=model.bg, fg=model.fg)
+        else:
+            return None
+
+        #insert widget into canvas
+        window_id = self.canvas.create_window(model.x, model.y, window=widget, anchor=model.anchor)
+
+        #populate model width and height after creating window and updating widget, otherwise both values are 1
+        widget.update()
+        model.width, model.height = widget.winfo_width(), widget.winfo_height()
+
+        #store both the data model and the tkinter widget in the widget map with the window_id as the key
+        self.widget_map[window_id] = {"model": model, "widget": widget}
 
         #bind events
         self._bind_widget_events(widget, window_id)
@@ -83,7 +115,8 @@ class WidgetManager:
         return window_id
 
     #snap selected widgets to grid
-    def snap_to_grid(self, grid_size: int):
+    def snap_to_grid(self):
+        grid_size = self.project_document.grid.size
         for item_id in self.selection_manager.selected_ids():
             model = self.widget_map.get(item_id)["model"]
             new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
@@ -151,11 +184,14 @@ class WidgetManager:
             return
 
         for item_id in [i for i in self.selection_manager.selected_ids() if self.canvas.type(i) == "window"]:
-            #delete widget
-            self.canvas.delete(item_id)
-            #delete model
-            self.widget_map.pop(item_id, None)
-            #clear selection
+            self.canvas.delete(item_id)                             #delete widget from canvas
+            model = self.widget_map.get(item_id)["model"]
+            try:
+                self.project_document.widget_models.remove(model)   #delete model from project_document
+            except ValueError:
+                pass    #model not in project_document
+            self.widget_map.pop(item_id, None)                      #delete model from widget map
+        #clear selection
         self.selection_manager.clear()
         self.sync_callback()
 
@@ -177,6 +213,8 @@ class WidgetManager:
             self.selection_manager.refresh(item_id) #update selection outline
         elif attribute in ("width", "height"):
             self.canvas.itemconfig(item_id, **{attribute: value})
+            widget.update()
+            model.width, model.height = widget.winfo_width(), widget.winfo_height()
             self.selection_manager.refresh(item_id)
         elif attribute == "text":
             widget.config(text=value)

@@ -4,21 +4,18 @@ from SelectionManager import SelectionManager
 from ToolbarManager import ToolbarManager
 from WidgetManager import WidgetManager
 from AttributesPanelManager import AttributesPanelManager
+from ProjectDocument import ProjectDocument
 from DataModels import *
 from Theme import *
 from PIL import ImageTk
 
 class Designer:
-    def __init__(self, parent: tk.Tk, title: str, canvas_width: int, canvas_height: int, title_bar_height: int, toolbar_height: int, theme: dict, icon: ImageTk.PhotoImage):
+    def __init__(self, parent: tk.Tk, project_document: ProjectDocument, title_bar_height: int, toolbar_height: int, icon: ImageTk.PhotoImage):
         self.parent = parent
-        self.title = title
-        self.canvas_width = canvas_width
-        self.canvas_height = canvas_height
+        self.project_document = project_document
         self.title_bar_height = title_bar_height
         self.toolbar_height = toolbar_height
-        self.theme = theme
         self.icon = icon
-        self.grid_size = GRID_SIZE
 
         #last right-click position for insertion
         self.click_x: Optional[int] = None
@@ -32,16 +29,16 @@ class Designer:
 
         #create window
         self.top = tk.Toplevel(parent)
-        self.top.geometry(f"{self.canvas_width}x{(self.canvas_height + self.title_bar_height + self.toolbar_height)}")
+        self.top.geometry(f"{self.project_document.width}x{(self.project_document.height + self.title_bar_height + self.toolbar_height)}")
 
         #create title bar
         self._create_title_bar()
 
         #create main frame that will host canvas frame and attributes panel frame
-        self.main_frame = tk.Frame(self.top, bg=self.theme["background"]["bg"])
+        self.main_frame = tk.Frame(self.top, bg=self.project_document.theme["background"]["bg"])
 
         #create canvas frame
-        self.canvas_frame = tk.Frame(self.main_frame, width=self.canvas_width, height=self.canvas_height, bg=self.theme["background"]["bg"])
+        self.canvas_frame = tk.Frame(self.main_frame, width=self.project_document.width, height=self.project_document.height, bg=self.project_document.theme["background"]["bg"])
         self.canvas_frame.pack(side="left", anchor="nw")
         self.canvas_frame.pack_propagate(False) #keep fixed size
 
@@ -53,11 +50,7 @@ class Designer:
         #create instance of CanvasManager
         self.canvas_manager = CanvasManager(
             parent=self.canvas_frame,
-            width=canvas_width,
-            height=canvas_height,
-            bg_color=self.theme["background"]["bg"],
-            grid_size=GRID_SIZE,
-            grid_color=GRID_COLOR,
+            project_document=self.project_document,
             nudge_small=NUDGE_SMALL,
             nudge_big=NUDGE_BIG
         )
@@ -79,7 +72,7 @@ class Designer:
         self.widget_manager = WidgetManager(
             self.top,
             self.canvas,
-            self.theme,
+            self.project_document,
             self.selection_manager,
             self._on_selection_changed,
             self._group_clamped_delta,
@@ -101,8 +94,12 @@ class Designer:
             "snap": self.widget_manager.snap_to_grid
         })
 
+        #toggle gird if grid is set to visible in project_document
+        if self.project_document.grid.visible:
+            self.canvas_manager.draw_grid()
+
         #create instance of ToolbarManager to store theme and function callbacks
-        self.toolbar_manger = ToolbarManager(
+        self.toolbar_manager = ToolbarManager(
             parent=self.top,
             height=self.toolbar_height,
             theme={
@@ -113,7 +110,7 @@ class Designer:
             },
             callbacks={
                 "delete": self.widget_manager.delete_selected_widgets,
-                "snap_to_grid": lambda: self.widget_manager.snap_to_grid(self.canvas_manager.grid_size),
+                "snap_to_grid": self.widget_manager.snap_to_grid,
                 "align_left": lambda: self.widget_manager.align("left"),
                 "align_right": lambda: self.widget_manager.align("right"),
                 "align_top": lambda: self.widget_manager.align("top"),
@@ -123,7 +120,7 @@ class Designer:
             }
         )
 
-        self.toolbar_manger.create_toolbar()
+        self.toolbar_manager.create_toolbar()
 
         #pack content frame after creating toolbar so the toolbar is on top
         self.main_frame.pack(side="top", fill="both", expand=True)
@@ -139,9 +136,9 @@ class Designer:
                 "background_color": ATTRIBUTES_PANEL_COLOR,
                 "text_color": TEXT_COLOR
             },
-            canvas_width=self.canvas_width,
-            canvas_height=self.canvas_height,
-            window_height=self.canvas_height + self.title_bar_height + self.toolbar_height,
+            canvas_width=self.project_document.width,
+            canvas_height=self.project_document.height,
+            window_height=self.project_document.height + self.title_bar_height + self.toolbar_height,
             panel_width=ATTRIBUTES_PANEL_WIDTH,
             panel_height=ATTRIBUTES_PANEL_HEIGHT,
             selection_manager=self.selection_manager,
@@ -149,6 +146,10 @@ class Designer:
         )
 
         self._add_widget_menu()
+
+        #create widgets for the models from the project_document
+        for model in self.project_document.widget_models:
+            self.widget_manager.add_widget_from_model(model)
 
     #create title bar
     def _create_title_bar(self):
@@ -178,7 +179,7 @@ class Designer:
         icon_label.bind("<B1-Motion>", do_move)
 
         #add title
-        title_label = tk.Label(title_bar, text=self.title, bg=TITLE_BAR_COLOR, fg=TITLE_BAR_TEXT_COLOR)
+        title_label = tk.Label(title_bar, text=self.project_document.title, bg=TITLE_BAR_COLOR, fg=TITLE_BAR_TEXT_COLOR)
         title_label.pack(side="left")
         title_label.bind("<Button-1>", start_move)
         title_label.bind("<B1-Motion>", do_move)

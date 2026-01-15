@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from typing import List, Optional
+from dataclasses import dataclass
+from typing import Optional
 
 class IdCounters:
     label = 1

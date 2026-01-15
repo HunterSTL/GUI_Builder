@@ -1,26 +1,22 @@
 import tkinter as tk
 from tkinter import simpledialog
+from ProjectDocument import ProjectDocument
 
 class CanvasManager:
-    def __init__(self, parent: tk.Frame, width: int, height: int, bg_color: str, grid_size: int, grid_color: str, nudge_small: int, nudge_big: int):
-        self.parent  = parent
-        self.width = width
-        self.height = height
-        self.bg_color = bg_color
-        self.grid_size = grid_size
-        self.grid_color = grid_color
+    def __init__(self, parent: tk.Frame, project_document: ProjectDocument, nudge_small: int, nudge_big: int):
+        self.parent = parent
+        self.project_document = project_document
         self.nudge_small = nudge_small
         self.nudge_big = nudge_big
         self.canvas = None
         self.grid_lines = []
-        self.show_grid = False
 
     def create_canvas(self):
         self.canvas = tk.Canvas(
             self.parent,
-            width=self.width,
-            height=self.height,
-            bg=self.bg_color,
+            width=self.project_document.width,
+            height=self.project_document.height,
+            bg=self.project_document.theme["background"]["bg"],
             highlightthickness=0,
             takefocus=1
         )
@@ -31,18 +27,18 @@ class CanvasManager:
         self.canvas.after(0, self.canvas.focus_set)
 
     def toggle_grid(self):
-        self.show_grid = not self.show_grid
-        if self.show_grid:
+        self.project_document.grid.visible = not self.project_document.grid.visible
+        if self.project_document.grid.visible:
             self.draw_grid()
         else:
             self.clear_grid()
 
     def draw_grid(self):
-        for x in range(0, self.width, self.grid_size):
-            line = self.canvas.create_line(x, 0, x, self.height, fill=self.grid_color)
+        for x in range(0, self.project_document.width, self.project_document.grid.size):
+            line = self.canvas.create_line(x, 0, x, self.project_document.height, fill=self.project_document.grid.color)
             self.grid_lines.append(line)
-        for y in range(0, self.height, self.grid_size):
-            line = self.canvas.create_line(0, y, self.width, y, fill=self.grid_color)
+        for y in range(0, self.project_document.height, self.project_document.grid.size):
+            line = self.canvas.create_line(0, y, self.project_document.width, y, fill=self.project_document.grid.color)
             self.grid_lines.append(line)
 
     def clear_grid(self):
@@ -56,9 +52,9 @@ class CanvasManager:
         if new_grid_size is None:
             return
 
-        self.grid_size = new_grid_size
+        self.project_document.grid.size = new_grid_size
 
-        if self.show_grid:  #redraw grid if it's already shown
+        if self.project_document.grid.visible:  #redraw grid if it's already shown
             self.clear_grid()
             self.draw_grid()
 
@@ -101,4 +97,4 @@ class CanvasManager:
         self.canvas.bind("<Control-g>", lambda e: self.change_grid_size())
 
         #snap selected widgets to grid
-        self.canvas.bind("<Key-s>", lambda e: callbacks["snap"](self.grid_size))
+        self.canvas.bind("<Key-s>", lambda e: callbacks["snap"]())

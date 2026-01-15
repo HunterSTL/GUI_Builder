@@ -4,6 +4,7 @@ from tkinter import colorchooser, messagebox, filedialog
 from Theme import *
 from Designer import Designer
 from PIL import Image, ImageTk
+from ProjectDocument import *
 
 def load_icon(path, size):
     try:
@@ -21,7 +22,7 @@ class SetupWizard:
         self.root.config(bg=BACKGROUND_COLOR)
         self.root.title("Tkinter GUI Builder – Setup")
 
-        #colors pallette from Theme.py
+        #color pallette from Theme.py
         self.theme = {
             "background": {"bg": BACKGROUND_COLOR},
             "label": {"bg": BACKGROUND_COLOR, "fg": TEXT_COLOR},
@@ -162,7 +163,7 @@ class SetupWizard:
         button_select_icon.grid(row=7, column=3, padx=5, pady=2, sticky="EW")
 
         #create button
-        button_create_gui_window = tk.Button(self.root, text="Launch designer", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=self.launch_designer)
+        button_create_gui_window = tk.Button(self.root, text="Launch designer", bg=BUTTON_COLOR, fg=TEXT_COLOR, command=self.build_project_document)
         button_create_gui_window.grid(row=8, column=0, padx=5, pady=5, sticky="W")
 
     #actions
@@ -180,7 +181,7 @@ class SetupWizard:
                 self.icon = icon
                 self.label_icon_preview.config(image=self.icon)
 
-    def launch_designer(self):
+    def build_project_document(self):
         width_str = self.entry_window_width.get()
         height_str = self.entry_window_height.get()
 
@@ -193,9 +194,30 @@ class SetupWizard:
             return
 
         title = self.entry_window_title.get()
-        canvas_width = int(width_str)
-        canvas_height = int(height_str)
+        width = int(width_str)
+        height = int(height_str)
 
-        #hide setup window and launch Designer
+        #hide setup window
         self.root.withdraw()
-        Designer(self.root, title, canvas_width, canvas_height, TITLE_BAR_HEIGHT, TOOLBAR_HEIGHT, self.theme, self.icon)
+
+        project_doc = ProjectDocument(
+            version=1,
+            title=title,
+            width=width,
+            height=height,
+            grid=GridConfig(
+                size=GRID_SIZE,
+                color=GRID_COLOR,
+                visible=False
+            ),
+            theme=self.theme,
+            widget_models=[]
+        )
+
+        Designer(
+            parent=self.root,
+            project_document=project_doc,
+            title_bar_height=TITLE_BAR_HEIGHT,
+            toolbar_height=TOOLBAR_HEIGHT,
+            icon=self.icon
+        )
