@@ -1,24 +1,28 @@
-#title bar
-TITLE_BAR_COLOR = "#202020"
-TITLE_BAR_TEXT_COLOR = "#FFFFFF"
-TITLE_BAR_HEIGHT = 25
-
 #background
 BACKGROUND_COLOR = "#404040"
 
-#button
-BUTTON_COLOR = "#505050"
+#label
+LABEL_COLOR = "#404040"
+LABEL_TEXT_COLOR = "#FFFFFF"
 
 #entry
 ENTRY_COLOR = "#606060"
+ENTRY_TEXT_COLOR = "#FFFFFF"
 
-#text
-TEXT_COLOR = "#FFFFFF"
+#button
+BUTTON_COLOR = "#505050"
+BUTTON_TEXT_COLOR = "#FFFFFF"
+
+#title bar
+TITLEBAR_COLOR = "#202020"
+TITLEBAR_TEXT_COLOR = "#FFFFFF"
+TITLEBAR_HEIGHT = 25
 
 #toolbar
 TOOLBAR_COLOR = "#666666"
-TOOLBAR_HEIGHT = 25
+TOOLBAR_TEXT_COLOR = "#FFFFFF"
 MENU_COLOR = "#666666"
+TOOLBAR_HEIGHT = 25
 
 #selection
 SELECTION_COLOR = "#33A1FD"
@@ -39,59 +43,6 @@ GRID_SIZE = 10
 ATTRIBUTES_PANEL_COLOR = "#666666"
 ATTRIBUTES_PANEL_WIDTH = 200
 ATTRIBUTES_PANEL_HEIGHT = 500
-
-#attributes that can be shown in the attributes panel including the type of widget to display the value with (text field, numeric input, color picker, dropwodn etc.)
-ATTRIBUTE_CONFIG = {
-    "Label": {
-        "type": "label",
-        "id": "entry",
-        "x": "spinbox",
-        "y": "spinbox",
-        "width": "spinbox",
-        "height": "spinbox",
-        "text": "entry",
-        "bg": "colorpicker",
-        "fg": "colorpicker",
-        "anchor": "combobox"
-    },
-    "Entry": {
-        "type": "label",
-        "id": "entry",
-        "x": "spinbox",
-        "y": "spinbox",
-        "width": "spinbox",
-        "height": "spinbox",
-        "bg": "colorpicker",
-        "fg": "colorpicker",
-        "anchor": "combobox"
-    },
-    "Button": {
-        "type": "label",
-        "id": "entry",
-        "x": "spinbox",
-        "y": "spinbox",
-        "width": "spinbox",
-        "height": "spinbox",
-        "text": "entry",
-        "bg": "colorpicker",
-        "fg": "colorpicker",
-        "anchor": "combobox"
-    }
-}
-
-#mapping internal attribute names to display names for the attribute panel
-DISPLAY_NAMES = {
-    "type": "Widget Type:",
-    "id": "Widget Name:",
-    "x": "X Position:",
-    "y": "Y Position:",
-    "width": "Width:",
-    "height": "Height:",
-    "text": "Text:",
-    "bg": "BG Color:",
-    "fg": "FG Color:",
-    "anchor": "Anchor:"
-}
 
 #CTRL-Key
 CTRL_KEY = 0x0004

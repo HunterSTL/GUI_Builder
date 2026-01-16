@@ -1,18 +1,71 @@
 import tkinter as tk
-from Theme import *
+from ProjectDocument import ProjectDocument
+
+#attributes that can be shown in the attributes panel including the type of widget
+#to display the value with (text field, numeric input, color picker, dropwodn etc.)
+ATTRIBUTE_CONFIG = {
+    "Label": {
+        "type": "label",
+        "id": "entry",
+        "x": "spinbox",
+        "y": "spinbox",
+        "width": "spinbox",
+        "height": "spinbox",
+        "text": "entry",
+        "bg": "colorpicker",
+        "fg": "colorpicker",
+        "anchor": "combobox"
+    },
+    "Entry": {
+        "type": "label",
+        "id": "entry",
+        "x": "spinbox",
+        "y": "spinbox",
+        "width": "spinbox",
+        "height": "spinbox",
+        "bg": "colorpicker",
+        "fg": "colorpicker",
+        "anchor": "combobox"
+    },
+    "Button": {
+        "type": "label",
+        "id": "entry",
+        "x": "spinbox",
+        "y": "spinbox",
+        "width": "spinbox",
+        "height": "spinbox",
+        "text": "entry",
+        "bg": "colorpicker",
+        "fg": "colorpicker",
+        "anchor": "combobox"
+    }
+}
+
+#mapping internal attribute names to display names for the attribute panel
+DISPLAY_NAMES = {
+    "type": "Widget Type:",
+    "id": "Widget Name:",
+    "x": "X Position:",
+    "y": "Y Position:",
+    "width": "Width:",
+    "height": "Height:",
+    "text": "Text:",
+    "bg": "BG Color:",
+    "fg": "FG Color:",
+    "anchor": "Anchor:"
+}
 
 class AttributesPanelManager:
-    def __init__(self, root, frame, theme, canvas_width, canvas_height, window_height, panel_width, panel_height, selection_manager, widget_manager):
+    def __init__(self, root, frame, project_document: ProjectDocument, window_height, panel_width, panel_height, selection_manager, widget_manager):
         self.root = root
         self.frame = frame
-        self.theme = theme
-        self.canvas_width = canvas_width
-        self.canvas_height = canvas_height
+        self.project_document = project_document
         self.window_height = window_height
         self.panel_width = panel_width
         self.panel_height = panel_height
         self.selection_manager = selection_manager
         self.widget_manager = widget_manager
+
         self._visible = False
         self.frame.columnconfigure(0, minsize=50)
         self._spinboxes = {}
@@ -27,9 +80,9 @@ class AttributesPanelManager:
 
         #resize window
         if self.panel_height > self.window_height:
-            self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.panel_height}")
+            self.root.geometry(f"{self.project_document.width + self.panel_width}x{self.panel_height}")
         else:
-            self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.window_height}")
+            self.root.geometry(f"{self.project_document.width + self.panel_width}x{self.window_height}")
 
         #pack attributes panel
         self.frame.pack(side="right", fill="y")
@@ -43,7 +96,7 @@ class AttributesPanelManager:
             return
 
         #resize window
-        self.root.geometry(f"{self.canvas_width}x{self.window_height}")
+        self.root.geometry(f"{self.project_document.width}x{self.window_height}")
 
         #remove attributes panel
         self.frame.pack_forget()
@@ -117,8 +170,8 @@ class AttributesPanelManager:
         tk.Label(
             self.frame,
             text=DISPLAY_NAMES.get(attribute),
-            bg=self.theme.get("background_color"),
-            fg=self.theme.get("text_color"),
+            bg=self.project_document.theme["attributes_panel"]["color"],
+            fg=self.project_document.theme["label"]["fg"],
             pady=3
         ).grid(column=0, row=row, sticky="W")
 
@@ -126,16 +179,16 @@ class AttributesPanelManager:
         tk.Label(
             self.frame,
             text=getattr(model, attribute),
-            bg=self.theme.get("background_color"),
-            fg=self.theme.get("text_color")
+            bg=self.project_document.theme["attributes_panel"]["color"],
+            fg=self.project_document.theme["label"]["fg"]
         ).grid(column=1, row=row, sticky="W")
 
     def _create_entry(self, model, attribute, row):
         variable = tk.StringVar(value=str(getattr(model, attribute)))
         entry = tk.Entry(
             self.frame,
-            bg=ENTRY_COLOR,
-            fg=TEXT_COLOR,
+            bg=self.project_document.theme["entry"]["bg"],
+            fg=self.project_document.theme["entry"]["fg"],
             width=18,
             textvariable=variable
         )
@@ -154,10 +207,10 @@ class AttributesPanelManager:
             max_value = self._compute_maximum_y(model)
         elif attribute == "width":
             min_value = 1
-            max_value = self.canvas_width // 2
+            max_value = self.project_document.width // 2
         elif attribute == "height":
             min_value = 1
-            max_value = self.canvas_height // 2
+            max_value = self.project_document.height // 2
 
         variable = tk.StringVar(value=str(getattr(model, attribute)))
 
@@ -183,9 +236,9 @@ class AttributesPanelManager:
             from_=min_value,
             to=max_value,
             width=5,
-            bg=ENTRY_COLOR,
-            fg=TEXT_COLOR,
-            buttonbackground=ENTRY_COLOR,
+            bg=self.project_document.theme["entry"]["bg"],
+            fg=self.project_document.theme["entry"]["fg"],
+            buttonbackground=self.project_document.theme["entry"]["bg"],
             increment=1,
             textvariable=variable,
             validate="key",
@@ -214,9 +267,9 @@ class AttributesPanelManager:
                 self.frame,
                 values=("n", "ne", "e", "se", "s", "sw", "w", "nw", "center"),
                 width=6,
-                bg=ENTRY_COLOR,
-                fg=TEXT_COLOR,
-                buttonbackground=ENTRY_COLOR,
+                bg=self.project_document.theme["entry"]["bg"],
+                fg=self.project_document.theme["entry"]["fg"],
+                buttonbackground=self.project_document.theme["entry"]["bg"],
                 textvariable=variable
             )
             spinbox.grid(column=1, row=row, sticky="W")
@@ -230,12 +283,12 @@ class AttributesPanelManager:
 
     def _compute_maximum_x(self, model):
         if model.anchor in ["sw", "w", "nw"]:
-            return self.canvas_width - model.width
+            return self.project_document.width - model.width
         elif model.anchor in ["ne", "e", "se"]:
-            return self.canvas_width
+            return self.project_document.width
         elif model.anchor in ["n", "s", "center"]:
-            return self.canvas_width - (model.width // 2)
-        return self.canvas_width
+            return self.project_document.width - (model.width // 2)
+        return self.project_document.width
 
     @staticmethod
     def _compute_minimum_x(model):
@@ -249,12 +302,12 @@ class AttributesPanelManager:
 
     def _compute_maximum_y(self, model):
         if model.anchor in ["sw", "s", "se"]:
-            return self.canvas_height
+            return self.project_document.height
         elif model.anchor in ["nw", "n", "ne"]:
-            return self.canvas_height - model.height
+            return self.project_document.height - model.height
         elif model.anchor in ["w", "e", "center"]:
-            return self.canvas_height - (model.height // 2)
-        return self.canvas_height
+            return self.project_document.height - (model.height // 2)
+        return self.project_document.height
 
     @staticmethod
     def _compute_minimum_y(model):

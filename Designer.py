@@ -6,16 +6,16 @@ from WidgetManager import WidgetManager
 from AttributesPanelManager import AttributesPanelManager
 from ProjectDocument import ProjectDocument
 from DataModels import *
-from Theme import *
 from PIL import ImageTk
 
 class Designer:
-    def __init__(self, parent: tk.Tk, project_document: ProjectDocument, title_bar_height: int, toolbar_height: int, icon: ImageTk.PhotoImage):
+    def __init__(self, parent: tk.Tk, project_document: ProjectDocument, constants: dict, icon: ImageTk.PhotoImage):
         self.parent = parent
         self.project_document = project_document
-        self.title_bar_height = title_bar_height
-        self.toolbar_height = toolbar_height
         self.icon = icon
+        self.constants = constants
+        self.titlebar_height = self.constants["titlebar_height"]
+        self.toolbar_height = self.constants["toolbar_height"]
 
         #last right-click position for insertion
         self.click_x: Optional[int] = None
@@ -29,21 +29,21 @@ class Designer:
 
         #create window
         self.top = tk.Toplevel(parent)
-        self.top.geometry(f"{self.project_document.width}x{(self.project_document.height + self.title_bar_height + self.toolbar_height)}")
+        self.top.geometry(f"{self.project_document.width}x{(self.project_document.height + self.titlebar_height + self.toolbar_height)}")
 
         #create title bar
         self._create_title_bar()
 
         #create main frame that will host canvas frame and attributes panel frame
-        self.main_frame = tk.Frame(self.top, bg=self.project_document.theme["background"]["bg"])
+        self.main_frame = tk.Frame(self.top, bg=self.project_document.theme["background"]["color"])
 
         #create canvas frame
-        self.canvas_frame = tk.Frame(self.main_frame, width=self.project_document.width, height=self.project_document.height, bg=self.project_document.theme["background"]["bg"])
+        self.canvas_frame = tk.Frame(self.main_frame, width=self.project_document.width, height=self.project_document.height, bg=self.project_document.theme["background"]["color"])
         self.canvas_frame.pack(side="left", anchor="nw")
         self.canvas_frame.pack_propagate(False) #keep fixed size
 
         #create attributes panel frame
-        self.attributes_panel_frame = tk.Frame(self.main_frame, width=ATTRIBUTES_PANEL_WIDTH, bg=ATTRIBUTES_PANEL_COLOR)
+        self.attributes_panel_frame = tk.Frame(self.main_frame, width=self.constants["attributes_panel"]["width"], bg=self.project_document.theme["attributes_panel"]["color"])
         self.attributes_panel_frame.pack_propagate(False)
         self.attributes_panel_frame.grid_propagate(False)
 
@@ -51,34 +51,33 @@ class Designer:
         self.canvas_manager = CanvasManager(
             parent=self.canvas_frame,
             project_document=self.project_document,
-            nudge_small=NUDGE_SMALL,
-            nudge_big=NUDGE_BIG
+            nudge_small=self.constants["nudge"]["small"],
+            nudge_big=self.constants["nudge"]["big"]
         )
 
         self.canvas = self.canvas_manager.create_canvas()
 
         #create instance of SelectionManager to store selected widgets
         self.selection_manager = SelectionManager(
-            self.canvas,
-            CTRL_KEY,
-            SELECTION_COLOR,
-            SELECTION_WIDTH,
-            SELECTION_DASH,
-            SELECTION_PADDING,
-            LAST_SELECTED_COLOR
+            canvas=self.canvas,
+            ctrl_key=self.constants["ctrl_key"],
+            selection_width=self.constants["selection"]["width"],
+            selection_dash=self.constants["selection"]["dash"],
+            selection_padding=self.constants["selection"]["padding"],
+            selection_color=self.project_document.theme["selection"]["color"],
+            last_selected_color=self.project_document.theme["selection"]["last_selected_color"]
         )
 
         #create instance of WidgetManager to store created widgets
         self.widget_manager = WidgetManager(
-            self.top,
-            self.canvas,
-            self.project_document,
-            self.selection_manager,
-            self._on_selection_changed,
-            self._group_clamped_delta,
-            self._clamped_delta,
-            panel_update=lambda model:
-            self.attributes_panel_manager.update_variable_from_model(model, ["x", "y"])
+            top=self.top,
+            canvas=self.canvas,
+            project_document=self.project_document,
+            selection_manager=self.selection_manager,
+            sync_callback=self._on_selection_changed,
+            group_clamped_delta=self._group_clamped_delta,
+            clamped_delta=self._clamped_delta,
+            panel_update=lambda widget_model: self.attributes_panel_manager.update_variable_from_model(widget_model, ["x", "y"])
         )
 
         self.canvas_manager.bind_events({
@@ -91,10 +90,11 @@ class Designer:
             "move": self._move_selection,
             "delete": self.widget_manager.delete_selected_widgets,
             "align": self.widget_manager.align,
-            "snap": self.widget_manager.snap_to_grid
+            "snap_to_grid": self.widget_manager.snap_to_grid,
+            "export_json": self.export_json
         })
 
-        #toggle gird if grid is set to visible in project_document
+        #toggle grid if grid is set to visible in project_document
         if self.project_document.grid.visible:
             self.canvas_manager.draw_grid()
 
@@ -102,12 +102,7 @@ class Designer:
         self.toolbar_manager = ToolbarManager(
             parent=self.top,
             height=self.toolbar_height,
-            theme={
-                "toolbar_color": TOOLBAR_COLOR,
-                "button_color": BUTTON_COLOR,
-                "text_color": TEXT_COLOR,
-                "menu_color": MENU_COLOR
-            },
+            theme=self.project_document.theme,
             callbacks={
                 "delete": self.widget_manager.delete_selected_widgets,
                 "snap_to_grid": self.widget_manager.snap_to_grid,
@@ -116,7 +111,8 @@ class Designer:
                 "align_top": lambda: self.widget_manager.align("top"),
                 "align_bottom": lambda: self.widget_manager.align("bottom"),
                 "toggle_grid": self.canvas_manager.toggle_grid,
-                "change_grid_size": self.canvas_manager.change_grid_size
+                "change_grid_size": self.canvas_manager.change_grid_size,
+                "export_json": self.export_json
             }
         )
 
@@ -132,15 +128,10 @@ class Designer:
         self.attributes_panel_manager = AttributesPanelManager(
             root=self.top,
             frame=self.attributes_panel_frame,
-            theme={
-                "background_color": ATTRIBUTES_PANEL_COLOR,
-                "text_color": TEXT_COLOR
-            },
-            canvas_width=self.project_document.width,
-            canvas_height=self.project_document.height,
-            window_height=self.project_document.height + self.title_bar_height + self.toolbar_height,
-            panel_width=ATTRIBUTES_PANEL_WIDTH,
-            panel_height=ATTRIBUTES_PANEL_HEIGHT,
+            project_document=self.project_document,
+            window_height=self.project_document.height + self.titlebar_height + self.toolbar_height,
+            panel_width=self.constants["attributes_panel"]["width"],
+            panel_height=self.constants["attributes_panel"]["height"],
             selection_manager=self.selection_manager,
             widget_manager=self.widget_manager
         )
@@ -150,6 +141,17 @@ class Designer:
         #create widgets for the models from the project_document
         for model in self.project_document.widget_models:
             self.widget_manager.add_widget_from_model(model)
+
+    def export_json(self):
+        from datetime import datetime
+        import json
+        import os
+        now = datetime.now()
+        now_str = now.strftime("%Y%m%d_%H_%M_%S")
+        json_dict = self.project_document.to_json()
+        with open(f"export_{now_str}.txt", "w") as file:
+            file.write(json.dumps(json_dict))
+            os.startfile(f"export_{now_str}.txt")
 
     #create title bar
     def _create_title_bar(self):
@@ -166,31 +168,56 @@ class Designer:
 
         #create custom title bar
         self.top.overrideredirect(True)
-        title_bar = tk.Frame(self.top, height=TITLE_BAR_HEIGHT, bg=TITLE_BAR_COLOR)
+        title_bar = tk.Frame(
+            self.top,
+            height=self.constants["titlebar_height"],
+            bg=self.project_document.theme["titlebar"]["bg"]
+        )
         title_bar.pack(fill="x")
         title_bar.pack_propagate(False)
         title_bar.bind("<Button-1>", start_move)
         title_bar.bind("<B1-Motion>", do_move)
 
         #add icon
-        icon_label = tk.Label(title_bar, image=self.icon, bg=TITLE_BAR_COLOR)
+        icon_label = tk.Label(
+            title_bar,
+            image=self.icon,
+            bg=self.project_document.theme["titlebar"]["bg"]
+        )
         icon_label.pack(side="left", padx=2, pady=2)
         icon_label.bind("<Button-1>", start_move)
         icon_label.bind("<B1-Motion>", do_move)
 
         #add title
-        title_label = tk.Label(title_bar, text=self.project_document.title, bg=TITLE_BAR_COLOR, fg=TITLE_BAR_TEXT_COLOR)
+        title_label = tk.Label(
+            title_bar,
+            text=self.project_document.title,
+            bg=self.project_document.theme["titlebar"]["bg"],
+            fg=self.project_document.theme["titlebar"]["fg"]
+        )
         title_label.pack(side="left")
         title_label.bind("<Button-1>", start_move)
         title_label.bind("<B1-Motion>", do_move)
 
         #add close button
-        close_button = tk.Button(title_bar, text=" X ", bg=TITLE_BAR_COLOR, fg=TITLE_BAR_TEXT_COLOR, relief="flat", command=lambda: self.top.destroy())
+        close_button = tk.Button(
+            title_bar,
+            text=" X ",
+            bg=self.project_document.theme["titlebar"]["bg"],
+            fg=self.project_document.theme["titlebar"]["fg"],
+            relief="flat",
+            command=lambda: self.top.destroy()
+        )
         close_button.pack(side="right")
 
     #create add widget menu
     def _add_widget_menu(self):
-        self.menu = tk.Menu(self.top, bg=TOOLBAR_COLOR, fg=TEXT_COLOR, tearoff=0)
+        self.menu = tk.Menu(
+            self.top,
+            bg=self.project_document.theme["toolbar"]["bg"],
+            fg=self.project_document.theme["toolbar"]["fg"],
+            tearoff=0
+        )
 
         def _pos():
             x = self.click_x if self.click_x is not None else 20

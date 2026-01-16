@@ -2,14 +2,15 @@ import tkinter as tk
 from typing import Dict, Optional, Set
 
 class SelectionManager:
-    def __init__(self, canvas: tk.Canvas, ctrl_key, selection_color, selection_width, selection_dash, selection_padding, last_selected_color):
+    def __init__(self, canvas: tk.Canvas, ctrl_key, selection_width, selection_dash, selection_padding, selection_color, last_selected_color):
         self.canvas = canvas
         self.ctrl_key = ctrl_key
-        self.selection_color = selection_color
         self.selection_width = selection_width
         self.selection_dash = selection_dash
         self.selection_padding = selection_padding
+        self.selection_color = selection_color
         self.last_selected_color = last_selected_color
+
         self._selected: Set[int] = set()          #selected canvas item IDs (window items)
         self._rects: Dict[int, int] = {}          #window_id -> rectangle_id
         self._last_selected = None

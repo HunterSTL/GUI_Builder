@@ -8,6 +8,7 @@ class CanvasManager:
         self.project_document = project_document
         self.nudge_small = nudge_small
         self.nudge_big = nudge_big
+
         self.canvas = None
         self.grid_lines = []
 
@@ -16,7 +17,7 @@ class CanvasManager:
             self.parent,
             width=self.project_document.width,
             height=self.project_document.height,
-            bg=self.project_document.theme["background"]["bg"],
+            bg=self.project_document.theme["background"]["color"],
             highlightthickness=0,
             takefocus=1
         )
@@ -97,4 +98,7 @@ class CanvasManager:
         self.canvas.bind("<Control-g>", lambda e: self.change_grid_size())
 
         #snap selected widgets to grid
-        self.canvas.bind("<Key-s>", lambda e: callbacks["snap"]())
+        self.canvas.bind("<Key-s>", lambda e: callbacks["snap_to_grid"]())
+
+        #export JSON
+        self.canvas.bind("<Control-e>", lambda e: callbacks["export_json"]())
