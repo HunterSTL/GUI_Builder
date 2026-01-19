@@ -124,6 +124,7 @@ class Designer:
                 "align_bottom": lambda: self.widget_manager.align("bottom"),
                 "toggle_grid": self.canvas_manager.toggle_grid,
                 "change_grid_size": self.canvas_manager.change_grid_size,
+                "change_grid_color": self.canvas_manager.change_grid_color,
                 "export_json": self.export_json
             }
         )

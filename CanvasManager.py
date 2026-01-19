@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox, colorchooser
 from ProjectDocument import ProjectDocument
 
 class CanvasManager:
@@ -47,6 +47,11 @@ class CanvasManager:
             self.canvas.delete(line)
         self.grid_lines.clear()
 
+    def refresh_grid(self):
+        if self.project_document.grid.visible:  #redraw grid if it's already shown
+            self.clear_grid()
+            self.draw_grid()
+
     def change_grid_size(self):
         new_grid_size = simpledialog.askinteger("Grid size", "Enter new grid size:", minvalue=5, maxvalue=100, parent=self.parent)
 
@@ -54,10 +59,16 @@ class CanvasManager:
             return
 
         self.project_document.grid.size = new_grid_size
+        self.refresh_grid()
 
-        if self.project_document.grid.visible:  #redraw grid if it's already shown
-            self.clear_grid()
-            self.draw_grid()
+    def change_grid_color(self):
+        if not messagebox.askyesno("Change grid color", "Change grid color?"):
+            self.canvas.focus_set()
+            return
+
+        color = colorchooser.askcolor()[1]
+        self.project_document.grid.color = color
+        self.refresh_grid()
 
     def bind_events(self, callbacks):
         #set focus on canvas when user clicks anywhere on canvas
@@ -96,6 +107,9 @@ class CanvasManager:
 
         #change grid size
         self.canvas.bind("<Control-g>", lambda e: self.change_grid_size())
+
+        #change grid color
+        self.canvas.bind("<Shift-G>", lambda e: self.change_grid_color())
 
         #snap selected widgets to grid
         self.canvas.bind("<Key-s>", lambda e: callbacks["snap_to_grid"]())

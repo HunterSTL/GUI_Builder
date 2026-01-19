@@ -75,6 +75,11 @@ class ToolbarManager:
             command=self.callbacks["change_grid_size"],
             accelerator="[CTRL] + [G]"
         )
+        grid_menu.add_command(
+            label="Change grid color",
+            command=self.callbacks["change_grid_color"],
+            accelerator="[SHIFT] + [G]"
+        )
 
     def _add_export_menu(self):
         export_menu_button = tk.Menubutton(self.toolbar, text="Export", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
