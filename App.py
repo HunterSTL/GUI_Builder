@@ -1,9 +1,10 @@
 import tkinter as tk
-from SetupWizard import SetupWizard
+from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
+from StartupWindow import StartupWindow
 
 def main():
     root = tk.Tk()
-    SetupWizard(root)
+    StartupWindow(root, USER_THEME, PROGRAM_THEME, CONSTANTS)
     root.mainloop()
 
 if __name__ == "__main__":

@@ -1,48 +1,128 @@
-#background
-BACKGROUND_COLOR = "#404040"
+#Initial values for user theme (can be changed in setup wizard)
+user_BACKGROUND_COLOR = "#404040"
+user_TITLEBAR_COLOR = "#202020"
+user_TITLEBAR_TEXT_COLOR = "#FFFFFF"
+user_LABEL_COLOR = "#404040"
+user_LABEL_TEXT_COLOR = "#FFFFFF"
+user_ENTRY_COLOR = "#606060"
+user_ENTRY_TEXT_COLOR = "#FFFFFF"
+user_BUTTON_COLOR = "#505050"
+user_BUTTON_TEXT_COLOR = "#FFFFFF"
 
-#label
-LABEL_COLOR = "#404040"
-LABEL_TEXT_COLOR = "#FFFFFF"
+USER_THEME = {
+    "background": {
+        "color": user_BACKGROUND_COLOR
+    },
+    "titlebar": {
+        "bg": user_TITLEBAR_COLOR,
+        "fg": user_TITLEBAR_TEXT_COLOR
+    },
+    "label": {
+        "bg": user_LABEL_COLOR,
+        "fg": user_LABEL_TEXT_COLOR
+    },
+    "entry": {
+        "bg": user_ENTRY_COLOR,
+        "fg": user_ENTRY_TEXT_COLOR
+    },
+    "button": {
+        "bg": user_BUTTON_COLOR,
+        "fg": user_BUTTON_TEXT_COLOR
+    }
+}
 
-#entry
-ENTRY_COLOR = "#606060"
-ENTRY_TEXT_COLOR = "#FFFFFF"
+#theme for program theme (static)
+program_BACKGROUND_COLOR = "#404040"
+program_TITLEBAR_COLOR = "#202020"
+program_TITLEBAR_TEXT_COLOR = "#FFFFFF"
+program_TOOLBAR_COLOR = "#666666"
+program_TOOLBAR_TEXT_COLOR = "#FFFFFF"
+program_MENU_COLOR = "#666666"
+program_MENU_TEXT_COLOR = "#FFFFFF"
+program_ATTRIBUTES_PANEL_COLOR = "#666666"
+program_ATTRIBUTES_PANEL_WIDGET_COLOR = "#606060"
+program_ATTRIBUTES_PANEL_TEXT_COLOR = "#FFFFFF"
+program_GRID_COLOR = "#888888"
+program_SELECTION_COLOR = "#33A1FD"
+program_LAST_SELECTED_COLOR = "#FF0000"
+program_LABEL_COLOR = "#404040"
+program_LABEL_TEXT_COLOR = "#FFFFFF"
+program_ENTRY_COLOR = "#606060"
+program_ENTRY_TEXT_COLOR = "#FFFFFF"
+program_BUTTON_COLOR = "#505050"
+program_BUTTON_TEXT_COLOR = "#FFFFFF"
 
-#button
-BUTTON_COLOR = "#505050"
-BUTTON_TEXT_COLOR = "#FFFFFF"
+PROGRAM_THEME = {
+    "background": {
+        "color": program_BACKGROUND_COLOR
+    },
+    "titlebar": {
+        "bg": program_TITLEBAR_COLOR,
+        "fg": program_TITLEBAR_TEXT_COLOR
+    },
+    "toolbar": {
+        "bg": program_TOOLBAR_COLOR,
+        "fg": program_TOOLBAR_TEXT_COLOR
+    },
+    "menu": {
+        "bg": program_MENU_COLOR,
+        "fg": program_MENU_TEXT_COLOR
+    },
+    "attributes_panel": {
+        "color": program_ATTRIBUTES_PANEL_COLOR,
+        "widget_color": program_ATTRIBUTES_PANEL_WIDGET_COLOR,
+        "text_color": program_ATTRIBUTES_PANEL_TEXT_COLOR
+    },
+    "grid": {
+        "color": program_GRID_COLOR
+    },
+    "selection": {
+        "color": program_SELECTION_COLOR,
+        "last_selected_color": program_LAST_SELECTED_COLOR
+    },
+    "label": {
+        "bg": program_LABEL_COLOR,
+        "fg": program_LABEL_TEXT_COLOR
+    },
+    "entry": {
+        "bg": program_ENTRY_COLOR,
+        "fg": program_ENTRY_TEXT_COLOR
+    },
+    "button": {
+        "bg": program_BUTTON_COLOR,
+        "fg": program_BUTTON_TEXT_COLOR
+    }
+}
 
-#title bar
-TITLEBAR_COLOR = "#202020"
-TITLEBAR_TEXT_COLOR = "#FFFFFF"
+#constants
 TITLEBAR_HEIGHT = 25
-
-#toolbar
-TOOLBAR_COLOR = "#666666"
-TOOLBAR_TEXT_COLOR = "#FFFFFF"
-MENU_COLOR = "#666666"
 TOOLBAR_HEIGHT = 25
-
-#selection
-SELECTION_COLOR = "#33A1FD"
-LAST_SELECTED_COLOR = "#FF0000"
+ATTRIBUTES_PANEL_WIDTH = 200
+ATTRIBUTES_PANEL_HEIGHT = 500
+NUDGE_SMALL = 1
+NUDGE_BIG = 10
 SELECTION_WIDTH = 2
 SELECTION_DASH = (3, 2)
 SELECTION_PADDING = 3
-
-#nudge steps
-NUDGE_SMALL = 1
-NUDGE_BIG = 10
-
-#grid
-GRID_COLOR = "#888888"
 GRID_SIZE = 10
-
-#attributes panel
-ATTRIBUTES_PANEL_COLOR = "#666666"
-ATTRIBUTES_PANEL_WIDTH = 200
-ATTRIBUTES_PANEL_HEIGHT = 500
-
-#CTRL-Key
 CTRL_KEY = 0x0004
+
+CONSTANTS = {
+    "titlebar_height": TITLEBAR_HEIGHT,
+    "toolbar_height": TOOLBAR_HEIGHT,
+    "attributes_panel": {
+        "width": ATTRIBUTES_PANEL_WIDTH,
+        "height": ATTRIBUTES_PANEL_HEIGHT
+    },
+    "nudge": {
+        "small": NUDGE_SMALL,
+        "big": NUDGE_BIG
+    },
+    "selection": {
+        "width": SELECTION_WIDTH,
+        "dash": SELECTION_DASH,
+        "padding": SELECTION_PADDING
+    },
+    "grid_size": GRID_SIZE,
+    "ctrl_key": CTRL_KEY
+}

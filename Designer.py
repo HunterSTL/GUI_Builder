@@ -9,11 +9,19 @@ from DataModels import *
 from PIL import ImageTk
 
 class Designer:
-    def __init__(self, parent: tk.Tk, project_document: ProjectDocument, constants: dict, icon: ImageTk.PhotoImage):
+    def __init__(
+            self,
+            parent: tk.Toplevel,
+            project_document: ProjectDocument,
+            program_theme: dict,
+            constants: dict,
+            icon: ImageTk.PhotoImage
+        ):
         self.parent = parent
         self.project_document = project_document
-        self.icon = icon
+        self.program_theme = program_theme
         self.constants = constants
+        self.icon = icon
         self.titlebar_height = self.constants["titlebar_height"]
         self.toolbar_height = self.constants["toolbar_height"]
 
@@ -43,7 +51,7 @@ class Designer:
         self.canvas_frame.pack_propagate(False) #keep fixed size
 
         #create attributes panel frame
-        self.attributes_panel_frame = tk.Frame(self.main_frame, width=self.constants["attributes_panel"]["width"], bg=self.project_document.theme["attributes_panel"]["color"])
+        self.attributes_panel_frame = tk.Frame(self.main_frame, width=self.constants["attributes_panel"]["width"], bg=self.program_theme["attributes_panel"]["color"])
         self.attributes_panel_frame.pack_propagate(False)
         self.attributes_panel_frame.grid_propagate(False)
 
@@ -64,8 +72,8 @@ class Designer:
             selection_width=self.constants["selection"]["width"],
             selection_dash=self.constants["selection"]["dash"],
             selection_padding=self.constants["selection"]["padding"],
-            selection_color=self.project_document.theme["selection"]["color"],
-            last_selected_color=self.project_document.theme["selection"]["last_selected_color"]
+            selection_color=self.program_theme["selection"]["color"],
+            last_selected_color=self.program_theme["selection"]["last_selected_color"]
         )
 
         #create instance of WidgetManager to store created widgets
@@ -102,7 +110,11 @@ class Designer:
         self.toolbar_manager = ToolbarManager(
             parent=self.top,
             height=self.toolbar_height,
-            theme=self.project_document.theme,
+            toolbar_color=self.program_theme["toolbar"]["bg"],
+            button_color=self.program_theme["button"]["bg"],
+            button_text_color=self.program_theme["button"]["fg"],
+            menu_color=self.program_theme["menu"]["bg"],
+            menu_text_color=self.program_theme["menu"]["fg"],
             callbacks={
                 "delete": self.widget_manager.delete_selected_widgets,
                 "snap_to_grid": self.widget_manager.snap_to_grid,
@@ -128,10 +140,14 @@ class Designer:
         self.attributes_panel_manager = AttributesPanelManager(
             root=self.top,
             frame=self.attributes_panel_frame,
-            project_document=self.project_document,
+            canvas_width=self.project_document.width,
+            canvas_height=self.project_document.height,
             window_height=self.project_document.height + self.titlebar_height + self.toolbar_height,
             panel_width=self.constants["attributes_panel"]["width"],
             panel_height=self.constants["attributes_panel"]["height"],
+            panel_color=self.program_theme["attributes_panel"]["color"],
+            widget_color=self.program_theme["attributes_panel"]["widget_color"],
+            text_color=self.program_theme["attributes_panel"]["text_color"],
             selection_manager=self.selection_manager,
             widget_manager=self.widget_manager
         )
@@ -171,7 +187,7 @@ class Designer:
         title_bar = tk.Frame(
             self.top,
             height=self.constants["titlebar_height"],
-            bg=self.project_document.theme["titlebar"]["bg"]
+            bg=self.program_theme["titlebar"]["bg"]
         )
         title_bar.pack(fill="x")
         title_bar.pack_propagate(False)
@@ -182,7 +198,7 @@ class Designer:
         icon_label = tk.Label(
             title_bar,
             image=self.icon,
-            bg=self.project_document.theme["titlebar"]["bg"]
+            bg=self.program_theme["titlebar"]["bg"]
         )
         icon_label.pack(side="left", padx=2, pady=2)
         icon_label.bind("<Button-1>", start_move)
@@ -192,8 +208,8 @@ class Designer:
         title_label = tk.Label(
             title_bar,
             text=self.project_document.title,
-            bg=self.project_document.theme["titlebar"]["bg"],
-            fg=self.project_document.theme["titlebar"]["fg"]
+            bg=self.program_theme["titlebar"]["bg"],
+            fg=self.program_theme["titlebar"]["fg"]
         )
         title_label.pack(side="left")
         title_label.bind("<Button-1>", start_move)
@@ -203,8 +219,8 @@ class Designer:
         close_button = tk.Button(
             title_bar,
             text=" X ",
-            bg=self.project_document.theme["titlebar"]["bg"],
-            fg=self.project_document.theme["titlebar"]["fg"],
+            bg=self.program_theme["titlebar"]["bg"],
+            fg=self.program_theme["titlebar"]["fg"],
             relief="flat",
             command=lambda: self.top.destroy()
         )
@@ -214,8 +230,8 @@ class Designer:
     def _add_widget_menu(self):
         self.menu = tk.Menu(
             self.top,
-            bg=self.project_document.theme["toolbar"]["bg"],
-            fg=self.project_document.theme["toolbar"]["fg"],
+            bg=self.program_theme["toolbar"]["bg"],
+            fg=self.program_theme["toolbar"]["fg"],
             tearoff=0
         )
 

@@ -1,16 +1,20 @@
 import tkinter as tk
 
 class ToolbarManager:
-    def __init__(self, parent: tk.Toplevel, height: int, theme: dict, callbacks: dict):
+    def __init__(self, parent: tk.Toplevel, height: int, toolbar_color: str, button_color: str, button_text_color: str, menu_color: str, menu_text_color: str, callbacks: dict):
         self.parent = parent
         self.height = height
-        self.theme = theme
+        self.toolbar_color = toolbar_color
+        self.button_color = button_color
+        self.button_text_color = button_text_color
+        self.menu_color = menu_color
+        self.menu_text_color = menu_text_color
         self.callbacks = callbacks
 
         self.toolbar = None
 
     def create_toolbar(self):
-        self.toolbar = tk.Frame(self.parent, height=self.height, bg=self.theme["toolbar"]["bg"])
+        self.toolbar = tk.Frame(self.parent, height=self.height, bg=self.toolbar_color)
         self.toolbar.pack(side="top", fill="x")
         self.toolbar.pack_propagate(False)
         self._add_widget_menu()
@@ -18,8 +22,8 @@ class ToolbarManager:
         self._add_export_menu()
 
     def _add_widget_menu(self):
-        widget_menu_button = tk.Menubutton(self.toolbar, text="Widgets", bg=self.theme["button"]["bg"], fg=self.theme["button"]["fg"], relief="raised", width=10)
-        widget_menu = tk.Menu(widget_menu_button, bg=self.theme["toolbar"]["menu"], fg=self.theme["toolbar"]["fg"], tearoff=0)
+        widget_menu_button = tk.Menubutton(self.toolbar, text="Widgets", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
+        widget_menu = tk.Menu(widget_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
         widget_menu_button.config(menu=widget_menu)
         widget_menu_button.pack(side="left")
 
@@ -56,8 +60,8 @@ class ToolbarManager:
         )
 
     def _add_grid_menu(self):
-        grid_menu_button = tk.Menubutton(self.toolbar, text="Grid", bg=self.theme["button"]["bg"], fg=self.theme["button"]["fg"], relief="raised", width=10)
-        grid_menu = tk.Menu(grid_menu_button, bg=self.theme["toolbar"]["menu"], fg=self.theme["toolbar"]["fg"], tearoff=0)
+        grid_menu_button = tk.Menubutton(self.toolbar, text="Grid", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
+        grid_menu = tk.Menu(grid_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
         grid_menu_button.config(menu=grid_menu)
         grid_menu_button.pack(side="left")
 
@@ -73,8 +77,8 @@ class ToolbarManager:
         )
 
     def _add_export_menu(self):
-        export_menu_button = tk.Menubutton(self.toolbar, text="Export", bg=self.theme["button"]["bg"], fg=self.theme["button"]["fg"], relief="raised", width=10)
-        export_menu = tk.Menu(export_menu_button, bg=self.theme["toolbar"]["menu"], fg=self.theme["toolbar"]["fg"], tearoff=0)
+        export_menu_button = tk.Menubutton(self.toolbar, text="Export", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
+        export_menu = tk.Menu(export_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
         export_menu_button.config(menu=export_menu)
         export_menu_button.pack(side="left")
 
