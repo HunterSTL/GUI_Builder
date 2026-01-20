@@ -22,12 +22,15 @@ class Designer:
         self.program_theme = program_theme
         self.constants = constants
         self.icon = icon
-        self.titlebar_height = self.constants["titlebar_height"]
-        self.toolbar_height = self.constants["toolbar_height"]
+
+        #app state
+        self._save_path = None
+        self._last_directory = None
+        self._dirty = True
 
         #last right-click position for insertion
-        self.click_x: Optional[int] = None
-        self.click_y: Optional[int] = None
+        self._click_x = None
+        self._click_y = None
 
         #drag state for moving the designer window
         self._drag_start_x = None
@@ -37,9 +40,12 @@ class Designer:
 
         #create window
         self.top = tk.Toplevel(parent)
-        self.top.geometry(f"{self.project_document.width}x{(self.project_document.height + self.titlebar_height + self.toolbar_height)}")
+        titlebar_height = self.constants["titlebar_height"]
+        toolbar_height = self.constants["toolbar_height"]
+        self.top.geometry(f"{self.project_document.width}x{(self.project_document.height + titlebar_height + toolbar_height)}")
 
         #create title bar
+        self.title_label = None
         self._create_title_bar()
 
         #create main frame that will host canvas frame and attributes panel frame
@@ -97,9 +103,11 @@ class Designer:
             },
             "move": self._move_selection,
             "delete": self.widget_manager.delete_selected_widgets,
-            "align": self.widget_manager.align,
             "snap_to_grid": self.widget_manager.snap_to_grid,
-            "export_json": self.export_json
+            "align": self.widget_manager.align,
+            "export_json": self.export_json,
+            "set_dirty": self.set_dirty,
+            "set_clean": self.set_clean
         })
 
         #toggle grid if grid is set to visible in project_document
@@ -109,7 +117,7 @@ class Designer:
         #create instance of ToolbarManager to store theme and function callbacks
         self.toolbar_manager = ToolbarManager(
             parent=self.top,
-            height=self.toolbar_height,
+            height=self.constants["toolbar_height"],
             toolbar_color=self.program_theme["toolbar"]["bg"],
             button_color=self.program_theme["button"]["bg"],
             button_text_color=self.program_theme["button"]["fg"],
@@ -125,7 +133,9 @@ class Designer:
                 "toggle_grid": self.canvas_manager.toggle_grid,
                 "change_grid_size": self.canvas_manager.change_grid_size,
                 "change_grid_color": self.canvas_manager.change_grid_color,
-                "export_json": self.export_json
+                "export_json": self.export_json,
+                "set_dirty": self.set_dirty,
+                "set_clean": self.set_clean
             }
         )
 
@@ -143,7 +153,7 @@ class Designer:
             frame=self.attributes_panel_frame,
             canvas_width=self.project_document.width,
             canvas_height=self.project_document.height,
-            window_height=self.project_document.height + self.titlebar_height + self.toolbar_height,
+            window_height=self.project_document.height + self.constants["titlebar_height"] + self.constants["toolbar_height"],
             panel_width=self.constants["attributes_panel"]["width"],
             panel_height=self.constants["attributes_panel"]["height"],
             panel_color=self.program_theme["attributes_panel"]["color"],
@@ -158,6 +168,18 @@ class Designer:
         #create widgets for the models from the project_document
         for model in self.project_document.widget_models:
             self.widget_manager.add_widget_from_model(model)
+
+    def set_dirty(self):
+        self._dirty = True
+        print("dirty")
+        self.title_label.configure(text=self.project_document.title + "*")
+        self.title_label.update()
+
+    def set_clean(self):
+        self._dirty = False
+        print("clean")
+        self.title_label.configure(text=self.project_document.title)
+        self.title_label.update()
 
     def export_json(self):
         from datetime import datetime
@@ -206,15 +228,15 @@ class Designer:
         icon_label.bind("<B1-Motion>", do_move)
 
         #add title
-        title_label = tk.Label(
+        self.title_label = tk.Label(
             title_bar,
             text=self.project_document.title,
             bg=self.program_theme["titlebar"]["bg"],
             fg=self.program_theme["titlebar"]["fg"]
         )
-        title_label.pack(side="left")
-        title_label.bind("<Button-1>", start_move)
-        title_label.bind("<B1-Motion>", do_move)
+        self.title_label.pack(side="left")
+        self.title_label.bind("<Button-1>", start_move)
+        self.title_label.bind("<B1-Motion>", do_move)
 
         #add close button
         close_button = tk.Button(
@@ -237,8 +259,8 @@ class Designer:
         )
 
         def _pos():
-            x = self.click_x if self.click_x is not None else 20
-            y = self.click_y if self.click_y is not None else 20
+            x = self._click_x if self._click_x is not None else 20
+            y = self._click_y if self._click_y is not None else 20
             return x, y
 
         self.menu.add_command(
@@ -256,7 +278,7 @@ class Designer:
 
     #post context menu
     def _show_menu(self, event):
-        self.click_x, self.click_y = event.x, event.y
+        self._click_x, self._click_y = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
 
     #move selected widgets

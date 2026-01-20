@@ -116,3 +116,7 @@ class CanvasManager:
 
         #export JSON
         self.canvas.bind("<Control-e>", lambda e: callbacks["export_json"]())
+
+        #set dirty/clean
+        self.canvas.bind("<Control-d>", lambda e: callbacks["set_dirty"]())
+        self.canvas.bind("<Control-Shift-D>", lambda e: callbacks["set_clean"]())

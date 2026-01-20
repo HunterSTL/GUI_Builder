@@ -20,6 +20,7 @@ class ToolbarManager:
         self._add_widget_menu()
         self._add_grid_menu()
         self._add_export_menu()
+        self._add_debug_menu()
 
     def _add_widget_menu(self):
         widget_menu_button = tk.Menubutton(self.toolbar, text="Widgets", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
@@ -91,4 +92,21 @@ class ToolbarManager:
             label="Export JSON",
             command=self.callbacks["export_json"],
             accelerator="[CTRL] + [E]"
+        )
+
+    def _add_debug_menu(self):
+        debug_menu_button = tk.Menubutton(self.toolbar, text="Debug", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
+        debug_menu = tk.Menu(debug_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
+        debug_menu_button.config(menu=debug_menu)
+        debug_menu_button.pack(side="left")
+
+        debug_menu.add_command(
+            label="Set dirty",
+            command=self.callbacks["set_dirty"],
+            accelerator="[CTRL] + [D]"
+        )
+        debug_menu.add_command(
+            label="Set clean",
+            command=self.callbacks["set_clean"],
+            accelerator="[CTRL] + [SHIFT] + [D]"
         )
