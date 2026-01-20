@@ -68,7 +68,8 @@ class AttributesPanelManager:
             widget_color: str,
             text_color: str,
             selection_manager,
-            widget_manager
+            widget_manager,
+            set_dirty_callback
         ):
         self.root = root
         self.frame = frame
@@ -82,6 +83,7 @@ class AttributesPanelManager:
         self.text_color = text_color
         self.selection_manager = selection_manager
         self.widget_manager = widget_manager
+        self.set_dirty_callback = set_dirty_callback
 
         self._visible = False
         self.frame.columnconfigure(0, minsize=50)
@@ -168,6 +170,9 @@ class AttributesPanelManager:
 
             #refresh outline
             self.selection_manager.refresh(item_id)
+
+            #set app state to dirty
+            self.set_dirty_callback()
 
         self._variables[attribute] = variable
         variable.trace_add("write", _on_write)

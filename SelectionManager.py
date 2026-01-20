@@ -2,7 +2,17 @@ import tkinter as tk
 from typing import Dict, Optional, Set
 
 class SelectionManager:
-    def __init__(self, canvas: tk.Canvas, ctrl_key, selection_width, selection_dash, selection_padding, selection_color, last_selected_color):
+    def __init__(
+            self,
+            canvas: tk.Canvas,
+            ctrl_key: str,
+            selection_width: int,
+            selection_dash: tuple[int],
+            selection_padding: int,
+            selection_color: str,
+            last_selected_color: str,
+            set_dirty_callback
+        ):
         self.canvas = canvas
         self.ctrl_key = ctrl_key
         self.selection_width = selection_width
@@ -10,6 +20,7 @@ class SelectionManager:
         self.selection_padding = selection_padding
         self.selection_color = selection_color
         self.last_selected_color = last_selected_color
+        self.set_dirty_callback = set_dirty_callback
 
         self._selected: Set[int] = set()          #selected canvas item IDs (window items)
         self._rects: Dict[int, int] = {}          #window_id -> rectangle_id
@@ -189,6 +200,9 @@ class SelectionManager:
             self.refresh(item_id)
 
         self._widget_drag_end = (event.x_root, event.y_root)
+
+        #set app state to dirty
+        self.set_dirty_callback()
         return "break"
 
     def end_widget_drag(self):

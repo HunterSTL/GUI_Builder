@@ -4,14 +4,26 @@ from DataModels import *
 from ProjectDocument import ProjectDocument
 
 class WidgetManager:
-    def __init__(self, top, canvas, project_document: ProjectDocument, selection_manager, sync_callback, group_clamped_delta, clamped_delta, panel_update=None):
+    def __init__(
+            self,
+            top: tk.Toplevel,
+            canvas: tk.Canvas,
+            project_document: ProjectDocument,
+            selection_manager,
+            attributes_panel_callback,
+            group_clamped_delta_callback,
+            clamped_delta_callback,
+            set_dirty_callback,
+            panel_update=None
+        ):
         self.top = top
         self.canvas = canvas
         self.project_document = project_document
         self.selection_manager = selection_manager
-        self.sync_callback = sync_callback
-        self.group_clamped_delta = group_clamped_delta
-        self.clamped_delta = clamped_delta
+        self.attributes_panel_callback = attributes_panel_callback
+        self.group_clamped_delta_callback = group_clamped_delta_callback
+        self.clamped_delta_callback = clamped_delta_callback
+        self.set_dirty_callback = set_dirty_callback
         self.panel_update = panel_update
         self.widget_map = {}
 
@@ -83,6 +95,9 @@ class WidgetManager:
 
         #set focus back to canvas
         self.canvas.focus_set()
+
+        #set app state to dirty
+        self.set_dirty_callback()
         return window_id
 
     #create widget from model
@@ -124,7 +139,9 @@ class WidgetManager:
             self.canvas.move(item_id, dx, dy)           #move widget in canvas
             model.x, model.y = new_x, new_y             #update model data
             self.selection_manager.refresh(item_id)     #update highlight
-        self.sync_callback()
+
+        #set app state to dirty
+        self.set_dirty_callback()
 
     #align selected widgets based on last selected widget
     def align(self, direction: str):
@@ -161,15 +178,17 @@ class WidgetManager:
                     dx, dy = 0, 0
 
                 #clamp to canvas bounds
-                if callable(self.clamped_delta):
-                    dx, dy = self.clamped_delta(item_id, dx, dy)
+                if callable(self.clamped_delta_callback):
+                    dx, dy = self.clamped_delta_callback(item_id, dx, dy)
 
                 #move widget and update model
                 self.canvas.move(item_id, dx, dy)
                 model.x += dx
                 model.y += dy
                 self.selection_manager.refresh(item_id) #update highlight
-        self.sync_callback()
+
+        #set app state to dirty
+        self.set_dirty_callback()
 
     def delete_selected_widgets(self):
         count_selected_widgets = len(self.selection_manager.selected_ids())
@@ -191,9 +210,18 @@ class WidgetManager:
             except ValueError:
                 pass    #model not in project_document
             self.widget_map.pop(item_id, None)                      #delete model from widget map
+
         #clear selection
         self.selection_manager.clear()
-        self.sync_callback()
+
+        #hide attributes panel
+        self.attributes_panel_callback()
+
+        #set focus back to canvas
+        self.canvas.focus_set()
+
+        #set app state to dirty
+        self.set_dirty_callback()
 
     #apply an attribute change from the AttributesPanel to the widget
     def update_widget_attribute(self, item_id, attribute, value):
@@ -239,15 +267,18 @@ class WidgetManager:
         def _on_click(e, i=window_id):
             #start drag
             self.selection_manager.start_widget_drag(e)
+
             #handle widget click (toggle or select_only based on CTRL-Key)
             result = self.selection_manager.handle_widget_click(e, i)
-            self.sync_callback()
+
+            #show attributes panel
+            self.attributes_panel_callback()
             return result
 
         widget.bind("<Button-1>", _on_click)
 
         #move widgets based on mouse movement
-        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.group_clamped_delta, self.panel_update))
+        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.group_clamped_delta_callback, self.panel_update))
 
         #reset drag state
         widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())

@@ -1,7 +1,17 @@
 import tkinter as tk
 
 class ToolbarManager:
-    def __init__(self, parent: tk.Toplevel, height: int, toolbar_color: str, button_color: str, button_text_color: str, menu_color: str, menu_text_color: str, callbacks: dict):
+    def __init__(
+            self,
+            parent: tk.Toplevel,
+            height: int,
+            toolbar_color: str,
+            button_color: str,
+            button_text_color: str,
+            menu_color: str,
+            menu_text_color: str,
+            callbacks: dict
+        ):
         self.parent = parent
         self.height = height
         self.toolbar_color = toolbar_color

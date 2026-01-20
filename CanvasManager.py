@@ -3,11 +3,19 @@ from tkinter import simpledialog, messagebox, colorchooser
 from ProjectDocument import ProjectDocument
 
 class CanvasManager:
-    def __init__(self, parent: tk.Frame, project_document: ProjectDocument, nudge_small: int, nudge_big: int):
+    def __init__(
+            self,
+            parent: tk.Frame,
+            project_document: ProjectDocument,
+            nudge_small: int,
+            nudge_big: int,
+            set_dirty_callback
+        ):
         self.parent = parent
         self.project_document = project_document
         self.nudge_small = nudge_small
         self.nudge_big = nudge_big
+        self.set_dirty_callback = set_dirty_callback
 
         self.canvas = None
         self.grid_lines = []
@@ -33,6 +41,9 @@ class CanvasManager:
             self.draw_grid()
         else:
             self.clear_grid()
+
+        #set app state to dirty
+        self.set_dirty_callback()
 
     def draw_grid(self):
         for x in range(0, self.project_document.width, self.project_document.grid.size):
@@ -61,6 +72,9 @@ class CanvasManager:
         self.project_document.grid.size = new_grid_size
         self.refresh_grid()
 
+        #set app state to dirty
+        self.set_dirty_callback()
+
     def change_grid_color(self):
         if not messagebox.askyesno("Change grid color", "Change grid color?"):
             self.canvas.focus_set()
@@ -69,6 +83,9 @@ class CanvasManager:
         color = colorchooser.askcolor()[1]
         self.project_document.grid.color = color
         self.refresh_grid()
+
+        #set app state to dirty
+        self.set_dirty_callback()
 
     def bind_events(self, callbacks):
         #set focus on canvas when user clicks anywhere on canvas

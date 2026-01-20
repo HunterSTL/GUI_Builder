@@ -5,7 +5,7 @@ from ToolbarManager import ToolbarManager
 from WidgetManager import WidgetManager
 from AttributesPanelManager import AttributesPanelManager
 from ProjectDocument import ProjectDocument
-from DataModels import *
+#from DataModels import *
 from PIL import ImageTk
 
 class Designer:
@@ -66,7 +66,8 @@ class Designer:
             parent=self.canvas_frame,
             project_document=self.project_document,
             nudge_small=self.constants["nudge"]["small"],
-            nudge_big=self.constants["nudge"]["big"]
+            nudge_big=self.constants["nudge"]["big"],
+            set_dirty_callback=self.set_dirty
         )
 
         self.canvas = self.canvas_manager.create_canvas()
@@ -79,7 +80,8 @@ class Designer:
             selection_dash=self.constants["selection"]["dash"],
             selection_padding=self.constants["selection"]["padding"],
             selection_color=self.program_theme["selection"]["color"],
-            last_selected_color=self.program_theme["selection"]["last_selected_color"]
+            last_selected_color=self.program_theme["selection"]["last_selected_color"],
+            set_dirty_callback=self.set_dirty
         )
 
         #create instance of WidgetManager to store created widgets
@@ -88,9 +90,10 @@ class Designer:
             canvas=self.canvas,
             project_document=self.project_document,
             selection_manager=self.selection_manager,
-            sync_callback=self._on_selection_changed,
-            group_clamped_delta=self._group_clamped_delta,
-            clamped_delta=self._clamped_delta,
+            attributes_panel_callback=self._on_selection_changed,
+            group_clamped_delta_callback=self._group_clamped_delta,
+            clamped_delta_callback=self._clamped_delta,
+            set_dirty_callback=self.set_dirty,
             panel_update=lambda widget_model: self.attributes_panel_manager.update_variable_from_model(widget_model, ["x", "y"])
         )
 
@@ -160,7 +163,8 @@ class Designer:
             widget_color=self.program_theme["attributes_panel"]["widget_color"],
             text_color=self.program_theme["attributes_panel"]["text_color"],
             selection_manager=self.selection_manager,
-            widget_manager=self.widget_manager
+            widget_manager=self.widget_manager,
+            set_dirty_callback=self.set_dirty
         )
 
         self._add_widget_menu()
@@ -171,13 +175,11 @@ class Designer:
 
     def set_dirty(self):
         self._dirty = True
-        print("dirty")
         self.title_label.configure(text=self.project_document.title + "*")
         self.title_label.update()
 
     def set_clean(self):
         self._dirty = False
-        print("clean")
         self.title_label.configure(text=self.project_document.title)
         self.title_label.update()
 
