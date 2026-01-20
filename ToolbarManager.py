@@ -27,10 +27,47 @@ class ToolbarManager:
         self.toolbar = tk.Frame(self.parent, height=self.height, bg=self.toolbar_color)
         self.toolbar.pack(side="top", fill="x")
         self.toolbar.pack_propagate(False)
+        self._add_file_menu()
         self._add_widget_menu()
         self._add_grid_menu()
-        self._add_export_menu()
         self._add_debug_menu()
+
+    def _add_file_menu(self):
+        export_menu_button = tk.Menubutton(self.toolbar, text="File", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
+        export_menu = tk.Menu(export_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
+        export_menu_button.config(menu=export_menu)
+        export_menu_button.pack(side="left")
+
+        export_menu.add_command(
+            label="New",
+            command=self.callbacks["new_project"],
+            accelerator="[CTRL] + [N]"
+        )
+        export_menu.add_command(
+            label="Open",
+            command=self.callbacks["open_project"],
+            accelerator="[CTRL] + [O]"
+        )
+        export_menu.add_command(
+            label="Save",
+            command=self.callbacks["save_project"],
+            accelerator="[CTRL] + [S]"
+        )
+        export_menu.add_command(
+            label="Save as",
+            command=self.callbacks["save_project_as"],
+            accelerator="[CTRL] + [SHIFT] + [S]"
+        )
+        export_menu.add_command(
+            label="Export JSON",
+            command=self.callbacks["export_json"],
+            accelerator="[CTRL] + [E]"
+        )
+        export_menu.add_command(
+            label="Exit",
+            command=self.callbacks["exit"],
+            accelerator="[ALT] + [F4]"
+        )
 
     def _add_widget_menu(self):
         widget_menu_button = tk.Menubutton(self.toolbar, text="Widgets", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
@@ -90,18 +127,6 @@ class ToolbarManager:
             label="Change grid color",
             command=self.callbacks["change_grid_color"],
             accelerator="[SHIFT] + [G]"
-        )
-
-    def _add_export_menu(self):
-        export_menu_button = tk.Menubutton(self.toolbar, text="Export", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
-        export_menu = tk.Menu(export_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
-        export_menu_button.config(menu=export_menu)
-        export_menu_button.pack(side="left")
-
-        export_menu.add_command(
-            label="Export JSON",
-            command=self.callbacks["export_json"],
-            accelerator="[CTRL] + [E]"
         )
 
     def _add_debug_menu(self):

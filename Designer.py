@@ -134,9 +134,14 @@ class Designer:
                 "toggle_grid": self.canvas_manager.toggle_grid,
                 "change_grid_size": self.canvas_manager.change_grid_size,
                 "change_grid_color": self.canvas_manager.change_grid_color,
-                "export_json": self.export_json,
                 "set_dirty": self.set_dirty,
-                "set_clean": self.set_clean
+                "set_clean": self.set_clean,
+                "new_project": self.new_project,
+                "open_project": self.open_project,
+                "save_project": self.save_project,
+                "save_project_as": self.save_project_as,
+                "export_json": self.export_json,
+                "exit": self.exit
             }
         )
 
@@ -181,6 +186,18 @@ class Designer:
         self.title_label.configure(text=self.project_document.title)
         self.title_label.update()
 
+    def new_project(self):
+        pass
+
+    def open_project(self):
+        pass
+
+    def save_project(self):
+        pass
+
+    def save_project_as(self):
+        pass
+
     def export_json(self):
         from datetime import datetime
         import json
@@ -191,6 +208,9 @@ class Designer:
         with open(f"export_{now_str}.txt", "w") as file:
             file.write(json.dumps(json_dict))
             os.startfile(f"export_{now_str}.txt")
+
+    def exit(self):
+        pass
 
     #create title bar
     def _create_title_bar(self):
