@@ -10,8 +10,7 @@ class SelectionManager:
             selection_dash: tuple[int],
             selection_padding: int,
             selection_color: str,
-            last_selected_color: str,
-            set_dirty_callback
+            last_selected_color: str
         ):
         self.canvas = canvas
         self.ctrl_key = ctrl_key
@@ -20,7 +19,6 @@ class SelectionManager:
         self.selection_padding = selection_padding
         self.selection_color = selection_color
         self.last_selected_color = last_selected_color
-        self.set_dirty_callback = set_dirty_callback
 
         self._selected: Set[int] = set()          #selected canvas item IDs (window items)
         self._rects: Dict[int, int] = {}          #window_id -> rectangle_id
@@ -176,33 +174,19 @@ class SelectionManager:
         self._widget_drag_end = (event.x_root, event.y_root)
         self._dragging_widgets = False
 
-    def handle_widget_drag(self, event, widget_map, clamped_delta, panel_update=None):
+    def handle_widget_drag(self, event, move_callback):
         if not self._widget_drag_start:
             return "break"
 
         dx, dy = event.x_root - self._widget_drag_end[0], event.y_root - self._widget_drag_end[1]
-        dx, dy = clamped_delta(dx, dy)
 
-        #check drag threshold before moving widgets
         if not self._dragging_widgets:
             self._dragging_widgets = True
 
-        #move selected widgets
-        for item_id in self.selected_ids():
-            self.canvas.move(item_id, dx, dy)
-            model = widget_map.get(item_id)["model"]
-            if model:
-                model.x += dx
-                model.y += dy
-                if panel_update and len(self.selected_ids()) == 1:
-                    panel_update(model)
-
-            self.refresh(item_id)
+        if callable(move_callback):
+            move_callback(dx, dy)
 
         self._widget_drag_end = (event.x_root, event.y_root)
-
-        #set app state to dirty
-        self.set_dirty_callback()
         return "break"
 
     def end_widget_drag(self):

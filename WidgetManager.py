@@ -132,21 +132,27 @@ class WidgetManager:
     #snap selected widgets to grid
     def snap_to_grid(self):
         grid_size = self.project_document.grid.size
-        for item_id in self.selection_manager.selected_ids():
-            model = self.widget_map.get(item_id)["model"]
+        for widget_id in self.selection_manager.selected_ids():
+            model = self.widget_map.get(widget_id)["model"]
             new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
             dx, dy = new_x - model.x, new_y - model.y
-            self.canvas.move(item_id, dx, dy)           #move widget in canvas
-            model.x, model.y = new_x, new_y             #update model data
-            self.selection_manager.refresh(item_id)     #update highlight
+
+            #move widget
+            self.canvas.move(widget_id, dx, dy)
+
+            #update model
+            model.x, model.y = new_x, new_y
+
+            #refresh outline
+            self.selection_manager.refresh(widget_id)
 
         #set app state to dirty
         self.set_dirty_callback()
 
     #align selected widgets based on last selected widget
     def align(self, direction: str):
-        def _bbox(_item_id):
-            bbox = self.canvas.bbox(_item_id)
+        def _bbox(_widget_id):
+            bbox = self.canvas.bbox(_widget_id)
             x1, y1, x2, y2 = bbox
             return {
                 "left": x1,
@@ -162,10 +168,10 @@ class WidgetManager:
 
         reference_model_bbox = _bbox(last_selected_widget)
 
-        for item_id in selected_widgets:
-            if not item_id == last_selected_widget:
-                model = self.widget_map.get(item_id)["model"]
-                model_bbox = _bbox(item_id)
+        for widget_id in selected_widgets:
+            if not widget_id == last_selected_widget:
+                model = self.widget_map.get(widget_id)["model"]
+                model_bbox = _bbox(widget_id)
                 if direction == "left":
                     dx, dy = reference_model_bbox["left"] - model_bbox["left"], 0
                 elif direction == "right":
@@ -179,13 +185,44 @@ class WidgetManager:
 
                 #clamp to canvas bounds
                 if callable(self.clamped_delta_callback):
-                    dx, dy = self.clamped_delta_callback(item_id, dx, dy)
+                    dx, dy = self.clamped_delta_callback(widget_id, dx, dy)
 
-                #move widget and update model
-                self.canvas.move(item_id, dx, dy)
+                #move widget
+                self.canvas.move(widget_id, dx, dy)
+
+                #update model
                 model.x += dx
                 model.y += dy
-                self.selection_manager.refresh(item_id) #update highlight
+
+                #refresh outline
+                self.selection_manager.refresh(widget_id)
+
+        #set app state to dirty
+        self.set_dirty_callback()
+
+    def move_selected_widgets(self, dx: int, dy: int):
+        if callable(self.group_clamped_delta_callback):
+            dx, dy = self.group_clamped_delta_callback(dx, dy)
+
+        selected_widgets = self.selection_manager.selected_ids()
+        if not selected_widgets:
+            return
+
+        for widget_id in selected_widgets:
+            model = self.widget_map.get(widget_id)["model"]
+            #move widget
+            self.canvas.move(widget_id, dx, dy)
+
+            #update model
+            model.x += dx
+            model.y += dy
+
+            #refresh outline
+            self.selection_manager.refresh(widget_id)
+
+            #update attributes panel if only 1 widget is selected
+            if len(selected_widgets) == 1:
+                self.panel_update(model)
 
         #set app state to dirty
         self.set_dirty_callback()
@@ -202,14 +239,14 @@ class WidgetManager:
         if not messagebox.askyesno("Delete", messagebox_text):
             return
 
-        for item_id in [i for i in self.selection_manager.selected_ids() if self.canvas.type(i) == "window"]:
-            self.canvas.delete(item_id)                             #delete widget from canvas
-            model = self.widget_map.get(item_id)["model"]
+        for widget_id in [i for i in self.selection_manager.selected_ids() if self.canvas.type(i) == "window"]:
+            self.canvas.delete(widget_id)                             #delete widget from canvas
+            model = self.widget_map.get(widget_id)["model"]
             try:
                 self.project_document.widget_models.remove(model)   #delete model from project_document
             except ValueError:
                 pass    #model not in project_document
-            self.widget_map.pop(item_id, None)                      #delete model from widget map
+            self.widget_map.pop(widget_id, None)                      #delete model from widget map
 
         #clear selection
         self.selection_manager.clear()
@@ -224,9 +261,9 @@ class WidgetManager:
         self.set_dirty_callback()
 
     #apply an attribute change from the AttributesPanel to the widget
-    def update_widget_attribute(self, item_id, attribute, value):
-        model = self.widget_map.get(item_id)["model"]
-        widget = self.widget_map.get(item_id)["widget"]
+    def update_widget_attribute(self, widget_id, attribute, value):
+        model = self.widget_map.get(widget_id)["model"]
+        widget = self.widget_map.get(widget_id)["widget"]
         if not widget:
             return
 
@@ -237,29 +274,29 @@ class WidgetManager:
                 x, y = model.x, value
             else:
                 return
-            self.canvas.coords(item_id, x, y)
-            self.selection_manager.refresh(item_id) #update selection outline
+            self.canvas.coords(widget_id, x, y)
+            self.selection_manager.refresh(widget_id) #update selection outline
         elif attribute in ("width", "height"):
-            self.canvas.itemconfig(item_id, **{attribute: value})
+            self.canvas.itemconfig(widget_id, **{attribute: value})
             widget.update()
             model.width, model.height = widget.winfo_width(), widget.winfo_height()
-            self.selection_manager.refresh(item_id)
+            self.selection_manager.refresh(widget_id)
         elif attribute == "text":
             widget.config(text=value)
             widget.update()
             model.width, model.height = widget.winfo_width(), widget.winfo_height()
-            self.selection_manager.refresh(item_id)
+            self.selection_manager.refresh(widget_id)
         elif attribute in ("bg", "fg"):
             widget.config(**{attribute: value})
             widget.update()
             model.width, model.height = widget.winfo_width(), widget.winfo_height()
-            self.selection_manager.refresh(item_id)
+            self.selection_manager.refresh(widget_id)
         elif attribute == "anchor":
             try:
-                self.canvas.itemconfig(item_id, anchor=value)
+                self.canvas.itemconfig(widget_id, anchor=value)
             except Exception:
                 widget.config(anchor=value)
-            self.selection_manager.refresh(item_id)
+            self.selection_manager.refresh(widget_id)
         else:
             return
 
@@ -278,7 +315,7 @@ class WidgetManager:
         widget.bind("<Button-1>", _on_click)
 
         #move widgets based on mouse movement
-        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.widget_map, self.group_clamped_delta_callback, self.panel_update))
+        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.move_selected_widgets))
 
         #reset drag state
         widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())

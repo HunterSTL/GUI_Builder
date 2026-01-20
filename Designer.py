@@ -5,7 +5,6 @@ from ToolbarManager import ToolbarManager
 from WidgetManager import WidgetManager
 from AttributesPanelManager import AttributesPanelManager
 from ProjectDocument import ProjectDocument
-#from DataModels import *
 from PIL import ImageTk
 
 class Designer:
@@ -80,8 +79,7 @@ class Designer:
             selection_dash=self.constants["selection"]["dash"],
             selection_padding=self.constants["selection"]["padding"],
             selection_color=self.program_theme["selection"]["color"],
-            last_selected_color=self.program_theme["selection"]["last_selected_color"],
-            set_dirty_callback=self.set_dirty
+            last_selected_color=self.program_theme["selection"]["last_selected_color"]
         )
 
         #create instance of WidgetManager to store created widgets
@@ -104,7 +102,7 @@ class Designer:
                 "drag": self.selection_manager.handle_canvas_drag,
                 "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed)
             },
-            "move": self._move_selection,
+            "move": self.widget_manager.move_selected_widgets,
             "delete": self.widget_manager.delete_selected_widgets,
             "snap_to_grid": self.widget_manager.snap_to_grid,
             "align": self.widget_manager.align,
@@ -282,25 +280,6 @@ class Designer:
     def _show_menu(self, event):
         self._click_x, self._click_y = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
-
-    #move selected widgets
-    def _move_selection(self, dx, dy):
-        if not self.selection_manager:
-            return
-        dx, dy = self._group_clamped_delta(dx, dy)
-        for item_id in self.selection_manager.selected_ids():
-            #move widget in canvas
-            self.canvas.move(item_id, dx, dy)
-
-            #update model data
-            model = self.widget_manager.widget_map.get(item_id)["model"]
-            if model:
-                model.x += dx
-                model.y += dy
-                self.attributes_panel_manager.update_variable_from_model(model, attributes=["x", "y"])
-
-            #update highlight
-            self.selection_manager.refresh(item_id)
 
     #compute clamped delta, so that widget cannot be moved outside the GUI window
     def _group_clamped_delta(self, dx: int, dy: int) -> tuple[int, int]:
