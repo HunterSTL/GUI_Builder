@@ -10,21 +10,15 @@ class WidgetManager:
             canvas: tk.Canvas,
             project_document: ProjectDocument,
             selection_manager,
-            attributes_panel_callback,
-            group_clamped_delta_callback,
-            clamped_delta_callback,
-            set_dirty_callback,
+            callbacks: dict,
             panel_update=None
         ):
         self.top = top
         self.canvas = canvas
         self.project_document = project_document
         self.selection_manager = selection_manager
-        self.attributes_panel_callback = attributes_panel_callback
-        self.group_clamped_delta_callback = group_clamped_delta_callback
-        self.clamped_delta_callback = clamped_delta_callback
-        self.set_dirty_callback = set_dirty_callback
         self.panel_update = panel_update
+        self.callbacks = callbacks
         self.widget_map = {}
 
     #create widget and model based on type
@@ -97,7 +91,7 @@ class WidgetManager:
         self.canvas.focus_set()
 
         #set app state to dirty
-        self.set_dirty_callback()
+        self.callbacks["set_dirty"]()
         return window_id
 
     #create widget from model
@@ -131,8 +125,12 @@ class WidgetManager:
 
     #snap selected widgets to grid
     def snap_to_grid(self):
+        selected_widgets = self.selection_manager.selected_ids()
+        if not selected_widgets:
+            return
+
         grid_size = self.project_document.grid.size
-        for widget_id in self.selection_manager.selected_ids():
+        for widget_id in selected_widgets:
             model = self.widget_map.get(widget_id)["model"]
             new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
             dx, dy = new_x - model.x, new_y - model.y
@@ -147,7 +145,7 @@ class WidgetManager:
             self.selection_manager.refresh(widget_id)
 
         #set app state to dirty
-        self.set_dirty_callback()
+        self.callbacks["set_dirty"]()
 
     #align selected widgets based on last selected widget
     def align(self, direction: str):
@@ -163,7 +161,7 @@ class WidgetManager:
 
         selected_widgets = self.selection_manager.selected_ids()
         last_selected_widget = self.selection_manager.last_selected_id()
-        if last_selected_widget is None:
+        if not last_selected_widget:
             return
 
         reference_model_bbox = _bbox(last_selected_widget)
@@ -184,8 +182,8 @@ class WidgetManager:
                     dx, dy = 0, 0
 
                 #clamp to canvas bounds
-                if callable(self.clamped_delta_callback):
-                    dx, dy = self.clamped_delta_callback(widget_id, dx, dy)
+                if callable(self.callbacks["clamped_delta"]["single"]):
+                    dx, dy = self.callbacks["clamped_delta"]["single"](widget_id, dx, dy)
 
                 #move widget
                 self.canvas.move(widget_id, dx, dy)
@@ -198,11 +196,11 @@ class WidgetManager:
                 self.selection_manager.refresh(widget_id)
 
         #set app state to dirty
-        self.set_dirty_callback()
+        self.callbacks["set_dirty"]()
 
     def move_selected_widgets(self, dx: int, dy: int):
-        if callable(self.group_clamped_delta_callback):
-            dx, dy = self.group_clamped_delta_callback(dx, dy)
+        if callable(self.callbacks["clamped_delta"]["group"]):
+            dx, dy = self.callbacks["clamped_delta"]["group"](dx, dy)
 
         selected_widgets = self.selection_manager.selected_ids()
         if not selected_widgets:
@@ -225,7 +223,7 @@ class WidgetManager:
                 self.panel_update(model)
 
         #set app state to dirty
-        self.set_dirty_callback()
+        self.callbacks["set_dirty"]()
 
     def delete_selected_widgets(self):
         count_selected_widgets = len(self.selection_manager.selected_ids())
@@ -252,13 +250,13 @@ class WidgetManager:
         self.selection_manager.clear()
 
         #hide attributes panel
-        self.attributes_panel_callback()
+        self.callbacks["attributes_panel"]()
 
         #set focus back to canvas
         self.canvas.focus_set()
 
         #set app state to dirty
-        self.set_dirty_callback()
+        self.callbacks["set_dirty"]()
 
     #apply an attribute change from the AttributesPanel to the widget
     def update_widget_attribute(self, widget_id, attribute, value):
@@ -309,7 +307,7 @@ class WidgetManager:
             result = self.selection_manager.handle_widget_click(e, i)
 
             #show attributes panel
-            self.attributes_panel_callback()
+            self.callbacks["attributes_panel"]()
             return result
 
         widget.bind("<Button-1>", _on_click)

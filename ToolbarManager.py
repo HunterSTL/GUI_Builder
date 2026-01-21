@@ -38,34 +38,36 @@ class ToolbarManager:
         export_menu_button.config(menu=export_menu)
         export_menu_button.pack(side="left")
 
+        #project events
+        project_callbacks = self.callbacks["project"]
         export_menu.add_command(
             label="New",
-            command=self.callbacks["new_project"],
+            command=project_callbacks["new"],
             accelerator="[CTRL] + [N]"
         )
         export_menu.add_command(
             label="Open",
-            command=self.callbacks["open_project"],
+            command=project_callbacks["open"],
             accelerator="[CTRL] + [O]"
         )
         export_menu.add_command(
             label="Save",
-            command=self.callbacks["save_project"],
+            command=project_callbacks["save"],
             accelerator="[CTRL] + [S]"
         )
         export_menu.add_command(
             label="Save as",
-            command=self.callbacks["save_project_as"],
+            command=project_callbacks["save_as"],
             accelerator="[CTRL] + [SHIFT] + [S]"
         )
         export_menu.add_command(
             label="Export JSON",
-            command=self.callbacks["export_json"],
+            command=project_callbacks["export_json"],
             accelerator="[CTRL] + [E]"
         )
         export_menu.add_command(
             label="Exit",
-            command=self.callbacks["exit"],
+            command=project_callbacks["exit"],
             accelerator="[ALT] + [F4]"
         )
 
@@ -75,35 +77,36 @@ class ToolbarManager:
         widget_menu_button.config(menu=widget_menu)
         widget_menu_button.pack(side="left")
 
-        #use callbacks for actions
+        #widget events
+        widget_callbacks = self.callbacks["widget"]
         widget_menu.add_command(
             label="Delete",
-            command=self.callbacks["delete"],
+            command=widget_callbacks["delete"],
             accelerator="[Del]"
         )
         widget_menu.add_command(
             label="Snap to grid",
-            command=self.callbacks["snap_to_grid"],
+            command=widget_callbacks["snap_to_grid"],
             accelerator="[S]"
         )
         widget_menu.add_command(
             label="Align left",
-            command=self.callbacks["align_left"],
+            command=widget_callbacks["align_left"],
             accelerator="[CTRL] + [←]"
         )
         widget_menu.add_command(
             label="Align right",
-            command=self.callbacks["align_right"],
+            command=widget_callbacks["align_right"],
             accelerator="[CTRL] + [→]"
         )
         widget_menu.add_command(
             label="Align top",
-            command=self.callbacks["align_top"],
+            command=widget_callbacks["align_top"],
             accelerator="[CTRL] + [↑]"
         )
         widget_menu.add_command(
             label="Align bottom",
-            command=self.callbacks["align_bottom"],
+            command=widget_callbacks["align_bottom"],
             accelerator="[CTRL] + [↓]"
         )
 
@@ -113,19 +116,21 @@ class ToolbarManager:
         grid_menu_button.config(menu=grid_menu)
         grid_menu_button.pack(side="left")
 
+        #grid events
+        grid_callbacks = self.callbacks["grid"]
         grid_menu.add_checkbutton(
             label="Visualize grid",
-            command=self.callbacks["toggle_grid"],
+            command=grid_callbacks["toggle"],
             accelerator="[G]"
         )
         grid_menu.add_command(
             label="Change grid size",
-            command=self.callbacks["change_grid_size"],
+            command=grid_callbacks["change_size"],
             accelerator="[CTRL] + [G]"
         )
         grid_menu.add_command(
             label="Change grid color",
-            command=self.callbacks["change_grid_color"],
+            command=grid_callbacks["change_color"],
             accelerator="[SHIFT] + [G]"
         )
 
@@ -135,6 +140,7 @@ class ToolbarManager:
         debug_menu_button.config(menu=debug_menu)
         debug_menu_button.pack(side="left")
 
+        #set dirty/clean
         debug_menu.add_command(
             label="Set dirty",
             command=self.callbacks["set_dirty"],

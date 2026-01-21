@@ -22,6 +22,9 @@ class Designer:
         self.constants = constants
         self.icon = icon
 
+        #shared mutable callbacks dictionary
+        self.callbacks = {}
+
         #app state
         self._save_path = None
         self._last_directory = None
@@ -66,7 +69,7 @@ class Designer:
             project_document=self.project_document,
             nudge_small=self.constants["nudge"]["small"],
             nudge_big=self.constants["nudge"]["big"],
-            set_dirty_callback=self.set_dirty
+            callbacks=self.callbacks
         )
 
         self.canvas = self.canvas_manager.create_canvas()
@@ -88,70 +91,9 @@ class Designer:
             canvas=self.canvas,
             project_document=self.project_document,
             selection_manager=self.selection_manager,
-            attributes_panel_callback=self._on_selection_changed,
-            group_clamped_delta_callback=self._group_clamped_delta,
-            clamped_delta_callback=self._clamped_delta,
-            set_dirty_callback=self.set_dirty,
+            callbacks=self.callbacks,
             panel_update=lambda widget_model: self.attributes_panel_manager.update_variable_from_model(widget_model, ["x", "y"])
         )
-
-        self.canvas_manager.bind_events({
-            "show_menu": self._show_menu,
-            "selection": {
-                "press": self.selection_manager.handle_canvas_press,
-                "drag": self.selection_manager.handle_canvas_drag,
-                "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed)
-            },
-            "move": self.widget_manager.move_selected_widgets,
-            "delete": self.widget_manager.delete_selected_widgets,
-            "snap_to_grid": self.widget_manager.snap_to_grid,
-            "align": self.widget_manager.align,
-            "export_json": self.export_json,
-            "set_dirty": self.set_dirty,
-            "set_clean": self.set_clean
-        })
-
-        #toggle grid if grid is set to visible in project_document
-        if self.project_document.grid.visible:
-            self.canvas_manager.draw_grid()
-
-        #create instance of ToolbarManager to store theme and function callbacks
-        self.toolbar_manager = ToolbarManager(
-            parent=self.top,
-            height=self.constants["toolbar_height"],
-            toolbar_color=self.program_theme["toolbar"]["bg"],
-            button_color=self.program_theme["button"]["bg"],
-            button_text_color=self.program_theme["button"]["fg"],
-            menu_color=self.program_theme["menu"]["bg"],
-            menu_text_color=self.program_theme["menu"]["fg"],
-            callbacks={
-                "delete": self.widget_manager.delete_selected_widgets,
-                "snap_to_grid": self.widget_manager.snap_to_grid,
-                "align_left": lambda: self.widget_manager.align("left"),
-                "align_right": lambda: self.widget_manager.align("right"),
-                "align_top": lambda: self.widget_manager.align("top"),
-                "align_bottom": lambda: self.widget_manager.align("bottom"),
-                "toggle_grid": self.canvas_manager.toggle_grid,
-                "change_grid_size": self.canvas_manager.change_grid_size,
-                "change_grid_color": self.canvas_manager.change_grid_color,
-                "set_dirty": self.set_dirty,
-                "set_clean": self.set_clean,
-                "new_project": self.new_project,
-                "open_project": self.open_project,
-                "save_project": self.save_project,
-                "save_project_as": self.save_project_as,
-                "export_json": self.export_json,
-                "exit": self.exit
-            }
-        )
-
-        self.toolbar_manager.create_toolbar()
-
-        #pack content frame after creating toolbar so the toolbar is on top
-        self.main_frame.pack(side="top", fill="both", expand=True)
-
-        #pack canvas after creating toolbar so the toolbar is on top
-        self.canvas_manager.pack_canvas()
 
         #create instance of AttributesPanelManager to show/hide the attribute panel for a selected widget
         self.attributes_panel_manager = AttributesPanelManager(
@@ -167,10 +109,78 @@ class Designer:
             text_color=self.program_theme["attributes_panel"]["text_color"],
             selection_manager=self.selection_manager,
             widget_manager=self.widget_manager,
-            set_dirty_callback=self.set_dirty
+            callbacks=self.callbacks
         )
 
+        #create instance of ToolbarManager to store theme and function callbacks
+        self.toolbar_manager = ToolbarManager(
+            parent=self.top,
+            height=self.constants["toolbar_height"],
+            toolbar_color=self.program_theme["toolbar"]["bg"],
+            button_color=self.program_theme["button"]["bg"],
+            button_text_color=self.program_theme["button"]["fg"],
+            menu_color=self.program_theme["menu"]["bg"],
+            menu_text_color=self.program_theme["menu"]["fg"],
+            callbacks=self.callbacks
+        )
+
+        #create shared callback dictionary
+        self.callbacks.update({
+            "show_menu": self._show_menu,
+            "selection": {
+                "press": self.selection_manager.handle_canvas_press,
+                "drag": self.selection_manager.handle_canvas_drag,
+                "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed)
+            },
+            "project": {
+                "new": self.new_project,
+                "open": self.open_project,
+                "save": self.save_project,
+                "save_as": self.save_project_as,
+                "export_json": self.export_json,
+                "exit": self.exit
+            },
+            "widget": {
+                "move": self.widget_manager.move_selected_widgets,
+                "snap_to_grid": self.widget_manager.snap_to_grid,
+                "delete": self.widget_manager.delete_selected_widgets,
+                "align_left": lambda: self.widget_manager.align("left"),
+                "align_right": lambda: self.widget_manager.align("right"),
+                "align_top": lambda: self.widget_manager.align("top"),
+                "align_bottom": lambda: self.widget_manager.align("bottom")
+            },
+            "grid": {
+                "toggle": self.canvas_manager.toggle_grid,
+                "change_size": self.canvas_manager.change_grid_size,
+                "change_color": self.canvas_manager.change_grid_color
+            },
+            "clamped_delta": {
+                "group": self._group_clamped_delta,
+                "single": self._clamped_delta
+            },
+            "attributes_panel": self._on_selection_changed,
+            "set_dirty": self.set_dirty,
+            "set_clean": self.set_clean
+        })
+
+        #toggle grid if grid is set to visible in project_document
+        if self.project_document.grid.visible:
+            self.canvas_manager.draw_grid()
+
+        #create toolbar
+        self.toolbar_manager.create_toolbar()
+
+        #pack content frame after creating toolbar so the toolbar is on top
+        self.main_frame.pack(side="top", fill="both", expand=True)
+
+        #pack canvas after creating toolbar so the toolbar is on top
+        self.canvas_manager.pack_canvas()
+
+        #create context menu for creating new widgets
         self._add_widget_menu()
+
+        #bind events to keybinds
+        self.canvas_manager.bind_events()
 
         #create widgets for the models from the project_document
         for model in self.project_document.widget_models:
@@ -187,16 +197,16 @@ class Designer:
         self.title_label.update()
 
     def new_project(self):
-        pass
+        print("new")
 
     def open_project(self):
-        pass
+        print("open")
 
     def save_project(self):
-        pass
+        print("save")
 
     def save_project_as(self):
-        pass
+        print("save_as")
 
     def export_json(self):
         from datetime import datetime
@@ -210,7 +220,7 @@ class Designer:
             os.startfile(f"export_{now_str}.txt")
 
     def exit(self):
-        pass
+        print("exit")
 
     #create title bar
     def _create_title_bar(self):
