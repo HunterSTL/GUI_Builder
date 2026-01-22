@@ -67,7 +67,7 @@ class ToolbarManager:
         )
         export_menu.add_command(
             label="Exit",
-            command=project_callbacks["exit"],
+            command=project_callbacks["exit_app"],
             accelerator="[ALT] + [F4]"
         )
 

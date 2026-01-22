@@ -10,25 +10,22 @@ from PIL import ImageTk
 class Designer:
     def __init__(
             self,
-            parent: tk.Toplevel,
+            parent: tk.Tk,
             project_document: ProjectDocument,
+            icon: ImageTk.PhotoImage,
             program_theme: dict,
             constants: dict,
-            icon: ImageTk.PhotoImage
+            project_callbacks: dict
         ):
         self.parent = parent
         self.project_document = project_document
+        self.icon = icon
         self.program_theme = program_theme
         self.constants = constants
-        self.icon = icon
+        self.project_callbacks = project_callbacks
 
         #shared mutable callbacks dictionary
         self.callbacks = {}
-
-        #app state
-        self._save_path = None
-        self._last_directory = None
-        self._dirty = True
 
         #last right-click position for insertion
         self._click_x = None
@@ -39,6 +36,9 @@ class Designer:
         self._drag_start_y = None
         self._win_x = None
         self._win_y = None
+
+        #app state
+        self._dirty = False
 
         #create window
         self.top = tk.Toplevel(parent)
@@ -132,14 +132,7 @@ class Designer:
                 "drag": self.selection_manager.handle_canvas_drag,
                 "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed)
             },
-            "project": {
-                "new": self.new_project,
-                "open": self.open_project,
-                "save": self.save_project,
-                "save_as": self.save_project_as,
-                "export_json": self.export_json,
-                "exit": self.exit
-            },
+            "project": self.project_callbacks,
             "widget": {
                 "move": self.widget_manager.move_selected_widgets,
                 "snap_to_grid": self.widget_manager.snap_to_grid,
@@ -186,6 +179,9 @@ class Designer:
         for model in self.project_document.widget_models:
             self.widget_manager.add_widget_from_model(model)
 
+    def is_dirty(self):
+        return self._dirty
+
     def set_dirty(self):
         self._dirty = True
         self.title_label.configure(text=self.project_document.title + "*")
@@ -195,32 +191,6 @@ class Designer:
         self._dirty = False
         self.title_label.configure(text=self.project_document.title)
         self.title_label.update()
-
-    def new_project(self):
-        print("new")
-
-    def open_project(self):
-        print("open")
-
-    def save_project(self):
-        print("save")
-
-    def save_project_as(self):
-        print("save_as")
-
-    def export_json(self):
-        from datetime import datetime
-        import json
-        import os
-        now = datetime.now()
-        now_str = now.strftime("%Y%m%d_%H_%M_%S")
-        json_dict = self.project_document.to_json()
-        with open(f"export_{now_str}.txt", "w") as file:
-            file.write(json.dumps(json_dict))
-            os.startfile(f"export_{now_str}.txt")
-
-    def exit(self):
-        print("exit")
 
     #create title bar
     def _create_title_bar(self):
@@ -275,7 +245,7 @@ class Designer:
             bg=self.program_theme["titlebar"]["bg"],
             fg=self.program_theme["titlebar"]["fg"],
             relief="flat",
-            command=lambda: self.top.destroy()
+            command=self.project_callbacks["exit_app"]
         )
         close_button.pack(side="right")
 

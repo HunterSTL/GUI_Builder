@@ -1,7 +1,6 @@
 import os
 import tkinter as tk
 from tkinter import colorchooser, messagebox, filedialog
-from Designer import Designer
 from PIL import Image, ImageTk
 from ProjectDocument import *
 
@@ -21,20 +20,24 @@ class SetupWizard:
             root: tk.Toplevel,
             user_theme: dict,
             program_theme: dict,
-            constants: dict
+            constants: dict,
+            on_done_callback
         ):
         self.root = root
         self.user_theme = user_theme
         self.program_theme = program_theme
         self.constants = constants
-        self.root.config(bg=self.program_theme["background"]["color"])
-        self.root.title("Tkinter GUI Builder – Setup")
+        self.on_done_callback = on_done_callback
 
         self.icon = None
         self._win_x = None
         self._win_y = None
         self._drag_start_x = None
         self._drag_start_y = None
+
+        #set title and bg color
+        self.root.config(bg=self.program_theme["background"]["color"])
+        self.root.title("Tkinter GUI Builder – Setup")
 
         self._create_title_bar()
         self._build_setup_ui()
@@ -104,7 +107,7 @@ class SetupWizard:
         label_background_color.grid(row=3, column=0, padx=5, sticky="W")
         self.label_example_background = tk.Label(self.root, bg=self.user_theme["background"]["color"])
         self.label_example_background.grid(row=3, column=1, columnspan=2, padx=1, sticky="EW")
-        button_background_color = tk.Button(self.root, text="Select", bg=self.program_theme["button"]["bg"], fg=self.program_theme["button"]["fg"], command=lambda: self.choose_color("background", "bg"))
+        button_background_color = tk.Button(self.root, text="Select", bg=self.program_theme["button"]["bg"], fg=self.program_theme["button"]["fg"], command=lambda: self.choose_color("background", "color"))
         button_background_color.grid(row=3, column=3, padx=5, pady=2, sticky="EW")
 
         #label colors
@@ -169,9 +172,18 @@ class SetupWizard:
     #actions
     def choose_color(self, element_type: str, attribute: str):
         color = colorchooser.askcolor()[1]
-        if color:
-            self.user_theme[element_type][attribute] = color
-            self.example_widgets[element_type].config({attribute: color})
+        if not color:
+            return
+
+        #update user theme
+        self.user_theme[element_type][attribute] = color
+
+        #update the example widget
+        example_widget = self.example_widgets[element_type]
+        if element_type == "background" and attribute == "color":
+            example_widget.config(bg=color)
+        else:
+            example_widget.config({attribute: color})
 
     def select_icon(self):
         file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg *.ico")])
@@ -190,17 +202,14 @@ class SetupWizard:
             return
 
         if int(width_str) < 200 or int(height_str) < 200:
-            messagebox.showerror("Input Error", "Minimum window size: 200 x 200 pixels")
+            messagebox.showerror("Input Error", "Minimum window size: 200 x 200 pixels!")
             return
 
         title = self.entry_window_title.get()
         width = int(width_str)
         height = int(height_str)
 
-        #hide setup window
-        self.root.withdraw()
-
-        project_doc = ProjectDocument(
+        project_document = ProjectDocument(
             version=1,
             title=title,
             width=width,
@@ -214,10 +223,9 @@ class SetupWizard:
             widget_models=[]
         )
 
-        Designer(
-            parent=self.root,
-            project_document=project_doc,
-            program_theme=self.program_theme,
-            constants=self.constants,
-            icon=self.icon
-        )
+        #hand the project_document back to the AppController
+        if callable(self.on_done_callback):
+            self.on_done_callback(project_document, self.icon)
+
+        #close wizard window
+        self.root.destroy()
