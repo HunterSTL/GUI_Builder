@@ -21,8 +21,8 @@ class ProjectDocument:
     def to_json(self) -> dict:
         return asdict(self)
 
-    @staticmethod
-    def from_json(data: dict) -> "ProjectDocument":
+    @classmethod
+    def from_json(cls, data: dict) -> "ProjectDocument":
         grid_data = data.get("grid", {})
         grid = GridConfig(
             size=int(grid_data.get("size", 10)),

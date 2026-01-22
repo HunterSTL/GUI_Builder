@@ -1,4 +1,5 @@
 import tkinter as tk
+from ProjectDocument import ProjectDocument
 from tkinter import messagebox, filedialog
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
@@ -116,7 +117,7 @@ class AppController:
         }
 
     def _fresh_user_theme(self):
-        #shallow copy works fine for dicts with 1 level; switch to deepcopy for nested structures
+        #return a shallow copy of the user them; works fine for dicts with 1 level (currently)
         return {key: value.copy() for key, value in self._user_theme.items()}
 
     def _launch_designer_from_project_document(self, project_document, icon):
@@ -145,7 +146,6 @@ class AppController:
             return "SAVE"
         else:
             return "DISCARD"
-
 
     def new_project(self):
         #prompt user intent
@@ -177,7 +177,42 @@ class AppController:
         )
 
     def open_project(self):
-        print("open")
+        #prompt user intent
+        user_intent = self.prompt_unsaved_changes()
+
+        if user_intent == "CANCEL":
+            return
+
+        if user_intent == "SAVE":
+            self.save_project()
+
+        #let user choose .tkui file
+        file_path = filedialog.askopenfilename(filetypes=[("Tk user interface file", "*.tkui")])
+
+        if not file_path:
+            return
+
+        #read file contents
+        with open(file_path, "r") as file:
+            file_contents = file.read()
+
+        #try to convert file contents back into dictionary
+        try:
+            dictionary = eval(file_contents)    #dangerous: code injection possible
+        except Exception as e:
+            messagebox.showerror("Open project", f"Error while trying to load .tkui file:\n{e}")
+            return
+
+        #build a ProjectDocument from the dictionary
+        project_document = ProjectDocument.from_json(dictionary)
+
+        #let AppController keep track of save path and last directory
+        self._save_path = file_path
+        last_slash_index = self._save_path.rindex("/")
+        self._last_directory = self._save_path[:last_slash_index]
+
+        #launch designer
+        self._launch_designer_from_project_document(project_document, None)
 
     def save_project(self):
         #use save_project_as() if save path is empty

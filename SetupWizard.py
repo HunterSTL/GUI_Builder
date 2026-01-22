@@ -189,11 +189,14 @@ class SetupWizard:
 
     def select_icon(self):
         file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg *.ico")])
-        if file_path:
-            icon = load_icon(file_path, (20, 20))
-            if icon is not None:
-                self.icon = icon
-                self.label_icon_preview.config(image=self.icon)
+
+        if not file_path:
+            return
+
+        icon = load_icon(file_path, (20, 20))
+        if icon:
+            self.icon = icon
+            self.label_icon_preview.config(image=self.icon)
 
     def build_project_document(self):
         width_str = self.entry_window_width.get()
