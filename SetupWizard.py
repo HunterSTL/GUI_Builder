@@ -21,13 +21,15 @@ class SetupWizard:
             user_theme: dict,
             program_theme: dict,
             constants: dict,
-            on_done_callback
+            on_done_callback,
+            exit_callback
         ):
         self.root = root
         self.user_theme = user_theme
         self.program_theme = program_theme
         self.constants = constants
         self.on_done_callback = on_done_callback
+        self.exit_callback = exit_callback
 
         self.icon = None
         self._win_x = None
@@ -78,7 +80,7 @@ class SetupWizard:
         title_label.bind("<B1-Motion>", do_move)
 
         #add close button
-        close_button = tk.Button(title_bar, text=" X ", bg=self.program_theme["titlebar"]["bg"], fg=self.program_theme["titlebar"]["fg"], relief="flat", command=lambda: self.root.destroy())
+        close_button = tk.Button(title_bar, text=" X ", bg=self.program_theme["titlebar"]["bg"], fg=self.program_theme["titlebar"]["fg"], relief="flat", command=self.exit_callback)
         close_button.pack(side="right")
 
     #build setup UI

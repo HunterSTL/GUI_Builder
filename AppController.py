@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
 from Designer import Designer
@@ -66,11 +66,11 @@ class AppController:
             bg=self.program_theme["titlebar"]["bg"],
             fg=self.program_theme["titlebar"]["fg"],
             relief="flat",
-            command=lambda: self.root.destroy()
+            command=self.exit_app
         )
         close_button.pack(side="right")
 
-    #build setup UI
+    #build startup UI
     def _build_startup_ui(self):
         #open project button
         button_open_project = tk.Button(
@@ -79,7 +79,7 @@ class AppController:
             width=10,
             bg=self.program_theme["button"]["bg"],
             fg=self.program_theme["button"]["fg"],
-            command=lambda: self.open_project()
+            command=self.open_project
         )
         button_open_project.pack()
 
@@ -90,7 +90,7 @@ class AppController:
             width=10,
             bg=self.program_theme["button"]["bg"],
             fg=self.program_theme["button"]["fg"],
-            command=lambda: self.new_project()
+            command=self.new_project
         )
         button_new_project.pack()
 
@@ -101,7 +101,7 @@ class AppController:
             width=10,
             bg=self.program_theme["button"]["bg"],
             fg=self.program_theme["button"]["fg"],
-            command=lambda: self.exit_app()
+            command=self.exit_app
         )
         button_exit.pack()
 
@@ -148,6 +148,7 @@ class AppController:
 
 
     def new_project(self):
+        #prompt user intent
         user_intent = self.prompt_unsaved_changes()
 
         if user_intent == "CANCEL":
@@ -156,32 +157,84 @@ class AppController:
         if user_intent == "SAVE":
             self.save_project()
 
-        self.root.withdraw()                    #hide startup window
-
-        if self.designer:                       #hide designer
+        #destroy designer window
+        if self.designer:
             self.designer.top.destroy()
             self.designer = None
 
-        setup_window = tk.Toplevel(self.root)   #create the setup wizard as a child
+        #hide startup window
+        self.root.withdraw()
+
+        #create the setup wizard as a child
+        setup_window = tk.Toplevel(self.root)
         SetupWizard(
             root=setup_window,
             user_theme=self._fresh_user_theme(),
             program_theme=self.program_theme,
             constants=self.constants,
-            on_done_callback=self._launch_designer_from_project_document
+            on_done_callback=self._launch_designer_from_project_document,
+            exit_callback=self.exit_app
         )
 
     def open_project(self):
         print("open")
 
     def save_project(self):
-        print("save")
+        #use save_project_as() if save path is empty
+        if not self._save_path:
+            self.save_project_as()
+            return
+
+        #open .tkui file in write mode
+        with open(self._save_path, "w") as file:
+            file.write(str(self.designer.project_document.to_json()))
+
+        #set app state to clean
+        self.designer.set_clean()
 
     def save_project_as(self):
-        print("save_as")
+        #create .tkui file
+        file = filedialog.asksaveasfile(
+            title="Save as",
+            mode="w",
+            filetypes=[("Tk user interface file", "*.tkui")],
+            defaultextension=".tkui",
+            initialdir=self._last_directory
+        )
+
+        #abort if user pressed cancel
+        if file is None:
+            return
+
+        #write the contents of the ProjectDocument into the created file and close it
+        file.write(str(self.designer.project_document.to_json()))
+        file.close()
+
+        #let AppController keep track of save path and last directory
+        self._save_path = file.name
+        last_slash_index = self._save_path.rindex("/")
+        self._last_directory = self._save_path[:last_slash_index]
+
+        #set app state to clean
+        self.designer.set_clean()
 
     def export_json(self):
         print("export_json")
 
     def exit_app(self):
-        print("exit_app")
+        #prompt user intent
+        user_intent = self.prompt_unsaved_changes()
+
+        if user_intent == "CANCEL":
+            return
+
+        if user_intent == "SAVE":
+            self.save_project()
+
+        #destroy designer window
+        if self.designer:
+            self.designer.top.destroy()
+            self.designer = None
+
+        #destroy startup window
+        self.root.destroy()
