@@ -1,4 +1,6 @@
+import os.path
 import tkinter as tk
+import json
 from ProjectDocument import ProjectDocument
 from tkinter import messagebox, filedialog
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
@@ -124,7 +126,7 @@ class AppController:
         #hide startup window
         self.root.withdraw()
 
-        #hide old designer
+        #destroy old designer
         if self.designer:
             self.designer.top.destroy()
             self.designer = None
@@ -195,23 +197,15 @@ class AppController:
             return
 
         #read file contents
-        with open(file_path, "r") as file:
-            file_contents = file.read()
+        with open(file_path, "r", encoding="utf-8") as file:
+            file_contents = json.load(file)
 
-        #try to convert file contents back into dictionary
-        try:
-            dictionary = eval(file_contents)    #dangerous: code injection possible
-        except Exception as e:
-            messagebox.showerror("Open project", f"Error while trying to load .tkui file:\n{e}")
-            return
-
-        #build a ProjectDocument from the dictionary
-        project_document = ProjectDocument.from_json(dictionary)
+        #build a ProjectDocument from file_contents
+        project_document = ProjectDocument.from_json(file_contents)
 
         #let AppController keep track of save path and last directory
         self._save_path = file_path
-        last_slash_index = self._save_path.rindex("/")
-        self._last_directory = self._save_path[:last_slash_index]
+        self._last_directory = os.path.dirname(self._save_path)
 
         #launch designer
         self._launch_designer_from_project_document(project_document, None)
@@ -222,9 +216,9 @@ class AppController:
             self.save_project_as()
             return
 
-        #open .tkui file in write mode
-        with open(self._save_path, "w") as file:
-            file.write(str(self.designer.project_document.to_json()))
+        #open .tkui file in write mode and write project_document json
+        with open(self._save_path, "w", encoding="utf-8") as file:
+            json.dump(self.designer.project_document.to_json(), file, ensure_ascii=False, indent=2)
 
         #set app state to clean
         self.designer.set_clean()
@@ -243,14 +237,13 @@ class AppController:
         if file is None:
             return
 
-        #write the contents of the ProjectDocument into the created file and close it
-        file.write(str(self.designer.project_document.to_json()))
-        file.close()
+        #open .tkui file in write mode and write project_document json
+        with open(file.name, "w", encoding="utf-8") as file:
+            json.dump(self.designer.project_document.to_json(), file, ensure_ascii=False, indent=2)
 
         #let AppController keep track of save path and last directory
         self._save_path = file.name
-        last_slash_index = self._save_path.rindex("/")
-        self._last_directory = self._save_path[:last_slash_index]
+        self._last_directory = os.path.dirname(self._save_path)
 
         #set app state to clean
         self.designer.set_clean()
@@ -267,11 +260,6 @@ class AppController:
 
         if user_intent == "SAVE":
             self.save_project()
-
-        #destroy designer window
-        if self.designer:
-            self.designer.top.destroy()
-            self.designer = None
 
         #destroy startup window
         self.root.destroy()

@@ -10,7 +10,8 @@ class ToolbarManager:
             button_text_color: str,
             menu_color: str,
             menu_text_color: str,
-            callbacks: dict
+            callbacks: dict,
+            grid_visible_variable: tk.BooleanVar
         ):
         self.parent = parent
         self.height = height
@@ -20,6 +21,7 @@ class ToolbarManager:
         self.menu_color = menu_color
         self.menu_text_color = menu_text_color
         self.callbacks = callbacks
+        self.grid_visible_variable = grid_visible_variable
 
         self.toolbar = None
 
@@ -28,47 +30,88 @@ class ToolbarManager:
         self.toolbar.pack(side="top", fill="x")
         self.toolbar.pack_propagate(False)
         self._add_file_menu()
+        self._add_edit_menu()
         self._add_widget_menu()
         self._add_grid_menu()
         self._add_debug_menu()
 
     def _add_file_menu(self):
-        export_menu_button = tk.Menubutton(self.toolbar, text="File", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
-        export_menu = tk.Menu(export_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
-        export_menu_button.config(menu=export_menu)
-        export_menu_button.pack(side="left")
+        file_menu_button = tk.Menubutton(self.toolbar, text="File", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
+        file_menu = tk.Menu(file_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
+        file_menu_button.config(menu=file_menu)
+        file_menu_button.pack(side="left")
 
         #project events
         project_callbacks = self.callbacks["project"]
-        export_menu.add_command(
+        file_menu.add_command(
             label="New",
             command=project_callbacks["new"],
             accelerator="[CTRL] + [N]"
         )
-        export_menu.add_command(
+        file_menu.add_command(
             label="Open",
             command=project_callbacks["open"],
             accelerator="[CTRL] + [O]"
         )
-        export_menu.add_command(
+        file_menu.add_command(
             label="Save",
             command=project_callbacks["save"],
             accelerator="[CTRL] + [S]"
         )
-        export_menu.add_command(
+        file_menu.add_command(
             label="Save as",
             command=project_callbacks["save_as"],
             accelerator="[CTRL] + [SHIFT] + [S]"
         )
-        export_menu.add_command(
+        file_menu.add_command(
             label="Export JSON",
             command=project_callbacks["export_json"],
             accelerator="[CTRL] + [E]"
         )
-        export_menu.add_command(
+        file_menu.add_separator()
+        file_menu.add_command(
             label="Exit",
             command=project_callbacks["exit_app"],
             accelerator="[ALT] + [F4]"
+        )
+
+    def _add_edit_menu(self):
+        edit_menu_button = tk.Menubutton(self.toolbar, text="Edit", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
+        edit_menu = tk.Menu(edit_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
+        edit_menu_button.config(menu=edit_menu)
+        edit_menu_button.pack(side="left")
+
+        #edit events
+        edit_callbacks = self.callbacks["edit"]
+        edit_menu.add_command(
+            label="Cut",
+            command=edit_callbacks["cut"],
+            accelerator="[CTRL] + [X]"
+        )
+        edit_menu.add_command(
+            label="Copy",
+            command=edit_callbacks["copy"],
+            accelerator="[CTRL] + [C]"
+        )
+        edit_menu.add_command(
+            label="Paste",
+            command=edit_callbacks["paste"],
+            accelerator="[CTRL] + [V]"
+        )
+        edit_menu.add_command(
+            label="Undo",
+            command=edit_callbacks["undo"],
+            accelerator="[CTRL] + [Z]"
+        )
+        edit_menu.add_command(
+            label="Redo",
+            command=edit_callbacks["redo"],
+            accelerator="[CTRL] + [Y]"
+        )
+        edit_menu.add_command(
+            label="Select all",
+            command=self.callbacks["selection"]["select_all"],
+            accelerator="[CTRL] + [A]"
         )
 
     def _add_widget_menu(self):
@@ -120,6 +163,7 @@ class ToolbarManager:
         grid_callbacks = self.callbacks["grid"]
         grid_menu.add_checkbutton(
             label="Visualize grid",
+            variable=self.grid_visible_variable,
             command=grid_callbacks["toggle"],
             accelerator="[G]"
         )
@@ -140,7 +184,7 @@ class ToolbarManager:
         debug_menu_button.config(menu=debug_menu)
         debug_menu_button.pack(side="left")
 
-        #set dirty/clean
+        #debug events
         debug_menu.add_command(
             label="Set dirty",
             command=self.callbacks["set_dirty"],

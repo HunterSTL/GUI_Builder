@@ -61,6 +61,9 @@ class SelectionManager:
             self._selected.add(item_id)
             self._last_selected = item_id
 
+    def select_all(self):
+        print("select_all")
+
     def selected_ids(self) -> frozenset[int]:
         return frozenset(self._selected)    #frozenset so external code can't mutate the collection
 
@@ -81,7 +84,7 @@ class SelectionManager:
         self._rectangle_selection_dragging = False
         self._rectangle_selection_additive = bool(event.state & self.ctrl_key)
 
-        #create rectangle outline
+        #create or update rectangle outline
         if self._rectangle_selection_id is None:
             self._rectangle_selection_id = self.canvas.create_rectangle(
                 event.x, event.y, event.x, event.y,
@@ -151,10 +154,12 @@ class SelectionManager:
         finally:
             #refresh outlines
             self.refresh_all()
+
             #remove rectangle selection
             if self._rectangle_selection_id:
                 self.canvas.delete(self._rectangle_selection_id)
                 self._rectangle_selection_id = None
+
             self._rectangle_selection_dragging = False
             self._rectangle_selection_additive = False
 

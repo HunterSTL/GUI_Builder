@@ -1,10 +1,12 @@
 import tkinter as tk
+from tkinter import messagebox, simpledialog, colorchooser
+from DataModels import *
+from ProjectDocument import ProjectDocument
 from CanvasManager import CanvasManager
 from SelectionManager import SelectionManager
 from ToolbarManager import ToolbarManager
 from WidgetManager import WidgetManager
 from AttributesPanelManager import AttributesPanelManager
-from ProjectDocument import ProjectDocument
 from PIL import ImageTk
 
 class Designer:
@@ -40,6 +42,9 @@ class Designer:
         #app state
         self._dirty = False
 
+        #variable to represent grid state from project_document
+        self.grid_visible_variable = tk.BooleanVar(value=self.project_document.grid.visible)
+
         #create window
         self.top = tk.Toplevel(parent)
         titlebar_height = self.constants["titlebar_height"]
@@ -72,7 +77,7 @@ class Designer:
             callbacks=self.callbacks
         )
 
-        self.canvas = self.canvas_manager.create_canvas()
+        self.canvas = self.canvas_manager.canvas
 
         #create instance of SelectionManager to store selected widgets
         self.selection_manager = SelectionManager(
@@ -91,8 +96,7 @@ class Designer:
             canvas=self.canvas,
             project_document=self.project_document,
             selection_manager=self.selection_manager,
-            callbacks=self.callbacks,
-            panel_update=lambda widget_model: self.attributes_panel_manager.update_variable_from_model(widget_model, ["x", "y"])
+            callbacks=self.callbacks
         )
 
         #create instance of AttributesPanelManager to show/hide the attribute panel for a selected widget
@@ -108,7 +112,6 @@ class Designer:
             widget_color=self.program_theme["attributes_panel"]["widget_color"],
             text_color=self.program_theme["attributes_panel"]["text_color"],
             selection_manager=self.selection_manager,
-            widget_manager=self.widget_manager,
             callbacks=self.callbacks
         )
 
@@ -121,7 +124,8 @@ class Designer:
             button_text_color=self.program_theme["button"]["fg"],
             menu_color=self.program_theme["menu"]["bg"],
             menu_text_color=self.program_theme["menu"]["fg"],
-            callbacks=self.callbacks
+            callbacks=self.callbacks,
+            grid_visible_variable=self.grid_visible_variable
         )
 
         #create shared callback dictionary
@@ -130,35 +134,40 @@ class Designer:
             "selection": {
                 "press": self.selection_manager.handle_canvas_press,
                 "drag": self.selection_manager.handle_canvas_drag,
-                "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed)
+                "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed),
+                "select_all": self.selection_manager.select_all
             },
             "project": self.project_callbacks,
+            "edit": {
+                "cut": self._cut,
+                "copy": self._copy,
+                "paste": self._paste,
+                "undo": self._undo,
+                "redo": self._redo
+            },
             "widget": {
-                "move": self.widget_manager.move_selected_widgets,
-                "snap_to_grid": self.widget_manager.snap_to_grid,
-                "delete": self.widget_manager.delete_selected_widgets,
-                "align_left": lambda: self.widget_manager.align("left"),
-                "align_right": lambda: self.widget_manager.align("right"),
-                "align_top": lambda: self.widget_manager.align("top"),
-                "align_bottom": lambda: self.widget_manager.align("bottom")
+                "move": self._move,
+                "snap_to_grid": self._snap_to_grid,
+                "delete": self._delete,
+                "align_left": lambda: self._align("left"),
+                "align_right": lambda: self._align("right"),
+                "align_top": lambda: self._align("top"),
+                "align_bottom": lambda: self._align("bottom")
             },
             "grid": {
-                "toggle": self.canvas_manager.toggle_grid,
-                "change_size": self.canvas_manager.change_grid_size,
-                "change_color": self.canvas_manager.change_grid_color
-            },
-            "clamped_delta": {
-                "group": self._group_clamped_delta,
-                "single": self._clamped_delta
+                "toggle": self._toggle_grid,
+                "change_size": self._change_grid_size,
+                "change_color": self._change_grid_color
             },
             "attributes_panel": self._on_selection_changed,
-            "set_dirty": self.set_dirty,
-            "set_clean": self.set_clean
+            "attribute_changed": self._on_attribute_changed,
+            "set_dirty": self._set_dirty,
+            "set_clean": self._set_clean
         })
 
         #toggle grid if grid is set to visible in project_document
         if self.project_document.grid.visible:
-            self.canvas_manager.draw_grid()
+            self.canvas_manager.refresh_grid()
 
         #create toolbar
         self.toolbar_manager.create_toolbar()
@@ -182,12 +191,275 @@ class Designer:
     def is_dirty(self):
         return self._dirty
 
-    def set_dirty(self):
+    def set_clean(self):
+        self._set_clean()
+
+    def _add_widget(self, widget_type: str, x: int, y: int):
+        if widget_type == "label":
+            text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
+            if text is None:
+                return
+            bg = self.project_document.theme["label"]["bg"]
+            fg = self.project_document.theme["label"]["fg"]
+            widget = tk.Label(
+                self.canvas,
+                text=text,
+                bg=bg,
+                fg=fg
+            )
+            model = LabelWidgetData(x=x, y=y, bg=bg, fg=fg, text=text)
+        elif widget_type == "entry":
+            bg = self.project_document.theme["entry"]["bg"]
+            fg = self.project_document.theme["entry"]["fg"]
+            widget = tk.Entry(
+                self.canvas,
+                bg=bg,
+                fg=fg
+            )
+            model = EntryWidgetData(x=x, y=y, bg=bg, fg=fg)
+        elif widget_type == "button":
+            text = simpledialog.askstring("Button text", "Enter button text:", parent=self.top)
+            if text is None:
+                return
+            bg = self.project_document.theme["button"]["bg"]
+            fg = self.project_document.theme["button"]["fg"]
+            widget = tk.Button(
+                self.canvas,
+                text=text,
+                bg=bg,
+                fg=fg
+            )
+            model = ButtonWidgetData(x=x, y=y, bg=bg, fg=fg, text=text)
+        else:
+            return
+
+        model.create_id()
+
+        #calculate clamped x and y to prevent the widget from being created (partially) outside the canvas
+        widget.update_idletasks()
+        required_width, required_height = widget.winfo_reqwidth(), widget.winfo_reqheight()
+        min_x, max_x = self._allowed_x_range(required_width, model.anchor)
+        min_y, max_y = self._allowed_y_range(required_height, model.anchor)
+        clamped_x = self._clamp(x, min_x, max_x)
+        clamped_y = self._clamp(y, min_y, max_y)
+
+        #delegate actual widget creation to WidgetManager
+        self.widget_manager.add_widget(model, widget, clamped_x, clamped_y)
+
+        #populate model width and height after creating window and updating widget, otherwise both values are 1
+        widget.update()
+        model.width, model.height = widget.winfo_width(), widget.winfo_height()
+        model.x, model.y = clamped_x, clamped_y
+
+        #append the new model to the project_document
+        self.project_document.widget_models.append(model)
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _cut(self):
+        print("cut")
+
+    def _copy(self):
+        print("copy")
+
+    def _paste(self):
+        print("paste")
+
+    def _undo(self):
+        print("undo")
+
+    def _redo(self):
+        print("redo")
+
+    def _move(self, dx: int, dy: int):
+        #get selected widgets
+        selected_widgets = self.selection_manager.selected_ids()
+        if not selected_widgets:
+            return
+
+        #calculate group clamped delta so that widgets can't be moved outside the canvas
+        dx, dy = self._group_clamped_delta(selected_widgets, dx, dy)
+
+        for widget_id in selected_widgets:
+            #delegate actual movement (canvas item) to WidgetManager
+            self.widget_manager.move(widget_id, dx, dy)
+
+            #update model
+            model = self.widget_manager.get_model_from_widget_id(widget_id)
+            model.x += dx; model.y += dy
+
+            #update attributes panel if only 1 widget is selected
+            if len(selected_widgets) == 1:
+                self.attributes_panel_manager.update_variable_from_model(model)
+
+        #refresh outline
+        self.selection_manager.refresh_all()
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _snap_to_grid(self):
+        #get selected widgets
+        selected_widgets = self.selection_manager.selected_ids()
+        if not selected_widgets:
+            return
+
+        grid_size = self.project_document.grid.size
+
+        for widget_id in selected_widgets:
+            #calculate necessary movement delta
+            model = self.widget_manager.get_model_from_widget_id(widget_id)
+            new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
+            dx, dy = new_x - model.x, new_y - model.y
+
+            #delegate actual movement (canvas item) to WidgetManager
+            self.widget_manager.move(widget_id, dx, dy)
+
+            #update model
+            model.x, model.y = new_x, new_y
+
+        #refresh outline
+        self.selection_manager.refresh_all()
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _delete(self):
+        #get selected widgets
+        selected_widgets = self.selection_manager.selected_ids()
+        #selected_widgets = [widget_id for widget_id in self.selection_manager.selected_ids() if self.canvas.type(widget_id) == "window"]
+
+        #build messagebox text
+        count_selected_widgets = len(selected_widgets)
+        if count_selected_widgets == 0:
+            return
+        elif count_selected_widgets == 1:
+            messagebox_text = "Delete selected widget?"
+        else:
+            messagebox_text = f"Delete {str(count_selected_widgets)} selected widgets?"
+
+        if not messagebox.askyesno("Delete", messagebox_text):
+            return
+
+        for widget_id in selected_widgets:
+            #remove model from project_document
+            model = self.widget_manager.get_model_from_widget_id(widget_id)
+            try:
+                self.project_document.widget_models.remove(model)
+            except ValueError:
+                pass
+
+            #delegate actual deletion (canvas item) to WidgetManager
+            self.widget_manager.delete(widget_id)
+
+        #clear selection
+        self.selection_manager.clear()
+
+        #hide attributes panel
+        self._on_selection_changed()
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _align(self, direction):
+        #get selected widgets and last selected widget
+        selected_widgets = self.selection_manager.selected_ids()
+        last_selected_widget = self.selection_manager.last_selected_id()
+        if not selected_widgets or not last_selected_widget:
+            return
+
+        reference_model_bbox = self.widget_manager.get_bbox_from_widget_id(last_selected_widget)
+
+        for widget_id in selected_widgets:
+            if not widget_id == last_selected_widget:
+                model_bbox = self.widget_manager.get_bbox_from_widget_id(widget_id)
+
+                #calculate necessary movement delta
+                if direction == "left":
+                    dx, dy = reference_model_bbox["left"] - model_bbox["left"], 0
+                elif direction == "right":
+                    dx, dy = reference_model_bbox["right"] - model_bbox["right"], 0
+                elif direction == "top":
+                    dx, dy = 0, reference_model_bbox["top"] - model_bbox["top"]
+                elif direction == "bottom":
+                    dx, dy = 0, reference_model_bbox["bottom"] - model_bbox["bottom"]
+                else:
+                    dx, dy = 0, 0
+
+                #calculate clamped delta so that widget can't be moved outside the canvas
+                dx, dy = self._clamped_delta(widget_id, dx, dy)
+
+                #delegate actual movement (canvas item) to WidgetManager
+                self.widget_manager.move(widget_id, dx, dy)
+
+                #update model
+                model = self.widget_manager.get_model_from_widget_id(widget_id)
+                model.x += dx; model.y += dy
+
+        #refresh outline
+        self.selection_manager.refresh_all()
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _toggle_grid(self):
+        #flip grid visible state
+        self.grid_visible_variable.set(not self.grid_visible_variable.get())
+        visible = self.grid_visible_variable.get()
+
+        #write current grid visible state to project_document
+        self.project_document.grid.visible = visible
+
+        #delegate actual drawing of the grid (draw or clear) to CanvasManager
+        self.canvas_manager.apply_grid_visibility()
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _change_grid_size(self):
+        #prompt for new grid size
+        new_grid_size = simpledialog.askinteger("Grid size", "Enter new grid size:", minvalue=5, maxvalue=100, parent=self.parent)
+
+        if new_grid_size is None:
+            return
+
+        #update grid size in project_document
+        self.project_document.grid.size = new_grid_size
+
+        #delegate redraw of grid to CanvasManager
+        self.canvas_manager.refresh_grid()
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _change_grid_color(self):
+        #prompt for grid color
+        if messagebox.askyesno("Change grid color", "Change grid color?"):
+            color = colorchooser.askcolor()[1]
+        else:
+            self.canvas_manager.canvas.focus_set()
+            return
+
+        #abort if user didn't select a color
+        if not color:
+            return
+
+        #update grid color in project_document
+        self.project_document.grid.color = color
+
+        #delegate redraw of grid to CanvasManager
+        self.canvas_manager.refresh_grid()
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _set_dirty(self):
         self._dirty = True
         self.title_label.configure(text=self.project_document.title + "*")
         self.title_label.update()
 
-    def set_clean(self):
+    def _set_clean(self):
         self._dirty = False
         self.title_label.configure(text=self.project_document.title)
         self.title_label.update()
@@ -265,15 +537,15 @@ class Designer:
 
         self.menu.add_command(
             label="Add Label",
-            command=lambda: self.widget_manager.add_widget("label", *_pos())
+            command=lambda: self._add_widget("label", *_pos())
         )
         self.menu.add_command(
             label="Add Entry",
-            command=lambda: self.widget_manager.add_widget("entry", *_pos())
+            command=lambda: self._add_widget("entry", *_pos())
         )
         self.menu.add_command(
             label="Add Button",
-            command=lambda: self.widget_manager.add_widget("button", *_pos())
+            command=lambda: self._add_widget("button", *_pos())
         )
 
     #post context menu
@@ -282,12 +554,12 @@ class Designer:
         self.menu.post(event.x_root, event.y_root)
 
     #compute clamped delta, so that widget cannot be moved outside the GUI window
-    def _group_clamped_delta(self, dx: int, dy: int) -> tuple[int, int]:
+    def _group_clamped_delta(self, widget_ids: frozenset, dx: int, dy: int) -> tuple[int, int]:
         canvas_width, canvas_height = self.canvas.winfo_width(), self.canvas.winfo_height()
         dx_clamped, dy_clamped = dx, dy
 
-        for item_id in self.selection_manager.selected_ids():
-            bbox = self.canvas.bbox(item_id)
+        for widget_id in widget_ids:
+            bbox = self.canvas.bbox(widget_id)
             if not bbox:
                 continue
             x0, y0, x1, y1 = bbox
@@ -301,11 +573,11 @@ class Designer:
         return dx_clamped, dy_clamped
 
     #compute clamped delta, so that widget cannot be moved outside the GUI window
-    def _clamped_delta(self, item_id, dx: int, dy: int) -> tuple[int, int]:
+    def _clamped_delta(self, widget_id: int, dx: int, dy: int) -> tuple[int, int]:
         canvas_width, canvas_height = self.canvas.winfo_width(), self.canvas.winfo_height()
         dx_clamped, dy_clamped = dx, dy
 
-        bbox = self.canvas.bbox(item_id)
+        bbox = self.canvas.bbox(widget_id)
         if not bbox:
             return 0, 0
         x0, y0, x1, y1 = bbox
@@ -321,8 +593,54 @@ class Designer:
     def _on_selection_changed(self):
         selected_ids = self.selection_manager.selected_ids()
         if len(selected_ids) == 1:
-            item_id = next(iter(selected_ids))
-            model = self.widget_manager.widget_map.get(item_id)["model"]
+            widget_id = next(iter(selected_ids))
+            model = self.widget_manager.widget_map.get(widget_id)["model"]
             self.attributes_panel_manager.show(model)
         else:
             self.attributes_panel_manager.hide()
+
+    def _on_attribute_changed(self, widget_id: int, attribute: str, value):
+        if widget_id is None:
+            return
+
+        #apply change to the widget through WidgetManager
+        self.widget_manager.update_widget_attribute(widget_id, attribute, value)
+
+        #update model
+        model = self.widget_manager.get_model_from_widget_id(widget_id)
+        if hasattr(model, attribute):
+            setattr(model, attribute, value)
+
+        #recompute spinbox limits
+        if attribute in ("anchor", "width", "height"):
+            self.attributes_panel_manager.update_spinbox_limits(model)
+
+        #refresh outline
+        self.selection_manager.refresh(widget_id)
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _allowed_x_range(self, width, anchor):
+        canvas_width = int(self.canvas.winfo_width())
+        if anchor in ["sw", "w", "nw"]:
+            return 0, canvas_width - width
+        elif anchor in ["ne", "e", "se"]:
+            return width, canvas_width
+        elif anchor in ["n", "s", "center"]:
+            return width // 2, canvas_width - (width // 2)
+        return 0, canvas_width
+
+    def _allowed_y_range(self, height, anchor):
+        canvas_height = int(self.canvas.winfo_height())
+        if anchor in ["sw", "s", "se"]:
+            return height, canvas_height
+        elif anchor in ["nw", "n", "ne"]:
+            return 0, canvas_height - height
+        elif anchor in ["w", "e", "center"]:
+            return height // 2, canvas_height - (height // 2)
+        return 0, canvas_height
+
+    @staticmethod
+    def _clamp(value, minimum, maximum):
+        return max(minimum, min(maximum, value))

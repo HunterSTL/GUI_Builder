@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox, colorchooser
 from ProjectDocument import ProjectDocument
 
 class CanvasManager:
@@ -17,10 +16,7 @@ class CanvasManager:
         self.nudge_big = nudge_big
         self.callbacks = callbacks
 
-        self.canvas = None
         self.grid_lines = []
-
-    def create_canvas(self):
         self.canvas = tk.Canvas(
             self.parent,
             width=self.project_document.width,
@@ -29,23 +25,23 @@ class CanvasManager:
             highlightthickness=0,
             takefocus=1
         )
-        return self.canvas
 
     def pack_canvas(self):
         self.canvas.pack(side="left")
         self.canvas.after(0, self.canvas.focus_set)
 
-    def toggle_grid(self):
-        self.project_document.grid.visible = not self.project_document.grid.visible
+    def apply_grid_visibility(self):
         if self.project_document.grid.visible:
-            self.draw_grid()
+            self._draw_grid()
         else:
-            self.clear_grid()
+            self._clear_grid()
 
-        #set app state to dirty
-        self.callbacks["set_dirty"]()
+    def refresh_grid(self):
+        if self.project_document.grid.visible:  #redraw grid if it's already shown
+            self._clear_grid()
+            self._draw_grid()
 
-    def draw_grid(self):
+    def _draw_grid(self):
         for x in range(0, self.project_document.width, self.project_document.grid.size):
             line = self.canvas.create_line(x, 0, x, self.project_document.height, fill=self.project_document.grid.color)
             self.grid_lines.append(line)
@@ -53,39 +49,10 @@ class CanvasManager:
             line = self.canvas.create_line(0, y, self.project_document.width, y, fill=self.project_document.grid.color)
             self.grid_lines.append(line)
 
-    def clear_grid(self):
+    def _clear_grid(self):
         for line in self.grid_lines:
             self.canvas.delete(line)
         self.grid_lines.clear()
-
-    def refresh_grid(self):
-        if self.project_document.grid.visible:  #redraw grid if it's already shown
-            self.clear_grid()
-            self.draw_grid()
-
-    def change_grid_size(self):
-        new_grid_size = simpledialog.askinteger("Grid size", "Enter new grid size:", minvalue=5, maxvalue=100, parent=self.parent)
-
-        if new_grid_size is None:
-            return
-
-        self.project_document.grid.size = new_grid_size
-        self.refresh_grid()
-
-        #set app state to dirty
-        self.callbacks["set_dirty"]()
-
-    def change_grid_color(self):
-        if not messagebox.askyesno("Change grid color", "Change grid color?"):
-            self.canvas.focus_set()
-            return
-
-        color = colorchooser.askcolor()[1]
-        self.project_document.grid.color = color
-        self.refresh_grid()
-
-        #set app state to dirty
-        self.callbacks["set_dirty"]()
 
     def bind_events(self):
         #set focus on canvas when user clicks anywhere on canvas
@@ -131,7 +98,7 @@ class CanvasManager:
         self.canvas.bind("<Control-s>", lambda e: project_callbacks["save"]())
         self.canvas.bind("<Control-Shift-S>", lambda e: project_callbacks["save_as"]())
         self.canvas.bind("<Control-e>", lambda e: project_callbacks["export_json"]())
-        self.canvas.bind("<Alt-F4>", lambda e: project_callbacks["exit"]())
+        self.canvas.bind("<Alt-F4>", lambda e: project_callbacks["exit_app"]())
 
         #set dirty/clean
         self.canvas.bind("<Control-d>", lambda e: self.callbacks["set_dirty"]())

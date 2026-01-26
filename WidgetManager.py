@@ -1,6 +1,5 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox
-from DataModels import *
+from tkinter import simpledialog
 from ProjectDocument import ProjectDocument
 
 class WidgetManager:
@@ -10,89 +9,28 @@ class WidgetManager:
             canvas: tk.Canvas,
             project_document: ProjectDocument,
             selection_manager,
-            callbacks: dict,
-            panel_update=None
+            callbacks: dict
         ):
         self.top = top
         self.canvas = canvas
         self.project_document = project_document
         self.selection_manager = selection_manager
-        self.panel_update = panel_update
         self.callbacks = callbacks
         self.widget_map = {}
 
-    #create widget and model based on type
-    def add_widget(self, widget_type: str, x: int, y: int):
-        if widget_type == "label":
-            text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
-            if text is None:
-                return
-            bg = self.project_document.theme["label"]["bg"]
-            fg = self.project_document.theme["label"]["fg"]
-            widget = tk.Label(
-                self.canvas,
-                text=text,
-                bg=bg,
-                fg=fg
-            )
-            model = LabelWidgetData(x=x, y=y, bg=bg, fg=fg, text=text)
-        elif widget_type == "entry":
-            bg = self.project_document.theme["entry"]["bg"]
-            fg = self.project_document.theme["entry"]["fg"]
-            widget = tk.Entry(
-                self.canvas,
-                bg=bg,
-                fg=fg
-            )
-            model = EntryWidgetData(x=x, y=y, bg=bg, fg=fg)
-        elif widget_type == "button":
-            text = simpledialog.askstring("Button text", "Enter button text:", parent=self.top)
-            if text is None:
-                return
-            bg = self.project_document.theme["button"]["bg"]
-            fg = self.project_document.theme["button"]["fg"]
-            widget = tk.Button(
-                self.canvas,
-                text=text,
-                bg=bg,
-                fg=fg
-            )
-            model = ButtonWidgetData(x=x, y=y, bg=bg, fg=fg, text=text)
-        else:
-            return
-
-        model.create_id()
-
-        #calculate clamped x and y to prevent the widget from being created (partially) outside the canvas
-        widget.update_idletasks()
-        required_width, required_height = widget.winfo_reqwidth(), widget.winfo_reqheight()
-        min_x, max_x = self._allowed_x_range(required_width, model.anchor)
-        min_y, max_y = self._allowed_y_range(required_height, model.anchor)
-        clamped_x = self._clamp(x, min_x, max_x)
-        clamped_y = self._clamp(y, min_y, max_y)
-
+    #create new widget
+    def add_widget(self, model, widget, x, y):
         #insert widget into canvas
-        window_id = self.canvas.create_window(clamped_x, clamped_y, window=widget, anchor=model.anchor)
-
-        #populate model width and height after creating window and updating widget, otherwise both values are 1
-        widget.update()
-        model.width, model.height = widget.winfo_width(), widget.winfo_height()
-        model.x, model.y = clamped_x, clamped_y
+        widget_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor)
 
         #store both the data model and the tkinter widget in the widget map with the window_id as the key
-        self.widget_map[window_id] = {"model": model, "widget": widget}
-        #also append the new model to the project_document
-        self.project_document.widget_models.append(model)
+        self.widget_map[widget_id] = {"model": model, "widget": widget}
 
         #bind events
-        self._bind_widget_events(widget, window_id)
+        self._bind_widget_events(widget, widget_id)
 
         #set focus back to canvas
         self.canvas.focus_set()
-
-        #set app state to dirty
-        self.callbacks["set_dirty"]()
-        return window_id
 
     #create widget from model
     def add_widget_from_model(self, model):
@@ -123,140 +61,30 @@ class WidgetManager:
         self.canvas.focus_set()
         return window_id
 
-    #snap selected widgets to grid
-    def snap_to_grid(self):
-        selected_widgets = self.selection_manager.selected_ids()
-        if not selected_widgets:
-            return
+    #return model
+    def get_model_from_widget_id(self, widget_id):
+        return self.widget_map.get(widget_id)["model"]
 
-        grid_size = self.project_document.grid.size
-        for widget_id in selected_widgets:
-            model = self.widget_map.get(widget_id)["model"]
-            new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
-            dx, dy = new_x - model.x, new_y - model.y
+    #return bounding box
+    def get_bbox_from_widget_id(self, widget_id):
+        bbox = self.canvas.bbox(widget_id)
+        x1, y1, x2, y2 = bbox
+        return {
+            "left": x1,
+            "top": y1,
+            "right": x2,
+            "bottom": y2
+        }
 
-            #move widget
-            self.canvas.move(widget_id, dx, dy)
+    #move widget
+    def move(self, widget_id: int, dx: int, dy: int):
+        self.canvas.move(widget_id, dx, dy)     #move canvas item
 
-            #update model
-            model.x, model.y = new_x, new_y
-
-            #refresh outline
-            self.selection_manager.refresh(widget_id)
-
-        #set app state to dirty
-        self.callbacks["set_dirty"]()
-
-    #align selected widgets based on last selected widget
-    def align(self, direction: str):
-        def _bbox(_widget_id):
-            bbox = self.canvas.bbox(_widget_id)
-            x1, y1, x2, y2 = bbox
-            return {
-                "left": x1,
-                "top": y1,
-                "right": x2,
-                "bottom": y2
-            }
-
-        selected_widgets = self.selection_manager.selected_ids()
-        last_selected_widget = self.selection_manager.last_selected_id()
-        if not last_selected_widget:
-            return
-
-        reference_model_bbox = _bbox(last_selected_widget)
-
-        for widget_id in selected_widgets:
-            if not widget_id == last_selected_widget:
-                model = self.widget_map.get(widget_id)["model"]
-                model_bbox = _bbox(widget_id)
-                if direction == "left":
-                    dx, dy = reference_model_bbox["left"] - model_bbox["left"], 0
-                elif direction == "right":
-                    dx, dy = reference_model_bbox["right"] - model_bbox["right"], 0
-                elif direction == "top":
-                    dx, dy = 0, reference_model_bbox["top"] - model_bbox["top"]
-                elif direction == "bottom":
-                    dx, dy = 0, reference_model_bbox["bottom"] - model_bbox["bottom"]
-                else:
-                    dx, dy = 0, 0
-
-                #clamp to canvas bounds
-                if callable(self.callbacks["clamped_delta"]["single"]):
-                    dx, dy = self.callbacks["clamped_delta"]["single"](widget_id, dx, dy)
-
-                #move widget
-                self.canvas.move(widget_id, dx, dy)
-
-                #update model
-                model.x += dx
-                model.y += dy
-
-                #refresh outline
-                self.selection_manager.refresh(widget_id)
-
-        #set app state to dirty
-        self.callbacks["set_dirty"]()
-
-    def move_selected_widgets(self, dx: int, dy: int):
-        if callable(self.callbacks["clamped_delta"]["group"]):
-            dx, dy = self.callbacks["clamped_delta"]["group"](dx, dy)
-
-        selected_widgets = self.selection_manager.selected_ids()
-        if not selected_widgets:
-            return
-
-        for widget_id in selected_widgets:
-            model = self.widget_map.get(widget_id)["model"]
-            #move widget
-            self.canvas.move(widget_id, dx, dy)
-
-            #update model
-            model.x += dx
-            model.y += dy
-
-            #update attributes panel if only 1 widget is selected
-            if len(selected_widgets) == 1:
-                self.panel_update(model)
-
-        #refresh outline
-        self.selection_manager.refresh_all()
-
-        #set app state to dirty
-        self.callbacks["set_dirty"]()
-
-    def delete_selected_widgets(self):
-        count_selected_widgets = len(self.selection_manager.selected_ids())
-        if count_selected_widgets == 0:
-            return
-        elif count_selected_widgets == 1:
-            messagebox_text = "Delete selected widget?"
-        else:
-            messagebox_text = f"Delete {str(count_selected_widgets)} selected widgets?"
-
-        if not messagebox.askyesno("Delete", messagebox_text):
-            return
-
-        for widget_id in [i for i in self.selection_manager.selected_ids() if self.canvas.type(i) == "window"]:
-            self.canvas.delete(widget_id)                             #delete widget from canvas
-            model = self.widget_map.get(widget_id)["model"]
-            try:
-                self.project_document.widget_models.remove(model)   #delete model from project_document
-            except ValueError:
-                pass    #model not in project_document
-            self.widget_map.pop(widget_id, None)                      #delete model from widget map
-
-        #clear selection
-        self.selection_manager.clear()
-
-        #hide attributes panel
-        self.callbacks["attributes_panel"]()
-
-        #set focus back to canvas
-        self.canvas.focus_set()
-
-        #set app state to dirty
-        self.callbacks["set_dirty"]()
+    #delete widget
+    def delete(self, widget_id):
+        self.canvas.delete(widget_id)           #delete canvas item
+        self.widget_map.pop(widget_id, None)    #delete widget_id from widget_map
+        self.canvas.focus_set()                 #set focus back to canvas
 
     #apply an attribute change from the AttributesPanel to the widget
     def update_widget_attribute(self, widget_id, attribute, value):
@@ -313,7 +141,7 @@ class WidgetManager:
         widget.bind("<Button-1>", _on_click)
 
         #move widgets based on mouse movement
-        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.move_selected_widgets))
+        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.callbacks["widget"]["move"]))
 
         #reset drag state
         widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
@@ -326,25 +154,3 @@ class WidgetManager:
                 and self.selection_manager.refresh(i)
             )
         )
-
-    def _allowed_x_range(self, width, anchor):
-        canvas_width = int(self.canvas.winfo_width())
-        if anchor in ["sw", "w", "nw"]:
-            return 0, canvas_width - width
-        elif anchor in ["ne", "e", "se"]:
-            return width, canvas_width
-        elif anchor in ["n", "s", "center"]:
-            return width // 2, canvas_width - (width // 2)
-
-    def _allowed_y_range(self, height, anchor):
-        canvas_height = int(self.canvas.winfo_height())
-        if anchor in ["sw", "s", "se"]:
-            return height, canvas_height
-        elif anchor in ["nw", "n", "ne"]:
-            return 0, canvas_height - height
-        elif anchor in ["w", "e", "center"]:
-            return height // 2, canvas_height - (height // 2)
-
-    @staticmethod
-    def _clamp(value, minimum, maximum):
-        return max(minimum, min(maximum, value))

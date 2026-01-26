@@ -68,7 +68,6 @@ class AttributesPanelManager:
             widget_color: str,
             text_color: str,
             selection_manager,
-            widget_manager,
             callbacks: dict
         ):
         self.root = root
@@ -82,7 +81,6 @@ class AttributesPanelManager:
         self.widget_color = widget_color
         self.text_color = text_color
         self.selection_manager = selection_manager
-        self.widget_manager = widget_manager
         self.callbacks = callbacks
 
         self._visible = False
@@ -125,6 +123,17 @@ class AttributesPanelManager:
 
         self._visible = False
 
+    def update_variable_from_model(self, model, attributes=None):
+        self._silent_update = True
+        for attribute, variable in self._variables.items():
+            if attributes and attribute not in attributes:
+                continue
+            try:
+                variable.set(getattr(model, attribute))
+            except Exception:
+                variable.set(str(getattr(model, attribute)))
+        self._silent_update = False
+
     def _populate(self, model):
         #clear previous widgets
         self._clear_panel()
@@ -157,36 +166,15 @@ class AttributesPanelManager:
                 except ValueError:
                     return
 
-            #update widget
-            item_id = self.selection_manager.last_selected_id()
-            self.widget_manager.update_widget_attribute(item_id, attribute, value)
+            #delegate the entire utation to Designer
+            widget_id = self.selection_manager.last_selected_id()
+            if not widget_id:
+                return
 
-            #update model
-            setattr(model, attribute, value)
-
-            #update max_value for spinboxes
-            if attribute in ["anchor", "width", "height"]:
-                self._update_spinbox_limits(model)
-
-            #refresh outline
-            self.selection_manager.refresh(item_id)
-
-            #set app state to dirty
-            self.callbacks["set_dirty"]()
+            self.callbacks["attribute_changed"](widget_id, attribute, value)
 
         self._variables[attribute] = variable
         variable.trace_add("write", _on_write)
-
-    def update_variable_from_model(self, model, attributes=None):
-        self._silent_update = True
-        for attribute, variable in self._variables.items():
-            if attributes and attribute not in attributes:
-                continue
-            try:
-                variable.set(getattr(model, attribute))
-            except Exception:
-                variable.set(str(getattr(model, attribute)))
-        self._silent_update = False
 
     def _create_displayname_label(self, attribute, row):
         tk.Label(
@@ -341,7 +329,7 @@ class AttributesPanelManager:
             return model.height // 2
         return 0
 
-    def _update_spinbox_limits(self, model):
+    def update_spinbox_limits(self, model):
         if "x" in self._spinboxes:
             new_min_value = self._compute_minimum_x(model)
             new_max_value = self._compute_maximum_x(model)
