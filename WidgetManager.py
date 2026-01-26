@@ -215,12 +215,12 @@ class WidgetManager:
             model.x += dx
             model.y += dy
 
-            #refresh outline
-            self.selection_manager.refresh(widget_id)
-
             #update attributes panel if only 1 widget is selected
             if len(selected_widgets) == 1:
                 self.panel_update(model)
+
+        #refresh outline
+        self.selection_manager.refresh_all()
 
         #set app state to dirty
         self.callbacks["set_dirty"]()
@@ -319,7 +319,13 @@ class WidgetManager:
         widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
 
         #keep outlines in sync when widget resizes
-        widget.bind("<Configure>", lambda e, i=window_id: self.selection_manager and self.selection_manager.refresh(i))
+        widget.bind(
+            "<Configure>", lambda e, i=window_id: (
+                self.selection_manager
+                and not self.selection_manager.is_dragging()
+                and self.selection_manager.refresh(i)
+            )
+        )
 
     def _allowed_x_range(self, width, anchor):
         canvas_width = int(self.canvas.winfo_width())

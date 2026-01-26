@@ -121,10 +121,15 @@ class AppController:
         return {key: value.copy() for key, value in self._user_theme.items()}
 
     def _launch_designer_from_project_document(self, project_document, icon):
+        #hide startup window
+        self.root.withdraw()
+
+        #hide old designer
         if self.designer:
             self.designer.top.destroy()
             self.designer = None
-        self._save_path = None
+
+        #launch new designer
         self.designer = Designer(
             parent=self.root,
             project_document=project_document,
@@ -161,9 +166,6 @@ class AppController:
         if self.designer:
             self.designer.top.destroy()
             self.designer = None
-
-        #hide startup window
-        self.root.withdraw()
 
         #create the setup wizard as a child
         setup_window = tk.Toplevel(self.root)

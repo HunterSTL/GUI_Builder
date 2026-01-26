@@ -195,6 +195,9 @@ class SelectionManager:
         self._dragging_widgets = False
         return "break"
 
+    def is_dragging(self):
+        return self._dragging_widgets
+
     #find clicked widget
     def _find_topmost_window_at(self, x: int, y: int):
         items = self.canvas.find_overlapping(x, y, x, y)
