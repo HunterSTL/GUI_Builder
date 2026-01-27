@@ -164,7 +164,7 @@ class ToolbarManager:
         grid_menu.add_checkbutton(
             label="Visualize grid",
             variable=self.grid_visible_variable,
-            command=grid_callbacks["toggle"],
+            command=grid_callbacks["apply_from_variable"],
             accelerator="[G]"
         )
         grid_menu.add_command(

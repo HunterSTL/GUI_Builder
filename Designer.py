@@ -41,6 +41,7 @@ class Designer:
 
         #app state
         self._dirty = False
+        self._deleting = False
 
         #variable to represent grid state from project_document
         self.grid_visible_variable = tk.BooleanVar(value=self.project_document.grid.visible)
@@ -143,6 +144,7 @@ class Designer:
             },
             "grid": {
                 "toggle": self._toggle_grid,
+                "apply_from_variable": self._apply_grid_from_variable,
                 "change_size": self._change_grid_size,
                 "change_color": self._change_grid_color
             },
@@ -310,6 +312,13 @@ class Designer:
         self._set_dirty()
 
     def _delete(self):
+        #prevent concurrent delete calls
+        if self._deleting:
+            return
+
+        #set deleting flag
+        self._deleting = True
+
         #get selected widgets
         selected_widgets = self.selection_manager.selected_ids()
         #selected_widgets = [widget_id for widget_id in self.selection_manager.selected_ids() if self.canvas.type(widget_id) == "window"]
@@ -324,6 +333,8 @@ class Designer:
             messagebox_text = f"Delete {str(count_selected_widgets)} selected widgets?"
 
         if not messagebox.askyesno("Delete", messagebox_text):
+            #clear deleting flag
+            self._deleting = False
             return
 
         for widget_id in selected_widgets:
@@ -345,6 +356,9 @@ class Designer:
 
         #set app state to dirty
         self._set_dirty()
+
+        #clear deleting flag
+        self._deleting = False
 
     def _align(self, direction):
         #get selected widgets and last selected widget
@@ -388,8 +402,12 @@ class Designer:
         self._set_dirty()
 
     def _toggle_grid(self):
-        #flip grid visible state
+        #flip grid visible variable
         self.grid_visible_variable.set(not self.grid_visible_variable.get())
+        #apply grid visible state
+        self._apply_grid_from_variable()
+
+    def _apply_grid_from_variable(self):
         visible = self.grid_visible_variable.get()
 
         #write current grid visible state to project_document
@@ -568,7 +586,7 @@ class Designer:
             return height // 2, canvas_height - (height // 2)
         return 0, canvas_height
 
-    #copute minimum window dimensions to fit the entire canvas without scrollbars
+    #compute minimum window dimensions to fit the entire canvas without scrollbars
     def _compute_initial_window_dimensions(self):
         canvas_width = self.project_document.width
         canvas_height = self.project_document.height
@@ -655,9 +673,6 @@ class Designer:
 
     #decide which scrollbars to show based on canvas size and the visible viewport
     def _refresh_scrollbars(self):
-        if not self.viewer.winfo_ismapped():
-            return
-
         #ensure geometry is up-to-date
         self.top.update_idletasks()
 
@@ -674,8 +689,8 @@ class Designer:
         horizontal_scrollbar_thickness = self.horizontal_scrollbar.winfo_reqheight()
 
         #check which scrollbar is needed
-        need_vertical_scrollbar = canvas_width > viewer_width
-        need_horizontal_scrollbar = canvas_height > viewer_height
+        need_vertical_scrollbar = canvas_height > viewer_height
+        need_horizontal_scrollbar = canvas_width > viewer_width
 
         #if vertical scrollbar needed → reduces visible width → reevaluate horizontal
         if need_vertical_scrollbar:
@@ -751,12 +766,6 @@ class Designer:
         self.horizontal_scrollbar = tk.Scrollbar(self.work_area, orient="horizontal", command=self.viewer.xview)
         self.viewer.configure(yscrollcommand=self.vertical_scrollbar.set, xscrollcommand=self.horizontal_scrollbar.set)
 
-        #decide whether scrollbars are needed
-        self._refresh_scrollbars()
-
-        #recompute when viewer's size changes
-        self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
-
         #create attributes panel frame
         self.attributes_panel_frame = tk.Frame(
             self.main_frame,
@@ -766,6 +775,13 @@ class Designer:
         self.attributes_panel_frame.grid(row=0, column=1, sticky="ns")
         self.attributes_panel_frame.pack_propagate(False)   #fixed width
         self.attributes_panel_frame.grid_propagate(False)   #fixed width
+
+        #recompute when viewer's size changes
+        self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
+
+        # Force final evaluation after window is mapped
+        self.top.after(0, self._refresh_scrollbars)
+        self.top.after_idle(self._refresh_scrollbars)
 
     @staticmethod
     def _clamp(value, minimum, maximum):
