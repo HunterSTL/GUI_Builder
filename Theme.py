@@ -95,6 +95,10 @@ PROGRAM_THEME = {
 }
 
 #constants
+MINIMUM_WINDOW_WIDTH = 600
+MINIMUM_WINDOW_HEIGHT = 500
+MAXIMUM_WINDOW_WIDTH = 1920
+MAXIMUM_WINDOW_HEIGHT = 1080
 TITLEBAR_HEIGHT = 25
 TOOLBAR_HEIGHT = 25
 ATTRIBUTES_PANEL_WIDTH = 200
@@ -108,6 +112,12 @@ GRID_SIZE = 10
 CTRL_KEY = 0x0004
 
 CONSTANTS = {
+    "window": {
+        "min_width": MINIMUM_WINDOW_WIDTH,
+        "min_height": MINIMUM_WINDOW_HEIGHT,
+        "max_width": MAXIMUM_WINDOW_WIDTH,
+        "max_height": MAXIMUM_WINDOW_HEIGHT
+    },
     "titlebar_height": TITLEBAR_HEIGHT,
     "toolbar_height": TOOLBAR_HEIGHT,
     "attributes_panel": {

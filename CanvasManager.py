@@ -4,7 +4,7 @@ from ProjectDocument import ProjectDocument
 class CanvasManager:
     def __init__(
             self,
-            parent: tk.Frame,
+            parent: tk.Canvas,
             project_document: ProjectDocument,
             nudge_small: int,
             nudge_big: int,
@@ -25,10 +25,6 @@ class CanvasManager:
             highlightthickness=0,
             takefocus=1
         )
-
-    def pack_canvas(self):
-        self.canvas.pack(side="left")
-        self.canvas.after(0, self.canvas.focus_set)
 
     def apply_grid_visibility(self):
         if self.project_document.grid.visible:

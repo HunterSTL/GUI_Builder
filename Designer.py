@@ -45,39 +45,29 @@ class Designer:
         #variable to represent grid state from project_document
         self.grid_visible_variable = tk.BooleanVar(value=self.project_document.grid.visible)
 
-        #create window
-        self.top = tk.Toplevel(parent)
-        titlebar_height = self.constants["titlebar_height"]
-        toolbar_height = self.constants["toolbar_height"]
-        self.top.geometry(f"{self.project_document.width}x{(self.project_document.height + titlebar_height + toolbar_height)}")
-
-        #create title bar
-        self.title_label = None
-        self._create_title_bar()
-
-        #create main frame that will host canvas frame and attributes panel frame
-        self.main_frame = tk.Frame(self.top, bg=self.project_document.theme["background"]["color"])
-
-        #create canvas frame
-        self.canvas_frame = tk.Frame(self.main_frame, width=self.project_document.width, height=self.project_document.height, bg=self.project_document.theme["background"]["color"])
-        self.canvas_frame.pack(side="left", anchor="nw")
-        self.canvas_frame.pack_propagate(False) #keep fixed size
-
-        #create attributes panel frame
-        self.attributes_panel_frame = tk.Frame(self.main_frame, width=self.constants["attributes_panel"]["width"], bg=self.program_theme["attributes_panel"]["color"])
-        self.attributes_panel_frame.pack_propagate(False)
-        self.attributes_panel_frame.grid_propagate(False)
+        #build designer UI
+        self._build_designer_ui()
 
         #create instance of CanvasManager
         self.canvas_manager = CanvasManager(
-            parent=self.canvas_frame,
+            parent=self.viewer,
             project_document=self.project_document,
             nudge_small=self.constants["nudge"]["small"],
             nudge_big=self.constants["nudge"]["big"],
             callbacks=self.callbacks
         )
-
         self.canvas = self.canvas_manager.canvas
+
+        #embed inner canvas into viewer
+        self.canvas_window_id = self.viewer.create_window(0, 0, window=self.canvas, anchor="nw")
+
+        #draw boundry around the work area
+        self._boundry = self.canvas.create_rectangle(
+            1, 1, self.project_document.width - 1, self.project_document.height - 1,
+            outline=self.program_theme["selection"]["color"],
+            width=1,
+            dash=(2, 2)
+        )
 
         #create instance of SelectionManager to store selected widgets
         self.selection_manager = SelectionManager(
@@ -105,9 +95,6 @@ class Designer:
             frame=self.attributes_panel_frame,
             canvas_width=self.project_document.width,
             canvas_height=self.project_document.height,
-            window_height=self.project_document.height + self.constants["titlebar_height"] + self.constants["toolbar_height"],
-            panel_width=self.constants["attributes_panel"]["width"],
-            panel_height=self.constants["attributes_panel"]["height"],
             panel_color=self.program_theme["attributes_panel"]["color"],
             widget_color=self.program_theme["attributes_panel"]["widget_color"],
             text_color=self.program_theme["attributes_panel"]["text_color"],
@@ -172,11 +159,8 @@ class Designer:
         #create toolbar
         self.toolbar_manager.create_toolbar()
 
-        #pack content frame after creating toolbar so the toolbar is on top
+        #pack main frame after creating toolbar so toolbar is on top
         self.main_frame.pack(side="top", fill="both", expand=True)
-
-        #pack canvas after creating toolbar so the toolbar is on top
-        self.canvas_manager.pack_canvas()
 
         #create context menu for creating new widgets
         self._add_widget_menu()
@@ -464,63 +448,6 @@ class Designer:
         self.title_label.configure(text=self.project_document.title)
         self.title_label.update()
 
-    #create title bar
-    def _create_title_bar(self):
-        def start_move(event):
-            self._drag_start_x = event.x_root
-            self._drag_start_y = event.y_root
-            self._win_x = self.top.winfo_x()
-            self._win_y = self.top.winfo_y()
-
-        def do_move(event):
-            dx = event.x_root - self._drag_start_x
-            dy = event.y_root - self._drag_start_y
-            self.top.geometry(f"+{self._win_x + dx}+{self._win_y + dy}")
-
-        #create custom title bar
-        self.top.overrideredirect(True)
-        title_bar = tk.Frame(
-            self.top,
-            height=self.constants["titlebar_height"],
-            bg=self.program_theme["titlebar"]["bg"]
-        )
-        title_bar.pack(fill="x")
-        title_bar.pack_propagate(False)
-        title_bar.bind("<Button-1>", start_move)
-        title_bar.bind("<B1-Motion>", do_move)
-
-        #add icon
-        icon_label = tk.Label(
-            title_bar,
-            image=self.icon,
-            bg=self.program_theme["titlebar"]["bg"]
-        )
-        icon_label.pack(side="left", padx=2, pady=2)
-        icon_label.bind("<Button-1>", start_move)
-        icon_label.bind("<B1-Motion>", do_move)
-
-        #add title
-        self.title_label = tk.Label(
-            title_bar,
-            text=self.project_document.title,
-            bg=self.program_theme["titlebar"]["bg"],
-            fg=self.program_theme["titlebar"]["fg"]
-        )
-        self.title_label.pack(side="left")
-        self.title_label.bind("<Button-1>", start_move)
-        self.title_label.bind("<B1-Motion>", do_move)
-
-        #add close button
-        close_button = tk.Button(
-            title_bar,
-            text=" X ",
-            bg=self.program_theme["titlebar"]["bg"],
-            fg=self.program_theme["titlebar"]["fg"],
-            relief="flat",
-            command=self.project_callbacks["exit_app"]
-        )
-        close_button.pack(side="right")
-
     #create add widget menu
     def _add_widget_menu(self):
         self.menu = tk.Menu(
@@ -595,9 +522,9 @@ class Designer:
         if len(selected_ids) == 1:
             widget_id = next(iter(selected_ids))
             model = self.widget_manager.widget_map.get(widget_id)["model"]
-            self.attributes_panel_manager.show(model)
+            self.attributes_panel_manager.refresh(model)
         else:
-            self.attributes_panel_manager.hide()
+            self.attributes_panel_manager.clear()
 
     def _on_attribute_changed(self, widget_id: int, attribute: str, value):
         if widget_id is None:
@@ -640,6 +567,205 @@ class Designer:
         elif anchor in ["w", "e", "center"]:
             return height // 2, canvas_height - (height // 2)
         return 0, canvas_height
+
+    #copute minimum window dimensions to fit the entire canvas without scrollbars
+    def _compute_initial_window_dimensions(self):
+        canvas_width = self.project_document.width
+        canvas_height = self.project_document.height
+
+        panel_width = self.constants["attributes_panel"]["width"]
+        titlebar_height = self.constants["titlebar_height"]
+        toolbar_height = self.constants["toolbar_height"]
+
+        minimum_width = self.constants["window"]["min_width"]
+        maximum_width = self.constants["window"]["max_width"]
+        minimum_height = self.constants["window"]["min_height"]
+        maximum_height = self.constants["window"]["max_height"]
+
+        #ideal size (no scrollbar needed)
+        ideal_width = canvas_width + panel_width
+        ideal_height = canvas_height + toolbar_height + titlebar_height
+
+        #enforce minimum
+        ideal_width = max(ideal_width, minimum_width)
+        ideal_height = max(ideal_height, minimum_height)
+
+        #enforce maximum
+        ideal_width = min(ideal_width, maximum_width)
+        ideal_height = min(ideal_height, maximum_height)
+
+        return ideal_width, ideal_height
+
+    #create title bar
+    def _create_title_bar(self):
+        def start_move(event):
+            self._drag_start_x = event.x_root
+            self._drag_start_y = event.y_root
+            self._win_x = self.top.winfo_x()
+            self._win_y = self.top.winfo_y()
+
+        def do_move(event):
+            dx = event.x_root - self._drag_start_x
+            dy = event.y_root - self._drag_start_y
+            self.top.geometry(f"+{self._win_x + dx}+{self._win_y + dy}")
+
+        #create custom title bar
+        self.top.overrideredirect(True)
+        title_bar = tk.Frame(
+            self.top,
+            height=self.constants["titlebar_height"],
+            bg=self.program_theme["titlebar"]["bg"]
+        )
+        title_bar.pack(fill="x")
+        title_bar.pack_propagate(False)
+        title_bar.bind("<Button-1>", start_move)
+        title_bar.bind("<B1-Motion>", do_move)
+
+        #add icon
+        icon_label = tk.Label(
+            title_bar,
+            image=self.icon,
+            bg=self.program_theme["titlebar"]["bg"]
+        )
+        icon_label.pack(side="left", padx=2, pady=2)
+        icon_label.bind("<Button-1>", start_move)
+        icon_label.bind("<B1-Motion>", do_move)
+
+        #add title
+        self.title_label = tk.Label(
+            title_bar,
+            text=self.project_document.title,
+            bg=self.program_theme["titlebar"]["bg"],
+            fg=self.program_theme["titlebar"]["fg"]
+        )
+        self.title_label.pack(side="left")
+        self.title_label.bind("<Button-1>", start_move)
+        self.title_label.bind("<B1-Motion>", do_move)
+
+        #add close button
+        close_button = tk.Button(
+            title_bar,
+            text=" X ",
+            bg=self.program_theme["titlebar"]["bg"],
+            fg=self.program_theme["titlebar"]["fg"],
+            relief="flat",
+            command=self.project_callbacks["exit_app"]
+        )
+        close_button.pack(side="right")
+
+    #decide which scrollbars to show based on canvas size and the visible viewport
+    def _refresh_scrollbars(self):
+        if not self.viewer.winfo_ismapped():
+            return
+
+        #ensure geometry is up-to-date
+        self.top.update_idletasks()
+
+        #viewer dimensions
+        viewer_width = self.viewer.winfo_width()
+        viewer_height = self.viewer.winfo_height()
+
+        #canvas dimensions
+        canvas_width = self.project_document.width
+        canvas_height = self.project_document.height
+
+        #scrollbar thickness
+        vertical_scrollbar_thickness = self.vertical_scrollbar.winfo_reqwidth()
+        horizontal_scrollbar_thickness = self.horizontal_scrollbar.winfo_reqheight()
+
+        #check which scrollbar is needed
+        need_vertical_scrollbar = canvas_width > viewer_width
+        need_horizontal_scrollbar = canvas_height > viewer_height
+
+        #if vertical scrollbar needed → reduces visible width → reevaluate horizontal
+        if need_vertical_scrollbar:
+            viewer_width_new = viewer_width - vertical_scrollbar_thickness
+            need_horizontal_scrollbar = canvas_width > viewer_width_new
+
+        #if horizontal scrollbar needed → reduces visible height → reevaluate vertical
+        if need_horizontal_scrollbar:
+            viewer_height_new = viewer_height - horizontal_scrollbar_thickness
+            need_vertical_scrollbar = canvas_height > viewer_height_new
+
+        #second pass
+        if need_vertical_scrollbar:
+            viewer_width_new = viewer_width - vertical_scrollbar_thickness
+            need_horizontal_scrollbar = canvas_width > viewer_width_new
+        if need_horizontal_scrollbar:
+            viewer_height_new = viewer_height - horizontal_scrollbar_thickness
+            need_vertical_scrollbar = canvas_height > viewer_height_new
+
+        #add or remove scrollbars depending on if they're needed or not
+        if need_vertical_scrollbar:
+            self.vertical_scrollbar.grid(row=0, column=1, sticky="ns")
+        else:
+            self.vertical_scrollbar.grid_remove()
+
+        if need_horizontal_scrollbar:
+            self.horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
+        else:
+            self.horizontal_scrollbar.grid_remove()
+
+        #update scroll region (always content size)
+        self.viewer.configure(scrollregion=(0, 0, canvas_width, canvas_height))
+
+    def _build_designer_ui(self):
+        #create window
+        self.top = tk.Toplevel(self.parent)
+
+        #enforce minimum window size
+        self.top.wm_minsize(self.constants["window"]["min_width"], self.constants["window"]["min_height"])
+
+        #compute initial window dimensions
+        window_width, window_height = self._compute_initial_window_dimensions()
+        self.top.geometry(f"{window_width}x{window_height}")
+
+        #create title bar
+        self.title_label = None
+        self._create_title_bar()
+
+        #create main frame that hosts work area (column 0) and attributes panel (column 1)
+        self.main_frame = tk.Frame(self.top, bg=self.project_document.theme["background"]["color"])
+
+        #define column/row growth
+        self.main_frame.columnconfigure(0, weight=1)    #work area expands
+        self.main_frame.columnconfigure(1, weight=0)    #attributes panel fixed width
+        self.main_frame.rowconfigure(0, weight=1)
+
+        #create work area
+        self.work_area = tk.Frame(self.main_frame, bg=self.project_document.theme["background"]["color"])
+        self.work_area.grid(row=0, column=0, sticky="nsew")
+        self.work_area.columnconfigure(0, weight=1)
+        self.work_area.rowconfigure(0, weight=1)
+
+        #create viewer for scrolling
+        self.viewer = tk.Canvas(
+            self.work_area,
+            bg=self.project_document.theme["background"]["color"],
+            highlightthickness=0
+        )
+        self.viewer.grid(row=0, column=0, sticky="nsew")
+
+        #create scrollbars
+        self.vertical_scrollbar = tk.Scrollbar(self.work_area, orient="vertical", command=self.viewer.yview)
+        self.horizontal_scrollbar = tk.Scrollbar(self.work_area, orient="horizontal", command=self.viewer.xview)
+        self.viewer.configure(yscrollcommand=self.vertical_scrollbar.set, xscrollcommand=self.horizontal_scrollbar.set)
+
+        #decide whether scrollbars are needed
+        self._refresh_scrollbars()
+
+        #recompute when viewer's size changes
+        self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
+
+        #create attributes panel frame
+        self.attributes_panel_frame = tk.Frame(
+            self.main_frame,
+            width=self.constants["attributes_panel"]["width"],
+            bg=self.program_theme["attributes_panel"]["color"]
+        )
+        self.attributes_panel_frame.grid(row=0, column=1, sticky="ns")
+        self.attributes_panel_frame.pack_propagate(False)   #fixed width
+        self.attributes_panel_frame.grid_propagate(False)   #fixed width
 
     @staticmethod
     def _clamp(value, minimum, maximum):

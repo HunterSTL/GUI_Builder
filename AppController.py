@@ -123,9 +123,6 @@ class AppController:
         return {key: value.copy() for key, value in self._user_theme.items()}
 
     def _launch_designer_from_project_document(self, project_document, icon):
-        #hide startup window
-        self.root.withdraw()
-
         #destroy old designer
         if self.designer:
             self.designer.top.destroy()
@@ -164,10 +161,13 @@ class AppController:
         if user_intent == "SAVE":
             self.save_project()
 
-        #destroy designer window
+        #destroy existing designer window
         if self.designer:
             self.designer.top.destroy()
             self.designer = None
+
+        #hide startup window
+        self.root.withdraw()
 
         #create the setup wizard as a child
         setup_window = tk.Toplevel(self.root)
@@ -202,6 +202,9 @@ class AppController:
 
         #build a ProjectDocument from file_contents
         project_document = ProjectDocument.from_json(file_contents)
+
+        #hide startup window
+        self.root.withdraw()
 
         #let AppController keep track of save path and last directory
         self._save_path = file_path

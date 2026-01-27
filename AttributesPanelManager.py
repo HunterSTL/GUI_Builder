@@ -61,9 +61,6 @@ class AttributesPanelManager:
             frame: tk.Frame,
             canvas_width: int,
             canvas_height: int,
-            window_height: int,
-            panel_width: int,
-            panel_height: int,
             panel_color: str,
             widget_color: str,
             text_color: str,
@@ -74,54 +71,23 @@ class AttributesPanelManager:
         self.frame = frame
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
-        self.window_height = window_height
-        self.panel_width = panel_width
-        self.panel_height = panel_height
         self.panel_color = panel_color
         self.widget_color = widget_color
         self.text_color = text_color
         self.selection_manager = selection_manager
         self.callbacks = callbacks
 
-        self._visible = False
         self.frame.columnconfigure(0, minsize=50)
         self._spinboxes = {}
         self._variables = {}    #{attribute_name: tk.Variable}
         self._silent_update = False
 
-    def show(self, model):
-        if self._visible:
-            #already visible → refresh contents
-            self._populate(model)
-            return
-
-        #resize window
-        if self.panel_height > self.window_height:
-            self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.panel_height}")
-        else:
-            self.root.geometry(f"{self.canvas_width + self.panel_width}x{self.window_height}")
-
-        #pack attributes panel
-        self.frame.pack(side="right", fill="y")
-
-        self._populate(model)
-        self._visible = True
-
-    def hide(self):
-        if not self._visible:
-            #already hidden → do nothing
-            return
-
-        #resize window
-        self.root.geometry(f"{self.canvas_width}x{self.window_height}")
-
-        #remove attributes panel
-        self.frame.pack_forget()
-
-        #clear panel contents
+    def refresh(self, model):
         self._clear_panel()
+        self._populate(model)
 
-        self._visible = False
+    def clear(self):
+        self._clear_panel()
 
     def update_variable_from_model(self, model, attributes=None):
         self._silent_update = True
@@ -166,7 +132,7 @@ class AttributesPanelManager:
                 except ValueError:
                     return
 
-            #delegate the entire utation to Designer
+            #delegate the entire mutation to Designer
             widget_id = self.selection_manager.last_selected_id()
             if not widget_id:
                 return
