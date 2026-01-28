@@ -1,14 +1,19 @@
+#tkinter
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser
+#dataclasses
 from WidgetModels import *
 from DesignerState import DesignerState
 from ProjectDocument import ProjectDocument
+#managers
 from CanvasManager import CanvasManager
 from SelectionManager import SelectionManager
 from ToolbarManager import ToolbarManager
 from WidgetManager import WidgetManager
 from AttributesPanelManager import AttributesPanelManager
+#misc
 from PIL import ImageTk
+from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta
 
 class Designer:
     def __init__(
@@ -214,10 +219,10 @@ class Designer:
         #calculate clamped x and y to prevent the widget from being created (partially) outside the canvas
         widget.update_idletasks()
         required_width, required_height = widget.winfo_reqwidth(), widget.winfo_reqheight()
-        min_x, max_x = self._allowed_x_range(required_width, model.anchor)
-        min_y, max_y = self._allowed_y_range(required_height, model.anchor)
-        clamped_x = self._clamp(x, min_x, max_x)
-        clamped_y = self._clamp(y, min_y, max_y)
+        min_x, max_x = allowed_x_range(self.canvas.winfo_width(), required_width, model.anchor)
+        min_y, max_y = allowed_y_range(self.canvas.winfo_height(), required_height, model.anchor)
+        clamped_x = clamp(x, min_x, max_x)
+        clamped_y = clamp(y, min_y, max_y)
 
         #delegate actual widget creation to WidgetManager
         self.widget_manager.add_widget(model, widget, clamped_x, clamped_y)
@@ -254,8 +259,8 @@ class Designer:
         if not selected_widgets:
             return
 
-        #calculate group clamped delta so that widgets can't be moved outside the canvas
-        dx, dy = self._group_clamped_delta(selected_widgets, dx, dy)
+        #calculate clamped delta of all selected widgets so that widgets can't be moved outside the canvas
+        dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(*selected_widgets), dx, dy)
 
         for widget_id in selected_widgets:
             #delegate actual movement (canvas item) to WidgetManager
@@ -306,12 +311,8 @@ class Designer:
         if self.state.is_deleting:
             return
 
-        #set deleting flag
-        self.state.is_deleting = True
-
         #get selected widgets
         selected_widgets = self.selection_manager.selected_ids()
-        #selected_widgets = [widget_id for widget_id in self.selection_manager.selected_ids() if self.canvas.type(widget_id) == "window"]
 
         #build messagebox text
         count_selected_widgets = len(selected_widgets)
@@ -323,32 +324,34 @@ class Designer:
             messagebox_text = f"Delete {str(count_selected_widgets)} selected widgets?"
 
         if not messagebox.askyesno("Delete", messagebox_text):
-            #clear deleting flag
-            self.state.is_deleting = False
             return
 
-        for widget_id in selected_widgets:
-            #remove model from project_document
-            model = self.widget_manager.get_model_from_widget_id(widget_id)
-            try:
-                self.project_document.widget_models.remove(model)
-            except ValueError:
-                pass
+        #set deleting flag
+        self.state.is_deleting = True
 
-            #delegate actual deletion (canvas item) to WidgetManager
-            self.widget_manager.delete(widget_id)
+        try:
+            for widget_id in selected_widgets:
+                #remove model from project_document
+                model = self.widget_manager.get_model_from_widget_id(widget_id)
+                try:
+                    self.project_document.widget_models.remove(model)
+                except ValueError:
+                    pass
 
-        #clear selection
-        self.selection_manager.clear()
+                #delegate actual deletion (canvas item) to WidgetManager
+                self.widget_manager.delete(widget_id)
 
-        #hide attributes panel
-        self._on_selection_changed()
+            #clear selection
+            self.selection_manager.clear()
+    
+            #hide attributes panel
+            self._on_selection_changed()
 
-        #set app state to dirty
-        self._set_dirty()
-
-        #clear deleting flag
-        self.state.is_deleting = False
+            #set app state to dirty
+            self._set_dirty()
+        finally:
+            #clear deleting flag
+            self.state.is_deleting = False
 
     def _align(self, direction):
         #get selected widgets and last selected widget
@@ -376,7 +379,7 @@ class Designer:
                     dx, dy = 0, 0
 
                 #calculate clamped delta so that widget can't be moved outside the canvas
-                dx, dy = self._clamped_delta(widget_id, dx, dy)
+                dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(widget_id), dx, dy)
 
                 #delegate actual movement (canvas item) to WidgetManager
                 self.widget_manager.move(widget_id, dx, dy)
@@ -489,43 +492,6 @@ class Designer:
         self.state.last_click_coords = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
 
-    #compute clamped delta, so that widget cannot be moved outside the GUI window
-    def _group_clamped_delta(self, widget_ids: frozenset, dx: int, dy: int) -> tuple[int, int]:
-        canvas_width, canvas_height = self.canvas.winfo_width(), self.canvas.winfo_height()
-        dx_clamped, dy_clamped = dx, dy
-
-        for widget_id in widget_ids:
-            bbox = self.canvas.bbox(widget_id)
-            if not bbox:
-                continue
-            x0, y0, x1, y1 = bbox
-            min_dx = -x0
-            max_dx = canvas_width - x1
-            min_dy = -y0
-            max_dy = canvas_height - y1
-            dx_clamped = max(min_dx, min(max_dx, dx_clamped))
-            dy_clamped = max(min_dy, min(max_dy, dy_clamped))
-
-        return dx_clamped, dy_clamped
-
-    #compute clamped delta, so that widget cannot be moved outside the GUI window
-    def _clamped_delta(self, widget_id: int, dx: int, dy: int) -> tuple[int, int]:
-        canvas_width, canvas_height = self.canvas.winfo_width(), self.canvas.winfo_height()
-        dx_clamped, dy_clamped = dx, dy
-
-        bbox = self.canvas.bbox(widget_id)
-        if not bbox:
-            return 0, 0
-        x0, y0, x1, y1 = bbox
-        min_dx = -x0
-        max_dx = canvas_width - x1
-        min_dy = -y0
-        max_dy = canvas_height - y1
-        dx_clamped = max(min_dx, min(max_dx, dx_clamped))
-        dy_clamped = max(min_dy, min(max_dy, dy_clamped))
-
-        return dx_clamped, dy_clamped
-
     def _on_selection_changed(self):
         selected_ids = self.selection_manager.selected_ids()
         if len(selected_ids) == 1:
@@ -556,26 +522,6 @@ class Designer:
 
         #set app state to dirty
         self._set_dirty()
-
-    def _allowed_x_range(self, width, anchor):
-        canvas_width = int(self.canvas.winfo_width())
-        if anchor in ["sw", "w", "nw"]:
-            return 0, canvas_width - width
-        elif anchor in ["ne", "e", "se"]:
-            return width, canvas_width
-        elif anchor in ["n", "s", "center"]:
-            return width // 2, canvas_width - (width // 2)
-        return 0, canvas_width
-
-    def _allowed_y_range(self, height, anchor):
-        canvas_height = int(self.canvas.winfo_height())
-        if anchor in ["sw", "s", "se"]:
-            return height, canvas_height
-        elif anchor in ["nw", "n", "ne"]:
-            return 0, canvas_height - height
-        elif anchor in ["w", "e", "center"]:
-            return height // 2, canvas_height - (height // 2)
-        return 0, canvas_height
 
     #compute minimum window dimensions to fit the entire canvas without scrollbars
     def _compute_initial_window_dimensions(self):
@@ -767,7 +713,3 @@ class Designer:
 
         #recompute when viewer's size changes
         self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
-
-    @staticmethod
-    def _clamp(value, minimum, maximum):
-        return max(minimum, min(maximum, value))
