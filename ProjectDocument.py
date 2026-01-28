@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any
-from DataModels import LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
+from WidgetModels import LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
 
 @dataclass
 class GridConfig:

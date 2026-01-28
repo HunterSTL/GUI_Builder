@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser
-from DataModels import *
+from WidgetModels import *
+from DesignerState import DesignerState
 from ProjectDocument import ProjectDocument
 from CanvasManager import CanvasManager
 from SelectionManager import SelectionManager
@@ -29,19 +30,8 @@ class Designer:
         #shared mutable callbacks dictionary
         self.callbacks = {}
 
-        #last right-click position for insertion
-        self._click_x = None
-        self._click_y = None
-
-        #drag state for moving the designer window
-        self._drag_start_x = None
-        self._drag_start_y = None
-        self._win_x = None
-        self._win_y = None
-
-        #app state
-        self._dirty = False
-        self._deleting = False
+        #designer state (last click position, dirty flag, deleting flag etc.)
+        self.state = DesignerState()
 
         #variable to represent grid state from project_document
         self.grid_visible_variable = tk.BooleanVar(value=self.project_document.grid.visible)
@@ -175,7 +165,7 @@ class Designer:
             self.widget_manager.add_widget_from_model(model)
 
     def is_dirty(self):
-        return self._dirty
+        return self.state.is_dirty
 
     def set_clean(self):
         self._set_clean()
@@ -313,11 +303,11 @@ class Designer:
 
     def _delete(self):
         #prevent concurrent delete calls
-        if self._deleting:
+        if self.state.is_deleting:
             return
 
         #set deleting flag
-        self._deleting = True
+        self.state.is_deleting = True
 
         #get selected widgets
         selected_widgets = self.selection_manager.selected_ids()
@@ -334,7 +324,7 @@ class Designer:
 
         if not messagebox.askyesno("Delete", messagebox_text):
             #clear deleting flag
-            self._deleting = False
+            self.state.is_deleting = False
             return
 
         for widget_id in selected_widgets:
@@ -358,7 +348,7 @@ class Designer:
         self._set_dirty()
 
         #clear deleting flag
-        self._deleting = False
+        self.state.is_deleting = False
 
     def _align(self, direction):
         #get selected widgets and last selected widget
@@ -457,12 +447,12 @@ class Designer:
         self._set_dirty()
 
     def _set_dirty(self):
-        self._dirty = True
+        self.state.is_dirty = True
         self.title_label.configure(text=self.project_document.title + "*")
         self.title_label.update()
 
     def _set_clean(self):
-        self._dirty = False
+        self.state.is_dirty = False
         self.title_label.configure(text=self.project_document.title)
         self.title_label.update()
 
@@ -476,9 +466,10 @@ class Designer:
         )
 
         def _pos():
-            x = self._click_x if self._click_x is not None else 20
-            y = self._click_y if self._click_y is not None else 20
-            return x, y
+            if self.state.last_click_coords is None:
+                return 100, 100
+            else:
+                return self.state.last_click_coords
 
         self.menu.add_command(
             label="Add Label",
@@ -495,7 +486,7 @@ class Designer:
 
     #post context menu
     def _show_menu(self, event):
-        self._click_x, self._click_y = event.x, event.y
+        self.state.last_click_coords = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
 
     #compute clamped delta, so that widget cannot be moved outside the GUI window
@@ -617,15 +608,13 @@ class Designer:
     #create title bar
     def _create_title_bar(self):
         def start_move(event):
-            self._drag_start_x = event.x_root
-            self._drag_start_y = event.y_root
-            self._win_x = self.top.winfo_x()
-            self._win_y = self.top.winfo_y()
+            self.state.drag_start_coords = event.x_root, event.y_root
+            self.state.window_coords = self.top.winfo_x(), self.top.winfo_y()
 
         def do_move(event):
-            dx = event.x_root - self._drag_start_x
-            dy = event.y_root - self._drag_start_y
-            self.top.geometry(f"+{self._win_x + dx}+{self._win_y + dy}")
+            dx = event.x_root - self.state.drag_start_coords[0]
+            dy = event.y_root - self.state.drag_start_coords[1]
+            self.top.geometry(f"+{self.state.window_coords[0] + dx}+{self.state.window_coords[1] + dy}")
 
         #create custom title bar
         self.top.overrideredirect(True)
@@ -778,10 +767,6 @@ class Designer:
 
         #recompute when viewer's size changes
         self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
-
-        # Force final evaluation after window is mapped
-        self.top.after(0, self._refresh_scrollbars)
-        self.top.after_idle(self._refresh_scrollbars)
 
     @staticmethod
     def _clamp(value, minimum, maximum):
