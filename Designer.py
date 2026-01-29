@@ -11,6 +11,8 @@ from SelectionManager import SelectionManager
 from ToolbarManager import ToolbarManager
 from WidgetManager import WidgetManager
 from AttributesPanelManager import AttributesPanelManager
+#commands
+from commands import CommandStack, MoveWidgets
 #misc
 from PIL import ImageTk
 from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta
@@ -37,6 +39,9 @@ class Designer:
 
         #designer state (last click position, dirty flag, deleting flag etc.)
         self.state = DesignerState()
+
+        #command stack
+        self.command_stack = CommandStack()
 
         #variable to represent grid state from project_document
         self.grid_visible_variable = tk.BooleanVar(value=self.project_document.grid.visible)
@@ -248,10 +253,14 @@ class Designer:
         print("paste")
 
     def _undo(self):
-        print("undo")
+        self.command_stack.undo()
+        self.selection_manager.refresh_all()
+        self._set_dirty()
 
     def _redo(self):
-        print("redo")
+        self.command_stack.redo()
+        self.selection_manager.refresh_all()
+        self._set_dirty()
 
     def _move(self, dx: int, dy: int):
         #get selected widgets
@@ -262,20 +271,13 @@ class Designer:
         #calculate clamped delta of all selected widgets so that widgets can't be moved outside the canvas
         dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(*selected_widgets), dx, dy)
 
-        for widget_id in selected_widgets:
-            #delegate actual movement (canvas item) to WidgetManager
-            self.widget_manager.move(widget_id, dx, dy)
+        #let command stack execute the MoveWidgets command
+        self.command_stack.execute(MoveWidgets(selected_widgets, dx, dy, self.widget_manager))
 
-            #update model
-            model = self.widget_manager.get_model_from_widget_id(widget_id)
-            model.x += dx; model.y += dy
-
-            #update attributes panel if only 1 widget is selected
-            if len(selected_widgets) == 1:
-                self.attributes_panel_manager.update_variable_from_model(model)
-
-        #refresh outline
-        self.selection_manager.refresh_all()
+        #update attributes panel if only one widget is selected
+        if len(selected_widgets) == 1:
+            model = self.widget_manager.get_model_from_widget_id(next(iter(selected_widgets)))
+            self.attributes_panel_manager.update_variable_from_model(model)
 
         #set app state to dirty
         self._set_dirty()
@@ -343,7 +345,7 @@ class Designer:
 
             #clear selection
             self.selection_manager.clear()
-    
+
             #hide attributes panel
             self._on_selection_changed()
 

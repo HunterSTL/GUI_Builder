@@ -1,3 +1,4 @@
+#returns the allowed X coordinate range for a widget based on its anchor
 def allowed_x_range(canvas_width: int, widget_width: int, anchor: str):
     if anchor in ["sw", "w", "nw"]:
         return 0, canvas_width - widget_width
@@ -7,6 +8,7 @@ def allowed_x_range(canvas_width: int, widget_width: int, anchor: str):
         return widget_width // 2, canvas_width - (widget_width // 2)
     return 0, canvas_width
 
+#returns the allowed Y coordinate range for a widget based on its anchor
 def allowed_y_range(canvas_height: int, widget_height: int, anchor: str):
     if anchor in ["sw", "s", "se"]:
         return widget_height, canvas_height
@@ -16,9 +18,11 @@ def allowed_y_range(canvas_height: int, widget_height: int, anchor: str):
         return widget_height // 2, canvas_height - (widget_height // 2)
     return 0, canvas_height
 
+#clamps a value into the given range
 def clamp(value: int, minimum: int, maximum: int):
     return max(minimum, min(maximum, value))
 
+#clamps a movement delta so the given bounding box (of one or more widgets) stays fully inside the canvas
 def clamped_delta(canvas_width, canvas_height, bbox: tuple[int, int, int, int], dx: int, dy: int) -> tuple[int, int]:
     if not bbox:
         return 0, 0

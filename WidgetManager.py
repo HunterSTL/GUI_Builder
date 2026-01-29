@@ -18,7 +18,7 @@ class WidgetManager:
         self.widget_map = {}
 
     #create new widget
-    def add_widget(self, model, widget, x, y):
+    def add_widget(self, model, widget, x: int, y: int):
         #insert widget into canvas
         widget_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor)
 
@@ -61,11 +61,16 @@ class WidgetManager:
         return window_id
 
     #return model
-    def get_model_from_widget_id(self, widget_id):
+    def get_model_from_widget_id(self, widget_id: int):
         return self.widget_map.get(widget_id)["model"]
 
+    #return models x and y coordinates
+    def get_model_coordinates_from_widget_id(self, widget_id: int):
+        model = self.get_model_from_widget_id(widget_id)
+        return model.x, model.y
+
     #return bounding box
-    def get_bbox_from_widget_id(self, widget_id):
+    def get_bbox_from_widget_id(self, widget_id: int):
         bbox = self.canvas.bbox(widget_id)
         x1, y1, x2, y2 = bbox
         return {
@@ -75,19 +80,29 @@ class WidgetManager:
             "bottom": y2
         }
 
-    #move widget
+    #move canvas item by delta, update model and refresh outline
     def move(self, widget_id: int, dx: int, dy: int):
-        self.canvas.move(widget_id, dx, dy)     #move canvas item
+        self.canvas.move(widget_id, dx, dy)
+        model = self.get_model_from_widget_id(widget_id)
+        model.x += dx; model.y += dy
+        self.selection_manager.refresh(widget_id)
+
+    #move canvas item to (x, y), update model and refresh outline
+    def move_to(self, widget_id: int, x: int, y: int):
+        self.canvas.coords(widget_id, x, y)
+        model = self.get_model_from_widget_id(widget_id)
+        model.x, model.y = x, y
+        self.selection_manager.refresh(widget_id)
 
     #delete widget
-    def delete(self, widget_id):
+    def delete(self, widget_id: int):
         self.canvas.delete(widget_id)           #delete canvas item
         self.widget_map.pop(widget_id, None)    #delete widget_id from widget_map
         self.canvas.focus_set()                 #set focus back to canvas
 
     #apply an attribute change from the AttributesPanel to the widget
-    def update_widget_attribute(self, widget_id, attribute, value):
-        model = self.widget_map.get(widget_id)["model"]
+    def update_widget_attribute(self, widget_id: int, attribute: str, value):
+        model = self.get_model_from_widget_id(widget_id)
         widget = self.widget_map.get(widget_id)["widget"]
         if not widget:
             return
@@ -125,8 +140,8 @@ class WidgetManager:
         else:
             return
 
-    def _bind_widget_events(self, widget, window_id):
-        def _on_click(e, i=window_id):
+    def _bind_widget_events(self, widget, widget_id: int):
+        def _on_click(e, i=widget_id):
             #start drag
             self.selection_manager.start_widget_drag(e)
 
@@ -147,7 +162,7 @@ class WidgetManager:
 
         #keep outlines in sync when widget resizes
         widget.bind(
-            "<Configure>", lambda e, i=window_id: (
+            "<Configure>", lambda e, i=widget_id: (
                 self.selection_manager
                 and not self.selection_manager.is_dragging()
                 and self.selection_manager.refresh(i)

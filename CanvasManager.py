@@ -63,12 +63,24 @@ class CanvasManager:
         self.canvas.bind("<ButtonPress-1>", selection_callbacks["press"])
         self.canvas.bind("<B1-Motion>", selection_callbacks["drag"])
         self.canvas.bind("<ButtonRelease-1>", selection_callbacks["release"])
+        self.canvas.bind("<Control-a>", lambda e: selection_callbacks["select_all"]())
 
-        #bind grid events
-        grid_callbacks = self.callbacks["grid"]
-        self.canvas.bind("<Key-g>", lambda e: grid_callbacks["toggle"]())
-        self.canvas.bind("<Control-g>", lambda e: grid_callbacks["change_size"]())
-        self.canvas.bind("<Shift-G>", lambda e: grid_callbacks["change_color"]())
+        #bind project events
+        project_callbacks = self.callbacks["project"]
+        self.canvas.bind("<Control-n>", lambda e: project_callbacks["new"]())
+        self.canvas.bind("<Control-o>", lambda e: project_callbacks["open"]())
+        self.canvas.bind("<Control-s>", lambda e: project_callbacks["save"]())
+        self.canvas.bind("<Control-Shift-S>", lambda e: project_callbacks["save_as"]())
+        self.canvas.bind("<Control-e>", lambda e: project_callbacks["export_json"]())
+        self.canvas.bind("<Alt-F4>", lambda e: project_callbacks["exit_app"]())
+
+        #bind edit events
+        edit_callbacks = self.callbacks["edit"]
+        self.canvas.bind("<Control-x>", lambda e: edit_callbacks["cut"]())
+        self.canvas.bind("<Control-c>", lambda e: edit_callbacks["copy"]())
+        self.canvas.bind("<Control-v>", lambda e: edit_callbacks["paste"]())
+        self.canvas.bind("<Control-z>", lambda e: edit_callbacks["undo"]())
+        self.canvas.bind("<Control-y>", lambda e: edit_callbacks["redo"]())
 
         #bind widget events
         widget_callbacks = self.callbacks["widget"]
@@ -87,14 +99,11 @@ class CanvasManager:
         self.canvas.bind("<Control-Up>", lambda e: widget_callbacks["align_top"]())
         self.canvas.bind("<Control-Down>", lambda e: widget_callbacks["align_bottom"]())
 
-        #bind project events
-        project_callbacks = self.callbacks["project"]
-        self.canvas.bind("<Control-n>", lambda e: project_callbacks["new"]())
-        self.canvas.bind("<Control-o>", lambda e: project_callbacks["open"]())
-        self.canvas.bind("<Control-s>", lambda e: project_callbacks["save"]())
-        self.canvas.bind("<Control-Shift-S>", lambda e: project_callbacks["save_as"]())
-        self.canvas.bind("<Control-e>", lambda e: project_callbacks["export_json"]())
-        self.canvas.bind("<Alt-F4>", lambda e: project_callbacks["exit_app"]())
+        #bind grid events
+        grid_callbacks = self.callbacks["grid"]
+        self.canvas.bind("<Key-g>", lambda e: grid_callbacks["toggle"]())
+        self.canvas.bind("<Control-g>", lambda e: grid_callbacks["change_size"]())
+        self.canvas.bind("<Shift-G>", lambda e: grid_callbacks["change_color"]())
 
         #set dirty/clean
         self.canvas.bind("<Control-d>", lambda e: self.callbacks["set_dirty"]())

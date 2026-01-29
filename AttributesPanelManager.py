@@ -1,4 +1,5 @@
 import tkinter as tk
+from Geometry import allowed_x_range, allowed_y_range
 
 #attributes that can be shown in the attributes panel including the type of widget
 #to display the value with (text field, numeric input, color picker, dropwodn etc.)
@@ -176,11 +177,9 @@ class AttributesPanelManager:
         max_value = 0
 
         if attribute == "x":
-            min_value = self._compute_minimum_x(model)
-            max_value = self._compute_maximum_x(model)
+            min_value, max_value = allowed_x_range(self.canvas_width, model.width, model.anchor)
         elif attribute == "y":
-            min_value = self._compute_minimum_y(model)
-            max_value = self._compute_maximum_y(model)
+            min_value, max_value = allowed_y_range(self.canvas_height, model.height, model.anchor)
         elif attribute == "width":
             min_value = 1
             max_value = self.canvas_width // 2
@@ -257,50 +256,10 @@ class AttributesPanelManager:
 
             self._bind_variables(attribute, variable, model)
 
-    def _compute_maximum_x(self, model):
-        if model.anchor in ["sw", "w", "nw"]:
-            return self.canvas_width - model.width
-        elif model.anchor in ["ne", "e", "se"]:
-            return self.canvas_width
-        elif model.anchor in ["n", "s", "center"]:
-            return self.canvas_width - (model.width // 2)
-        return self.canvas_width
-
-    @staticmethod
-    def _compute_minimum_x(model):
-        if model.anchor in ["sw", "w", "nw"]:
-            return 0
-        elif model.anchor in ["ne", "e", "se"]:
-            return model.width
-        elif model.anchor in ["n", "s", "center"]:
-            return model.width // 2
-        return 0
-
-    def _compute_maximum_y(self, model):
-        if model.anchor in ["sw", "s", "se"]:
-            return self.canvas_height
-        elif model.anchor in ["nw", "n", "ne"]:
-            return self.canvas_height - model.height
-        elif model.anchor in ["w", "e", "center"]:
-            return self.canvas_height - (model.height // 2)
-        return self.canvas_height
-
-    @staticmethod
-    def _compute_minimum_y(model):
-        if model.anchor in ["sw", "s", "se"]:
-            return model.height
-        elif model.anchor in ["nw", "n", "ne"]:
-            return 0
-        elif model.anchor in ["w", "e", "center"]:
-            return model.height // 2
-        return 0
-
     def update_spinbox_limits(self, model):
         if "x" in self._spinboxes:
-            new_min_value = self._compute_minimum_x(model)
-            new_max_value = self._compute_maximum_x(model)
+            new_min_value, new_max_value = allowed_x_range(self.canvas_width, model.width, model.anchor)
             self._spinboxes["x"].config(from_=new_min_value, to=new_max_value)
         if "y" in self._spinboxes:
-            new_min_value = self._compute_minimum_y(model)
-            new_max_value = self._compute_maximum_y(model)
+            new_min_value, new_max_value = allowed_y_range(self.canvas_height, model.height, model.anchor)
             self._spinboxes["y"].config(from_=new_min_value, to=new_max_value)
