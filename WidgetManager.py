@@ -142,11 +142,14 @@ class WidgetManager:
 
     def _bind_widget_events(self, widget, widget_id: int):
         def _on_click(e, i=widget_id):
+            #handle widget click (toggle or select_only based on CTRL-Key)
+            result = self.selection_manager.handle_widget_click(e, i)
+
             #start drag
             self.selection_manager.start_widget_drag(e)
 
-            #handle widget click (toggle or select_only based on CTRL-Key)
-            result = self.selection_manager.handle_widget_click(e, i)
+            #notify Designer that drag gesture starts
+            self.callbacks["widget"]["begin_drag"]()
 
             #show attributes panel
             self.callbacks["attributes_panel"]()
@@ -158,7 +161,11 @@ class WidgetManager:
         widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.callbacks["widget"]["move"]))
 
         #reset drag state
-        widget.bind("<ButtonRelease-1>", lambda e: self.selection_manager.end_widget_drag())
+        widget.bind(
+            "<ButtonRelease-1>",
+            lambda e: (self.selection_manager.end_widget_drag(),    #reset drag state in SelectionManager
+            self.callbacks["widget"]["end_drag"]())                 #notify Designer that drag gesture ends
+        )
 
         #keep outlines in sync when widget resizes
         widget.bind(

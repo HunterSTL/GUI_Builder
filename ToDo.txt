@@ -1,0 +1,23 @@
+Bugs:
+
+#	Text																			Status
+--------------------------------------------------------------------------------------------------------------------
+1.	Alt + F4 already closes app without executing the exit_callback						[x]
+2.	Dragging widgets causes outline artefacts											[x]
+3.	Button "Open" and "New" doesn't close startup window								[x]
+4.	Reducing width or height of widget leaves outline trails								[  ]
+5.	Small canvas size reduces toolbar width											[x]
+6.	Delete can be called multiple times causing TypeError ("NoneType" not subscriptable)		[x]
+7.	Visualize grid via toolbar not functional											[x]
+
+Features:
+
+#	Text																			Status
+--------------------------------------------------------------------------------------------------------------------
+1.	Minimum/maximum window size based on canvas size								[x]
+2.	Implement edit menu (cut, copy, paste, undo, redo and select all)						[  ]
+3.	Implement color picker in attributes panel											[  ]
+4.	Persist icon in ProjectDocument													[  ]
+5.	Resize widgets by dragging the corner												[  ]
+6.	Mouse wheel scrolling (mouswheel → vertical; shift + mousewheel → horizontal)			[  ]
+7.	Resize designer window															[  ]

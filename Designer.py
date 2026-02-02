@@ -12,7 +12,7 @@ from ToolbarManager import ToolbarManager
 from WidgetManager import WidgetManager
 from AttributesPanelManager import AttributesPanelManager
 #commands
-from commands import CommandStack, MoveWidgets
+from commands import CommandStack, MoveWidgets, MoveWidgetsTo
 #misc
 from PIL import ImageTk
 from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta
@@ -135,6 +135,8 @@ class Designer:
             },
             "widget": {
                 "move": self._move,
+                "begin_drag": self._begin_drag,
+                "end_drag": self._end_drag,
                 "snap_to_grid": self._snap_to_grid,
                 "delete": self._delete,
                 "align_left": lambda: self._align("left"),
@@ -269,15 +271,59 @@ class Designer:
             return
 
         #calculate clamped delta of all selected widgets so that widgets can't be moved outside the canvas
-        dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(*selected_widgets), dx, dy)
+        dx, dy = clamped_delta(
+            self.canvas.winfo_width(),
+            self.canvas.winfo_height(),
+            self.canvas.bbox(*selected_widgets),
+            dx, dy
+        )
 
-        #let command stack execute the MoveWidgets command
-        self.command_stack.execute(MoveWidgets(selected_widgets, dx, dy, self.widget_manager))
+        #moving widgets by dragging
+        if self.selection_manager.is_dragging() and self.state.active_widget_drag_command:
+            self.state.active_widget_drag_command.preview_move(dx, dy)
+        else:
+            #moving widgets with keyboard shortcuts (nudge)
+            self.command_stack.execute(MoveWidgets(selected_widgets, dx, dy, self.widget_manager))
 
         #update attributes panel if only one widget is selected
         if len(selected_widgets) == 1:
             model = self.widget_manager.get_model_from_widget_id(next(iter(selected_widgets)))
             self.attributes_panel_manager.update_variable_from_model(model)
+
+        #set app state to dirty
+        self._set_dirty()
+
+    def _begin_drag(self):
+        #get selected widgets
+        selected_widgets = self.selection_manager.selected_ids()
+
+        #reset active_widget_drag_command if no widgets selected
+        if not selected_widgets:
+            self.state.active_widget_drag_command = None
+            return
+
+        #create the MoveWidgetsTo command to record original widget positions
+        self.state.active_widget_drag_command = MoveWidgetsTo(selected_widgets, self.widget_manager)
+
+    def _end_drag(self):
+        #get active widget drag command
+        cmd = self.state.active_widget_drag_command
+
+        if not cmd:
+            return
+
+        if cmd and cmd.has_effect():
+            #record final widget positions
+            cmd.freeze_final_positions()
+
+            #execute the actual command
+            self.command_stack.execute(cmd)
+
+        #reset active_widget_drag_command
+        self.state.active_widget_drag_command = None
+
+        #refresh all outline
+        self.selection_manager.refresh_all()
 
         #set app state to dirty
         self._set_dirty()
@@ -431,12 +477,7 @@ class Designer:
         self._set_dirty()
 
     def _change_grid_color(self):
-        #prompt for grid color
-        if messagebox.askyesno("Change grid color", "Change grid color?"):
-            color = colorchooser.askcolor()[1]
-        else:
-            self.canvas_manager.canvas.focus_set()
-            return
+        color = colorchooser.askcolor()[1]
 
         #abort if user didn't select a color
         if not color:
