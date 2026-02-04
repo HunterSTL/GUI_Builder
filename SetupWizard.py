@@ -206,13 +206,21 @@ class SetupWizard:
             messagebox.showerror("Input Error", "Enter an integer value for window width and height!")
             return
 
-        if int(width_str) < 200 or int(height_str) < 200:
-            messagebox.showerror("Input Error", "Minimum window size: 200 x 200 pixels!")
+        minimum_canvas_width = self.constants["canvas"]["min_width"]
+        minimum_canvas_height = self.constants["canvas"]["min_height"]
+        maximum_canvas_width = self.constants["canvas"]["max_width"]
+        maximum_canvas_height = self.constants["canvas"]["max_height"]
+        width = int(width_str)
+        height = int(height_str)
+
+        if width < minimum_canvas_width or height < minimum_canvas_height:
+            messagebox.showerror("Input Error", f"Minimum canvas size: {minimum_canvas_width} x {minimum_canvas_height} pixels!")
+            return
+        elif width > maximum_canvas_width or height > maximum_canvas_height:
+            messagebox.showerror("Input Error", f"Maximum canvas size: {maximum_canvas_width} x {maximum_canvas_height} pixels!")
             return
 
         title = self.entry_window_title.get()
-        width = int(width_str)
-        height = int(height_str)
 
         project_document = ProjectDocument(
             version=1,

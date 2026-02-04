@@ -1,6 +1,6 @@
 #tkinter
 import tkinter as tk
-from tkinter import messagebox, simpledialog, colorchooser
+from tkinter import messagebox, simpledialog, colorchooser, ttk
 #dataclasses
 from WidgetModels import *
 from DesignerState import DesignerState
@@ -566,34 +566,6 @@ class Designer:
         #set app state to dirty
         self._set_dirty()
 
-    #compute minimum window dimensions to fit the entire canvas without scrollbars
-    def _compute_initial_window_dimensions(self):
-        canvas_width = self.project_document.width
-        canvas_height = self.project_document.height
-
-        panel_width = self.constants["attributes_panel"]["width"]
-        titlebar_height = self.constants["titlebar_height"]
-        toolbar_height = self.constants["toolbar_height"]
-
-        minimum_width = self.constants["window"]["min_width"]
-        maximum_width = self.constants["window"]["max_width"]
-        minimum_height = self.constants["window"]["min_height"]
-        maximum_height = self.constants["window"]["max_height"]
-
-        #ideal size (no scrollbar needed)
-        ideal_width = canvas_width + panel_width
-        ideal_height = canvas_height + toolbar_height + titlebar_height
-
-        #enforce minimum
-        ideal_width = max(ideal_width, minimum_width)
-        ideal_height = max(ideal_height, minimum_height)
-
-        #enforce maximum
-        ideal_width = min(ideal_width, maximum_width)
-        ideal_height = min(ideal_height, maximum_height)
-
-        return ideal_width, ideal_height
-
     #create title bar
     def _create_title_bar(self):
         def start_move(event):
@@ -649,14 +621,65 @@ class Designer:
         )
         close_button.pack(side="right")
 
+    #compute minimum window dimensions to fit the entire canvas without scrollbars, then enforce maximum constraints
+    def _compute_initial_window_dimensions(self):
+        #ensure geometry is up-to-date
+        self.top.update_idletasks()
+
+        #requested canvas dimensions
+        canvas_width = self.project_document.width
+        canvas_height = self.project_document.height
+
+        #dimensions of UI elements
+        panel_width = self.constants["attributes_panel"]["width"]
+        titlebar_height = self.constants["titlebar_height"]
+        toolbar_height = self.constants["toolbar_height"]
+        vertical_scrollbar_thickness = self.vertical_scrollbar.winfo_reqwidth()
+        horizontal_scrollbar_thickness = self.horizontal_scrollbar.winfo_reqheight()
+
+        #minimum/maximum designer window dimensions
+        minimum_width = self.constants["window"]["min_width"]
+        maximum_width = self.constants["window"]["max_width"]
+        minimum_height = self.constants["window"]["min_height"]
+        maximum_height = self.constants["window"]["max_height"]
+
+        #compute ideal designer window dimensions to fit the entire canvas without scrollbars
+        required_window_width = canvas_width + panel_width
+        required_window_height = canvas_height + toolbar_height + titlebar_height
+
+        #compute actual designer window dimensions (enforce min/max constraints)
+        window_width = clamp(required_window_width, minimum_width, maximum_width)
+        window_height = clamp(required_window_height, minimum_height, maximum_height)
+
+        #derive available viewport from clamped window size
+        viewport_width = max(0, window_width - panel_width)
+        viewport_height = max(0, window_height - (toolbar_height + titlebar_height))
+
+        #check whether scrollbars are needed
+        need_horizontal_scrollbar = canvas_width > viewport_width
+        need_vertical_scrollbar = canvas_height > viewport_height
+
+        window_width_new, window_height_new = window_width, window_height
+
+        for _ in range(2):
+            #vertical scrollbar needed → add scrollbar width to window width → enforce min/max → check whether horizontal scrollbar is needed
+            if need_vertical_scrollbar:
+                window_width_new = clamp(window_width + vertical_scrollbar_thickness, minimum_width, maximum_width)
+                viewport_width = max(0, window_width_new - panel_width)
+                need_horizontal_scrollbar = canvas_width > viewport_width
+
+            #horizontal scrollbar needed → add scrollbar width to window height → enforce min/max → check whether vertical scrollbar is needed
+            if need_horizontal_scrollbar:
+                window_height_new = clamp(window_height + horizontal_scrollbar_thickness, minimum_height, maximum_height)
+                viewport_height = max(0, window_height_new - (toolbar_height + titlebar_height))
+                need_vertical_scrollbar = canvas_height > viewport_height
+
+        return window_width_new, window_height_new
+
     #decide which scrollbars to show based on canvas size and the visible viewport
     def _refresh_scrollbars(self):
         #ensure geometry is up-to-date
         self.top.update_idletasks()
-
-        #viewer dimensions
-        viewer_width = self.viewer.winfo_width()
-        viewer_height = self.viewer.winfo_height()
 
         #canvas dimensions
         canvas_width = self.project_document.width
@@ -666,27 +689,24 @@ class Designer:
         vertical_scrollbar_thickness = self.vertical_scrollbar.winfo_reqwidth()
         horizontal_scrollbar_thickness = self.horizontal_scrollbar.winfo_reqheight()
 
-        #check which scrollbar is needed
-        need_vertical_scrollbar = canvas_height > viewer_height
-        need_horizontal_scrollbar = canvas_width > viewer_width
+        #viewport dimensions
+        viewport_width = self.work_area.winfo_width()
+        viewport_height = self.work_area.winfo_height()
 
-        #if vertical scrollbar needed → reduces visible width → reevaluate horizontal
-        if need_vertical_scrollbar:
-            viewer_width_new = viewer_width - vertical_scrollbar_thickness
-            need_horizontal_scrollbar = canvas_width > viewer_width_new
+        #check whether scrollbars are needed
+        need_horizontal_scrollbar = canvas_width > viewport_width
+        need_vertical_scrollbar = canvas_height > viewport_height
 
-        #if horizontal scrollbar needed → reduces visible height → reevaluate vertical
-        if need_horizontal_scrollbar:
-            viewer_height_new = viewer_height - horizontal_scrollbar_thickness
-            need_vertical_scrollbar = canvas_height > viewer_height_new
+        for _ in range(2):
+            #vertical scrollbar needed → reduce viewport width by scrollbar width → check whether horizontal scrollbar is needed
+            if need_vertical_scrollbar:
+                viewport_width_new = viewport_width - vertical_scrollbar_thickness
+                need_horizontal_scrollbar = canvas_width > viewport_width_new
 
-        #second pass
-        if need_vertical_scrollbar:
-            viewer_width_new = viewer_width - vertical_scrollbar_thickness
-            need_horizontal_scrollbar = canvas_width > viewer_width_new
-        if need_horizontal_scrollbar:
-            viewer_height_new = viewer_height - horizontal_scrollbar_thickness
-            need_vertical_scrollbar = canvas_height > viewer_height_new
+            #horizontal scrollbar needed → reduce viewport height by scrollbar width → check whether vertical scrollbar is needed
+            if need_horizontal_scrollbar:
+                viewport_height_new = viewport_height - horizontal_scrollbar_thickness
+                need_vertical_scrollbar = canvas_height > viewport_height_new
 
         #add or remove scrollbars depending on if they're needed or not
         if need_vertical_scrollbar:
@@ -702,16 +722,34 @@ class Designer:
         #update scroll region (always content size)
         self.viewer.configure(scrollregion=(0, 0, canvas_width, canvas_height))
 
+    def _configure_scrollbar_style(self):
+        style = ttk.Style(self.top)
+        style.theme_use("default")  #allows colors
+        style.configure(
+            "Designer.Vertical.TScrollbar",
+            troughcolor=self.program_theme["scrollbar"]["trough_color"],
+            background=self.program_theme["scrollbar"]["background_color"],
+            arrowcolor=self.program_theme["scrollbar"]["arrow_color"],
+            bordercolor=self.program_theme["scrollbar"]["border_color"]
+        )
+        style.configure(
+            "Designer.Horizontal.TScrollbar",
+            troughcolor=self.program_theme["scrollbar"]["trough_color"],
+            background=self.program_theme["scrollbar"]["background_color"],
+            arrowcolor=self.program_theme["scrollbar"]["arrow_color"],
+            bordercolor=self.program_theme["scrollbar"]["border_color"]
+        )
+
+    def _bind_mousewheel(self, widget):
+        widget.bind("<MouseWheel>", lambda e: self.viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
+        widget.bind("<Shift-MouseWheel>", lambda e: self.viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
+
     def _build_designer_ui(self):
         #create window
         self.top = tk.Toplevel(self.parent)
 
         #enforce minimum window size
         self.top.wm_minsize(self.constants["window"]["min_width"], self.constants["window"]["min_height"])
-
-        #compute initial window dimensions
-        window_width, window_height = self._compute_initial_window_dimensions()
-        self.top.geometry(f"{window_width}x{window_height}")
 
         #create title bar
         self.title_label = None
@@ -739,10 +777,28 @@ class Designer:
         )
         self.viewer.grid(row=0, column=0, sticky="nsew")
 
+        #bind mousewheel for scrolling
+        self._bind_mousewheel(self.top)
+
         #create scrollbars
-        self.vertical_scrollbar = tk.Scrollbar(self.work_area, orient="vertical", command=self.viewer.yview)
-        self.horizontal_scrollbar = tk.Scrollbar(self.work_area, orient="horizontal", command=self.viewer.xview)
+        self._configure_scrollbar_style()
+        self.vertical_scrollbar = ttk.Scrollbar(
+            self.work_area,
+            orient="vertical",
+            command=self.viewer.yview,
+            style="Designer.Vertical.TScrollbar"
+        )
+        self.horizontal_scrollbar = ttk.Scrollbar(
+            self.work_area,
+            orient="horizontal",
+            command=self.viewer.xview,
+            style="Designer.Horizontal.TScrollbar"
+        )
         self.viewer.configure(yscrollcommand=self.vertical_scrollbar.set, xscrollcommand=self.horizontal_scrollbar.set)
+
+        #compute initial window dimensions
+        window_width, window_height = self._compute_initial_window_dimensions()
+        self.top.geometry(f"{window_width}x{window_height}")
 
         #create attributes panel frame
         self.attributes_panel_frame = tk.Frame(

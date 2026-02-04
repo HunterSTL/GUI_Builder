@@ -51,6 +51,10 @@ program_ENTRY_COLOR = "#606060"
 program_ENTRY_TEXT_COLOR = "#FFFFFF"
 program_BUTTON_COLOR = "#505050"
 program_BUTTON_TEXT_COLOR = "#FFFFFF"
+program_SCROLLBAR_TROUGH_COLOR = "#303030"
+program_SCROLLBAR_BACKGROUND_COLOR = "#666666"
+program_SCROLLBAR_ARROW_COLOR = "#000000"
+program_SCROLLBAR_BORDER_COLOR = "#000000"
 
 PROGRAM_THEME = {
     "background": {
@@ -91,14 +95,24 @@ PROGRAM_THEME = {
     "button": {
         "bg": program_BUTTON_COLOR,
         "fg": program_BUTTON_TEXT_COLOR
+    },
+    "scrollbar": {
+        "trough_color": program_SCROLLBAR_TROUGH_COLOR,
+        "background_color": program_SCROLLBAR_BACKGROUND_COLOR,
+        "arrow_color": program_SCROLLBAR_ARROW_COLOR,
+        "border_color": program_SCROLLBAR_BORDER_COLOR
     }
 }
 
 #constants
 MINIMUM_WINDOW_WIDTH = 600
-MINIMUM_WINDOW_HEIGHT = 500
+MINIMUM_WINDOW_HEIGHT = 400
 MAXIMUM_WINDOW_WIDTH = 1200
-MAXIMUM_WINDOW_HEIGHT = 1000
+MAXIMUM_WINDOW_HEIGHT = 800
+MINIMUM_CANVAS_WIDTH = 200
+MINIMUM_CANVAS_HEIGHT = 200
+MAXIMUM_CANVAS_WIDTH = 5000
+MAXIMUM_CANVAS_HEIGHT = 5000
 TITLEBAR_HEIGHT = 25
 TOOLBAR_HEIGHT = 25
 ATTRIBUTES_PANEL_WIDTH = 200
@@ -117,6 +131,12 @@ CONSTANTS = {
         "min_height": MINIMUM_WINDOW_HEIGHT,
         "max_width": MAXIMUM_WINDOW_WIDTH,
         "max_height": MAXIMUM_WINDOW_HEIGHT
+    },
+    "canvas": {
+        "min_width": MINIMUM_CANVAS_WIDTH,
+        "min_height": MINIMUM_CANVAS_HEIGHT,
+        "max_width": MAXIMUM_CANVAS_WIDTH,
+        "max_height": MAXIMUM_CANVAS_HEIGHT
     },
     "titlebar_height": TITLEBAR_HEIGHT,
     "toolbar_height": TOOLBAR_HEIGHT,

@@ -105,6 +105,6 @@ class CanvasManager:
         self.canvas.bind("<Control-g>", lambda e: grid_callbacks["change_size"]())
         self.canvas.bind("<Shift-G>", lambda e: grid_callbacks["change_color"]())
 
-        #set dirty/clean
+        #bind set dirty/clean
         self.canvas.bind("<Control-d>", lambda e: self.callbacks["set_dirty"]())
         self.canvas.bind("<Control-Shift-D>", lambda e: self.callbacks["set_clean"]())
