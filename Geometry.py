@@ -31,3 +31,7 @@ def clamped_delta(canvas_width, canvas_height, bbox: tuple[int, int, int, int], 
     min_dx, min_dy = -x0, -y0
     max_dx, max_dy = canvas_width - x1, canvas_height - y1
     return clamp(dx, min_dx, max_dx), clamp(dy, min_dy, max_dy)
+
+#returns the x and y offset needed to center the window on the screen
+def screen_offset_to_center_window(screen_width, screen_height, window_width, window_height):
+    return (screen_width // 2) - (window_width // 2), (screen_height // 2) - (window_height // 2)

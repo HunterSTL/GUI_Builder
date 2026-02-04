@@ -15,7 +15,7 @@ from AttributesPanelManager import AttributesPanelManager
 from commands import CommandStack, MoveWidgets, MoveWidgetsTo
 #misc
 from PIL import ImageTk
-from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta
+from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window
 
 class Designer:
     def __init__(
@@ -566,61 +566,6 @@ class Designer:
         #set app state to dirty
         self._set_dirty()
 
-    #create title bar
-    def _create_title_bar(self):
-        def start_move(event):
-            self.state.drag_start_coords = event.x_root, event.y_root
-            self.state.window_coords = self.top.winfo_x(), self.top.winfo_y()
-
-        def do_move(event):
-            dx = event.x_root - self.state.drag_start_coords[0]
-            dy = event.y_root - self.state.drag_start_coords[1]
-            self.top.geometry(f"+{self.state.window_coords[0] + dx}+{self.state.window_coords[1] + dy}")
-
-        #create custom title bar
-        self.top.overrideredirect(True)
-        title_bar = tk.Frame(
-            self.top,
-            height=self.constants["titlebar_height"],
-            bg=self.program_theme["titlebar"]["bg"]
-        )
-        title_bar.pack(fill="x")
-        title_bar.pack_propagate(False)
-        title_bar.bind("<Button-1>", start_move)
-        title_bar.bind("<B1-Motion>", do_move)
-
-        #add icon
-        icon_label = tk.Label(
-            title_bar,
-            image=self.icon,
-            bg=self.program_theme["titlebar"]["bg"]
-        )
-        icon_label.pack(side="left", padx=2, pady=2)
-        icon_label.bind("<Button-1>", start_move)
-        icon_label.bind("<B1-Motion>", do_move)
-
-        #add title
-        self.title_label = tk.Label(
-            title_bar,
-            text=self.project_document.title,
-            bg=self.program_theme["titlebar"]["bg"],
-            fg=self.program_theme["titlebar"]["fg"]
-        )
-        self.title_label.pack(side="left")
-        self.title_label.bind("<Button-1>", start_move)
-        self.title_label.bind("<B1-Motion>", do_move)
-
-        #add close button
-        close_button = tk.Button(
-            title_bar,
-            text=" X ",
-            bg=self.program_theme["titlebar"]["bg"],
-            fg=self.program_theme["titlebar"]["fg"],
-            relief="flat",
-            command=self.project_callbacks["exit_app"]
-        )
-        close_button.pack(side="right")
-
     #compute minimum window dimensions to fit the entire canvas without scrollbars, then enforce maximum constraints
     def _compute_initial_window_dimensions(self):
         #ensure geometry is up-to-date
@@ -744,6 +689,72 @@ class Designer:
         widget.bind("<MouseWheel>", lambda e: self.viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
         widget.bind("<Shift-MouseWheel>", lambda e: self.viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
 
+    #create a custom draggable title bar with a close button
+    def _create_title_bar(self):
+        def start_move(event):
+            self.state.drag_start_coords = event.x_root, event.y_root
+            self.state.window_coords = self.top.winfo_x(), self.top.winfo_y()
+
+        def do_move(event):
+            dx = event.x_root - self.state.drag_start_coords[0]
+            dy = event.y_root - self.state.drag_start_coords[1]
+            self.top.geometry(f"+{self.state.window_coords[0] + dx}+{self.state.window_coords[1] + dy}")
+
+        #create custom title bar
+        self.top.overrideredirect(True)
+        title_bar = tk.Frame(
+            self.top,
+            height=self.constants["titlebar_height"],
+            bg=self.program_theme["titlebar"]["bg"]
+        )
+        title_bar.pack(fill="x")
+        title_bar.pack_propagate(False)
+        title_bar.bind("<Button-1>", start_move)
+        title_bar.bind("<B1-Motion>", do_move)
+
+        #add icon
+        icon_label = tk.Label(
+            title_bar,
+            image=self.icon,
+            bg=self.program_theme["titlebar"]["bg"]
+        )
+        icon_label.pack(side="left", padx=2, pady=2)
+        icon_label.bind("<Button-1>", start_move)
+        icon_label.bind("<B1-Motion>", do_move)
+
+        #add title
+        self.title_label = tk.Label(
+            title_bar,
+            text=self.project_document.title,
+            bg=self.program_theme["titlebar"]["bg"],
+            fg=self.program_theme["titlebar"]["fg"]
+        )
+        self.title_label.pack(side="left")
+        self.title_label.bind("<Button-1>", start_move)
+        self.title_label.bind("<B1-Motion>", do_move)
+
+        #add close button
+        close_button = tk.Button(
+            title_bar,
+            text=" X ",
+            bg=self.program_theme["titlebar"]["bg"],
+            fg=self.program_theme["titlebar"]["fg"],
+            relief="flat",
+            command=self.project_callbacks["exit_app"]
+        )
+        close_button.pack(side="right")
+
+    #center window
+    def _center_window(self):
+        self.top.update_idletasks()
+        x_offset, y_offset = screen_offset_to_center_window(
+            self.top.winfo_screenwidth(),
+            self.top.winfo_screenheight(),
+            self.top.winfo_width(),
+            self.top.winfo_height()
+        )
+        self.top.geometry(f"+{x_offset}+{y_offset}")
+
     def _build_designer_ui(self):
         #create window
         self.top = tk.Toplevel(self.parent)
@@ -812,3 +823,5 @@ class Designer:
 
         #recompute when viewer's size changes
         self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
+
+        self._center_window()

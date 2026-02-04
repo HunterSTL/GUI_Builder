@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import colorchooser, messagebox, filedialog
 from PIL import Image, ImageTk
 from ProjectDocument import *
+from Geometry import screen_offset_to_center_window
 
 def load_icon(path, size):
     try:
@@ -37,14 +38,10 @@ class SetupWizard:
         self._drag_start_x = None
         self._drag_start_y = None
 
-        #set title and bg color
-        self.root.config(bg=self.program_theme["background"]["color"])
-        self.root.title("Tkinter GUI Builder – Setup")
-
-        self._create_title_bar()
+        #build setup UI
         self._build_setup_ui()
 
-    #create title bar
+    #create a custom draggable title bar with a close button
     def _create_title_bar(self):
         def start_move(event):
             self._drag_start_x = event.x_root
@@ -83,8 +80,26 @@ class SetupWizard:
         close_button = tk.Button(title_bar, text=" X ", bg=self.program_theme["titlebar"]["bg"], fg=self.program_theme["titlebar"]["fg"], relief="flat", command=self.exit_callback)
         close_button.pack(side="right")
 
+    #center window
+    def _center_window(self):
+        self.root.update_idletasks()
+        x_offset, y_offset = screen_offset_to_center_window(
+            self.root.winfo_screenwidth(),
+            self.root.winfo_screenheight(),
+            self.root.winfo_width(),
+            self.root.winfo_height()
+        )
+        self.root.geometry(f"+{x_offset}+{y_offset}")
+
     #build setup UI
     def _build_setup_ui(self):
+        #set title and bg color
+        self.root.config(bg=self.program_theme["background"]["color"])
+        self.root.title("Tkinter GUI Builder – Setup")
+
+        #create title car
+        self._create_title_bar()
+
         #window title
         label_window_title = tk.Label(self.root, text="Window Title:", bg=self.program_theme["label"]["bg"], fg=self.program_theme["label"]["fg"])
         label_window_title.grid(row=1, column=0, padx=5, sticky="W")
@@ -170,6 +185,8 @@ class SetupWizard:
         #create button
         button_create_gui_window = tk.Button(self.root, text="Launch designer", bg=self.program_theme["button"]["bg"], fg=self.program_theme["button"]["fg"], command=self.build_project_document)
         button_create_gui_window.grid(row=8, column=0, padx=5, pady=5, sticky="W")
+
+        self._center_window()
 
     #actions
     def choose_color(self, element_type: str, attribute: str):

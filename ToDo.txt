@@ -19,5 +19,5 @@ Features:
 3.	Implement color picker in attributes panel											[  ]
 4.	Persist icon in ProjectDocument													[  ]
 5.	Resize widgets by dragging the corner												[  ]
-6.	Mouse wheel scrolling (mouswheel → vertical; shift + mousewheel → horizontal)			[  ]
+6.	Mouse wheel scrolling (mouswheel → vertical; shift + mousewheel → horizontal)			[x]
 7.	Resize designer window															[  ]

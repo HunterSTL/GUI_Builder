@@ -6,6 +6,7 @@ from tkinter import messagebox, filedialog
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
 from Designer import Designer
+from Geometry import screen_offset_to_center_window
 
 class AppController:
     def __init__(
@@ -28,15 +29,10 @@ class AppController:
         self._drag_start_x = None
         self._drag_start_y = None
 
-        #set title and bg color
-        self.root.config(bg=self.program_theme["background"]["color"])
-        self.root.title("Tkinter GUI Builder – Startup")
-
         #build startup UI
-        self._create_title_bar()
         self._build_startup_ui()
 
-    #creates a custom draggable title bar with a close button
+    #create a custom draggable title bar with a close button
     def _create_title_bar(self):
         def start_move(event):
             self._drag_start_x = event.x_root
@@ -73,8 +69,25 @@ class AppController:
         )
         close_button.pack(side="right")
 
+    def _center_window(self):
+        self.root.update_idletasks()
+        x_offset, y_offset = screen_offset_to_center_window(
+            self.root.winfo_screenwidth(),
+            self.root.winfo_screenheight(),
+            self.root.winfo_width(),
+            self.root.winfo_height()
+        )
+        self.root.geometry(f"+{x_offset}+{y_offset}")
+
     #builds the startup UI with New/Open/Exit actions
     def _build_startup_ui(self):
+        #set title and bg color
+        self.root.config(bg=self.program_theme["background"]["color"])
+        self.root.title("Tkinter GUI Builder – Startup")
+
+        #create title bar
+        self._create_title_bar()
+
         #open project button
         button_open_project = tk.Button(
             self.root,
@@ -107,6 +120,8 @@ class AppController:
             command=self.exit_app
         )
         button_exit.pack()
+
+        self._center_window()
 
     #returns a dict of project callbacks
     def _project_callbacks(self):
