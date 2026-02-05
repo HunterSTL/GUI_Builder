@@ -10,7 +10,8 @@ class SelectionManager:
             selection_dash: tuple[int],
             selection_padding: int,
             selection_color: str,
-            last_selected_color: str
+            last_selected_color: str,
+            drag_threshold
         ):
         self.canvas = canvas
         self.ctrl_key = ctrl_key
@@ -19,6 +20,7 @@ class SelectionManager:
         self.selection_padding = selection_padding
         self.selection_color = selection_color
         self.last_selected_color = last_selected_color
+        self.drag_threshold = drag_threshold
 
         self._selected: Set[int] = set()          #selected widget IDs (window items)
         self._rects: Dict[int, int] = {}          #widget_id -> rectangle_id
@@ -34,6 +36,8 @@ class SelectionManager:
         self._widget_drag_start = None
         self._widget_drag_end = None
         self._dragging_widgets = False
+        self._pending_dx = 0
+        self._pending_dy = 0
 
     def clear(self):
         for widget_id in list(self._selected):
@@ -186,23 +190,49 @@ class SelectionManager:
 
     def start_widget_drag(self, event):
         #use canvas coordinates instead of screen coordinates (possible fix for wrong widget drag behaviour)
-        self._widget_drag_start = (self.canvas.canvasx(event.x_root), self.canvas.canvasy(event.y_root))
-        #self._widget_drag_start = (event.x_root, event.y_root)
+        self._widget_drag_start = (int(self.canvas.canvasx(event.x_root)), int(self.canvas.canvasy(event.y_root)))
         self._widget_drag_end = self._widget_drag_start
         self._dragging_widgets = False
+        self._pending_dx = 0
+        self._pending_dy = 0
 
     def handle_widget_drag(self, event, move_callback):
         if not self._widget_drag_start:
             return "break"
 
-        dx, dy = event.x_root - self._widget_drag_end[0], event.y_root - self._widget_drag_end[1]
+        #current pointer in canvas space
+        current_x = int(self.canvas.canvasx(event.x_root))
+        current_y = int(self.canvas.canvasy(event.y_root))
+
+        #delta since last applied point
+        step_dx = current_x - self._widget_drag_end[0]
+        step_dy = current_y - self._widget_drag_end[1]
+
+        if step_dx == 0 and step_dy == 0:
+            return "break"
 
         if not self._dragging_widgets:
+            #accumulate delta until threshold is exceeded
+            self._pending_dx += step_dx
+            self._pending_dy += step_dy
+
+            if abs(self._pending_dx) + abs(self._pending_dy) < self.drag_threshold:
+                #only update last position if threshold is not exceeded
+                self._widget_drag_end = (current_x, current_y)
+                return "break"
+
+            #threshold is exceeded → set _dragging_widgets to True so future events immediately apply the movement instead of accumulating the delta
+            step_dx = self._pending_dx
+            step_dy = self._pending_dy
+            self._pending_dx = 0
+            self._pending_dy = 0
             self._dragging_widgets = True
 
+        #move now
         if callable(move_callback):
-            move_callback(dx, dy)
+            move_callback(step_dx, step_dy)
 
+        #update last position
         self._widget_drag_end = (event.x_root, event.y_root)
         return "break"
 
@@ -255,7 +285,6 @@ class SelectionManager:
             )
             self._rects[widget_id] = rect_id
         self.canvas.tag_raise(rect_id)
-        self.canvas.update_idletasks()
 
     def _remove_highlight(self, widget_id: int):
         rect_id = self._rects.pop(widget_id, None)

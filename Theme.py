@@ -124,6 +124,7 @@ SELECTION_DASH = (3, 2)
 SELECTION_PADDING = 3
 GRID_SIZE = 10
 CTRL_KEY = 0x0004
+DRAG_THRESHOLD = 20
 
 CONSTANTS = {
     "window": {
@@ -154,5 +155,6 @@ CONSTANTS = {
         "padding": SELECTION_PADDING
     },
     "grid_size": GRID_SIZE,
-    "ctrl_key": CTRL_KEY
+    "ctrl_key": CTRL_KEY,
+    "drag_threshold": DRAG_THRESHOLD
 }

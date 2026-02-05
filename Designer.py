@@ -78,7 +78,8 @@ class Designer:
             selection_dash=self.constants["selection"]["dash"],
             selection_padding=self.constants["selection"]["padding"],
             selection_color=self.program_theme["selection"]["color"],
-            last_selected_color=self.program_theme["selection"]["last_selected_color"]
+            last_selected_color=self.program_theme["selection"]["last_selected_color"],
+            drag_threshold=self.constants["drag_threshold"]
         )
 
         #create instance of WidgetManager to store created widgets
@@ -560,7 +561,7 @@ class Designer:
         if attribute in ("anchor", "width", "height"):
             self.attributes_panel_manager.update_spinbox_limits(model)
 
-        #refresh outlines
+        #refresh outline
         self.selection_manager.refresh(widget_id)
 
         #set app state to dirty

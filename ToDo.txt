@@ -21,3 +21,4 @@ Features:
 5.	Resize widgets by dragging the corner												[  ]
 6.	Mouse wheel scrolling (mouswheel → vertical; shift + mousewheel → horizontal)			[x]
 7.	Resize designer window															[  ]
+8.	Configurable drag threshold														[x]
