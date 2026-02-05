@@ -120,7 +120,7 @@ class AttributesPanelManager:
         self._variables.clear()
         self._spinboxes.clear()
 
-    def _bind_variables(self, attribute: str, variable: tk.Variable, model):
+    def _bind_variables(self, attribute: str, variable: tk.Variable):
         def _on_write(*_):
             if self._silent_update:
                 return
@@ -170,7 +170,7 @@ class AttributesPanelManager:
             textvariable=variable
         )
         entry.grid(column=1, row=row)
-        self._bind_variables(attribute, variable, model)
+        self._bind_variables(attribute, variable)
 
     def _create_spinbox(self, model, attribute, row):
         min_value = 0
@@ -225,7 +225,7 @@ class AttributesPanelManager:
         #store spinbox so the max value can be adjusted later if size or anchor change
         self._spinboxes[attribute] = spinbox
 
-        self._bind_variables(attribute, variable, model)
+        self._bind_variables(attribute, variable)
 
     def _create_colorpicker(self, model, attribute, row):
         tk.Label(
@@ -254,7 +254,7 @@ class AttributesPanelManager:
             variable.set(str(getattr(model, attribute)))
             self._silent_update = False
 
-            self._bind_variables(attribute, variable, model)
+            self._bind_variables(attribute, variable)
 
     def update_spinbox_limits(self, model):
         if "x" in self._spinboxes:

@@ -22,7 +22,7 @@ class WidgetManager:
         #insert widget into canvas
         widget_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor)
 
-        #store both the data model and the tkinter widget in the widget map with the window_id as the key
+        #store both the data model and the tkinter widget in the widget map with the widget_id as the key
         self.widget_map[widget_id] = {"model": model, "widget": widget}
 
         #bind events
@@ -44,21 +44,21 @@ class WidgetManager:
             return None
 
         #insert widget into canvas
-        window_id = self.canvas.create_window(model.x, model.y, window=widget, anchor=model.anchor)
+        widget_id = self.canvas.create_window(model.x, model.y, window=widget, anchor=model.anchor)
 
         #populate model width and height after creating window and updating widget, otherwise both values are 1
         widget.update()
         model.width, model.height = widget.winfo_width(), widget.winfo_height()
 
-        #store both the data model and the tkinter widget in the widget map with the window_id as the key
-        self.widget_map[window_id] = {"model": model, "widget": widget}
+        #store both the data model and the tkinter widget in the widget map with the widget_id as the key
+        self.widget_map[widget_id] = {"model": model, "widget": widget}
 
         #bind events
-        self._bind_widget_events(widget, window_id)
+        self._bind_widget_events(widget, widget_id)
 
         #set focus back to canvas
         self.canvas.focus_set()
-        return window_id
+        return widget_id
 
     #return model
     def get_model_from_widget_id(self, widget_id: int):
@@ -141,9 +141,9 @@ class WidgetManager:
             return
 
     def _bind_widget_events(self, widget, widget_id: int):
-        def _on_click(e, i=widget_id):
+        def _on_click(e, w_id=widget_id):
             #handle widget click (toggle or select_only based on CTRL-Key)
-            result = self.selection_manager.handle_widget_click(e, i)
+            result = self.selection_manager.handle_widget_click(e, w_id)
 
             #start drag
             self.selection_manager.start_widget_drag(e)

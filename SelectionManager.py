@@ -20,8 +20,8 @@ class SelectionManager:
         self.selection_color = selection_color
         self.last_selected_color = last_selected_color
 
-        self._selected: Set[int] = set()          #selected canvas item IDs (window items)
-        self._rects: Dict[int, int] = {}          #window_id -> rectangle_id
+        self._selected: Set[int] = set()          #selected widget IDs (window items)
+        self._rects: Dict[int, int] = {}          #widget_id -> rectangle_id
         self._last_selected = None
 
         #rectangle selection state
@@ -36,33 +36,43 @@ class SelectionManager:
         self._dragging_widgets = False
 
     def clear(self):
-        for item_id in list(self._selected):
-            self._remove_highlight(item_id)
+        for widget_id in list(self._selected):
+            self._remove_highlight(widget_id)
         self._selected.clear()
         self._last_selected = None
 
-    def select_only(self, item_id: Optional[int]):
-        if item_id is None:
+    def select_only(self, widget_id: Optional[int]):
+        if widget_id is None:
             self.clear()
             return
         for other in list(self._selected):
-            if other != item_id:
+            if other != widget_id:
                 self._remove_highlight(other)
-        self._selected = {item_id}
-        self._last_selected = item_id
+        self._selected = {widget_id}
+        self._last_selected = widget_id
 
-    def toggle(self, item_id: Optional[int]):
-        if item_id is None:
+    def toggle(self, widget_id: Optional[int]):
+        if widget_id is None:
             return
-        if item_id in self._selected:
-            self._remove_highlight(item_id)
-            self._selected.remove(item_id)
+        if widget_id in self._selected:
+            self._remove_highlight(widget_id)
+            self._selected.remove(widget_id)
         else:
-            self._selected.add(item_id)
-            self._last_selected = item_id
+            self._selected.add(widget_id)
+            self._last_selected = widget_id
 
     def select_all(self):
-        print("select_all")
+        #clear existing selection
+        self.clear()
+
+        #select all items with type "window" (=widget)
+        items = self.canvas.find_all()
+        for item in items:
+            if self.canvas.type(item) == "window":
+                self.toggle(item)
+
+        #refresh outline
+        self.refresh_all()
 
     def selected_ids(self) -> frozenset[int]:
         return frozenset(self._selected)    #frozenset so external code can't mutate the collection
@@ -70,12 +80,12 @@ class SelectionManager:
     def last_selected_id(self):
         return self._last_selected
 
-    def refresh(self, item_id: int):
-        self._ensure_highlight(item_id)
+    def refresh(self, widget_id: int):
+        self._ensure_highlight(widget_id)
 
     def refresh_all(self):
-        for item_id in self._selected:
-            self._ensure_highlight(item_id)
+        for widget_id in self._selected:
+            self._ensure_highlight(widget_id)
 
     #create selection rectangle
     def handle_canvas_press(self, event):
@@ -124,14 +134,14 @@ class SelectionManager:
 
             #when dragging is false → treat as normal click
             if not self._rectangle_selection_dragging:
-                item_id = self._find_topmost_window_at(event.x, event.y)
-                if item_id is None:
+                widget_id = self._find_topmost_window_at(event.x, event.y)
+                if widget_id is None:
                     self.clear()
                 else:
                     if self._rectangle_selection_additive:
-                        self.toggle(item_id)
+                        self.toggle(widget_id)
                     else:
-                        self.select_only(item_id)
+                        self.select_only(widget_id)
                 if sync_callback:
                     sync_callback()
             #when dragging is true → select all items fully enclosed by rectangle selection
@@ -141,13 +151,13 @@ class SelectionManager:
                 enclosed_windows = [i for i in enclosed_widgets if self.canvas.type(i) == "window"]
 
                 if self._rectangle_selection_additive:
-                    for window_id in enclosed_windows:
-                        if window_id not in self.selected_ids():
-                            self.toggle(window_id)    #only toggle widgets that are not yet selected
+                    for widget_id in enclosed_windows:
+                        if widget_id not in self.selected_ids():
+                            self.toggle(widget_id)    #only toggle widgets that are not yet selected
                 else:
                     self.clear()
-                    for window_id in enclosed_windows:
-                        self.toggle(window_id)
+                    for widget_id in enclosed_windows:
+                        self.toggle(widget_id)
 
                 if sync_callback:
                     sync_callback()
@@ -164,19 +174,21 @@ class SelectionManager:
             self._rectangle_selection_additive = False
 
     #select widget
-    def handle_widget_click(self, event, item_id: int):
+    def handle_widget_click(self, event, widget_id: int):
         if bool(event.state & self.ctrl_key):
-            self.toggle(item_id)
+            self.toggle(widget_id)
         else:
-            if item_id not in self.selected_ids():
-                self.select_only(item_id)
+            if widget_id not in self.selected_ids():
+                self.select_only(widget_id)
 
         self.refresh_all()
         return "break"  #prevent canvas from clearing selection
 
     def start_widget_drag(self, event):
-        self._widget_drag_start = (event.x_root, event.y_root)
-        self._widget_drag_end = (event.x_root, event.y_root)
+        #use canvas coordinates instead of screen coordinates (possible fix for wrong widget drag behaviour)
+        self._widget_drag_start = (self.canvas.canvasx(event.x_root), self.canvas.canvasy(event.y_root))
+        #self._widget_drag_start = (event.x_root, event.y_root)
+        self._widget_drag_end = self._widget_drag_start
         self._dragging_widgets = False
 
     def handle_widget_drag(self, event, move_callback):
@@ -211,13 +223,13 @@ class SelectionManager:
                 return item
         return None
 
-    def _ensure_highlight(self, item_id: int):
+    def _ensure_highlight(self, widget_id: int):
         #only draw outline if item is selected:
-        if item_id not in self._selected:
-            self._remove_highlight(item_id)
+        if widget_id not in self._selected:
+            self._remove_highlight(widget_id)
             return
 
-        bbox = self.canvas.bbox(item_id)
+        bbox = self.canvas.bbox(widget_id)
         if not bbox:
             return  #item is outside view
 
@@ -227,8 +239,8 @@ class SelectionManager:
         x2 += self.selection_padding
         y2 += self.selection_padding
 
-        outline_color = self.last_selected_color if self._last_selected == item_id else self.selection_color
-        rect_id = self._rects.get(item_id)
+        outline_color = self.last_selected_color if self._last_selected == widget_id else self.selection_color
+        rect_id = self._rects.get(widget_id)
 
         if rect_id and self.canvas.type(rect_id) == "rectangle":
             self.canvas.coords(rect_id, x1, y1, x2, y2)
@@ -241,10 +253,11 @@ class SelectionManager:
                 dash=self.selection_dash,
                 fill="",
             )
-            self._rects[item_id] = rect_id
+            self._rects[widget_id] = rect_id
         self.canvas.tag_raise(rect_id)
+        self.canvas.update_idletasks()
 
-    def _remove_highlight(self, item_id: int):
-        rect_id = self._rects.pop(item_id, None)
+    def _remove_highlight(self, widget_id: int):
+        rect_id = self._rects.pop(widget_id, None)
         if rect_id and self.canvas.type(rect_id) == "rectangle":
             self.canvas.delete(rect_id)

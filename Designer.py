@@ -560,7 +560,7 @@ class Designer:
         if attribute in ("anchor", "width", "height"):
             self.attributes_panel_manager.update_spinbox_limits(model)
 
-        #refresh outline
+        #refresh outlines
         self.selection_manager.refresh(widget_id)
 
         #set app state to dirty
