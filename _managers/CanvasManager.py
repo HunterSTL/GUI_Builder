@@ -1,5 +1,5 @@
 import tkinter as tk
-from ProjectDocument import ProjectDocument
+from _dataclasses import ProjectDocument
 
 class CanvasManager:
     def __init__(

@@ -1,5 +1,5 @@
 from .BaseCommand import Command
-from WidgetManager import WidgetManager
+from _managers import WidgetManager
 
 class MoveWidgets(Command):
     def __init__(self, widget_ids: frozenset, dx: int, dy: int, widget_manager: WidgetManager):

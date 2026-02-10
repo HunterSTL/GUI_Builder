@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 from tkinter import colorchooser, messagebox, filedialog
 from PIL import Image, ImageTk
-from ProjectDocument import *
+from _dataclasses import ProjectDocument, GridConfig
 from Geometry import screen_offset_to_center_window
 
 def load_icon(path, size):

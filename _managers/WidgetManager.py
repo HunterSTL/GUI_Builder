@@ -1,5 +1,5 @@
 import tkinter as tk
-from ProjectDocument import ProjectDocument
+from _dataclasses import ProjectDocument
 
 class WidgetManager:
     def __init__(
@@ -7,20 +7,21 @@ class WidgetManager:
             top: tk.Toplevel,
             canvas: tk.Canvas,
             project_document: ProjectDocument,
-            selection_manager,
-            callbacks: dict
+            selection_manager
         ):
         self.top = top
         self.canvas = canvas
         self.project_document = project_document
         self.selection_manager = selection_manager
-        self.callbacks = callbacks
         self.widget_map = {}
 
     #create new widget
     def add_widget(self, model, widget, x: int, y: int):
+        #prevent widget from taking focus (redirect focus back to canvas)
+        widget.bind("<FocusIn>", lambda e: self.canvas.focus_set())
+
         #insert widget into canvas
-        widget_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor)
+        widget_id = self.canvas.create_window(x, y, window=widget, anchor=model.anchor, tags="widget")
 
         #store both the data model and the tkinter widget in the widget map with the widget_id as the key
         self.widget_map[widget_id] = {"model": model, "widget": widget}
@@ -43,8 +44,11 @@ class WidgetManager:
         else:
             return None
 
+        #prevent widget from taking focus (redirect focus back to canvas)
+        widget.bind("<FocusIn>", lambda e: self.canvas.focus_set())
+
         #insert widget into canvas
-        widget_id = self.canvas.create_window(model.x, model.y, window=widget, anchor=model.anchor)
+        widget_id = self.canvas.create_window(model.x, model.y, window=widget, anchor=model.anchor, tags="widget")
 
         #populate model width and height after creating window and updating widget, otherwise both values are 1
         widget.update()
@@ -94,7 +98,7 @@ class WidgetManager:
         model.x, model.y = x, y
         self.selection_manager.refresh(widget_id)
 
-    #delete widget
+    #delete widget (canvas item), remove from widget_map and set focus back to canvas
     def delete(self, widget_id: int):
         self.canvas.delete(widget_id)           #delete canvas item
         self.widget_map.pop(widget_id, None)    #delete widget_id from widget_map
@@ -115,6 +119,7 @@ class WidgetManager:
             else:
                 return
             self.canvas.coords(widget_id, x, y)
+            model.x, model.y = x, y
             self.selection_manager.refresh(widget_id) #update selection outline
         elif attribute in ("width", "height"):
             self.canvas.itemconfig(widget_id, **{attribute: value})
@@ -141,37 +146,40 @@ class WidgetManager:
             return
 
     def _bind_widget_events(self, widget, widget_id: int):
-        def _on_click(e, w_id=widget_id):
-            #handle widget click (toggle or select_only based on CTRL-Key)
-            result = self.selection_manager.handle_widget_click(e, w_id)
-
-            #start drag
-            self.selection_manager.start_widget_drag(e)
-
-            #notify Designer that drag gesture starts
-            self.callbacks["widget"]["begin_drag"]()
-
-            #show attributes panel
-            self.callbacks["attributes_panel"]()
-            return result
-
-        widget.bind("<Button-1>", _on_click)
-
-        #move widgets based on mouse movement
-        widget.bind("<B1-Motion>", lambda e: self.selection_manager.handle_widget_drag(e, self.callbacks["widget"]["move"]))
-
-        #reset drag state
-        widget.bind(
-            "<ButtonRelease-1>",
-            lambda e: (self.selection_manager.end_widget_drag(),    #reset drag state in SelectionManager
-            self.callbacks["widget"]["end_drag"]())                 #notify Designer that drag gesture ends
-        )
-
         #keep outlines in sync when widget resizes
         widget.bind(
             "<Configure>", lambda e, i=widget_id: (
                 self.selection_manager
                 and not self.selection_manager.is_dragging()
                 and self.selection_manager.refresh(i)
+            )
+        )
+
+        #forward all mouse events from the widget to the canvas
+        widget.bind(
+            "<ButtonPress-1>",
+            lambda e: self.canvas.event_generate(
+                "<ButtonPress-1>",
+                x=e.x_root,
+                y=e.y_root,
+                state=e.state
+            )
+        )
+        widget.bind(
+            "<B1-Motion>",
+            lambda e: self.canvas.event_generate(
+                "<B1-Motion>",
+                x=e.x_root,
+                y=e.y_root,
+                state=e.state
+            )
+        )
+        widget.bind(
+            "<ButtonRelease-1>",
+            lambda e: self.canvas.event_generate(
+                "<ButtonRelease-1>",
+                x=e.x_root,
+                y=e.y_root,
+                state=e.state
             )
         )

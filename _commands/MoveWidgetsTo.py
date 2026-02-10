@@ -1,5 +1,5 @@
 from .BaseCommand import Command
-from WidgetManager import WidgetManager
+from _managers import WidgetManager
 
 class MoveWidgetsTo(Command):
     def __init__(self, widget_ids: frozenset, widget_manager: WidgetManager):
@@ -18,8 +18,10 @@ class MoveWidgetsTo(Command):
         )
 
     def preview_move(self, dx: int, dy: int):
+        #dx and dy are incremental deltas since last drag event
         if dx == 0 and dy == 0:
             return
+
         for widget_id in self._widget_ids:
             self._widget_manager.move(widget_id, dx, dy)
 

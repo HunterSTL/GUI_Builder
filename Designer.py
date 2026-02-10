@@ -2,17 +2,17 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
 #dataclasses
-from WidgetModels import *
-from DesignerState import DesignerState
-from ProjectDocument import ProjectDocument
+from _dataclasses import DesignerState
+from _dataclasses import ProjectDocument
+from _dataclasses import LabelWidgetData, EntryWidgetData, ButtonWidgetData
 #managers
-from CanvasManager import CanvasManager
-from SelectionManager import SelectionManager
-from ToolbarManager import ToolbarManager
-from WidgetManager import WidgetManager
-from AttributesPanelManager import AttributesPanelManager
+from _managers import CanvasManager
+from _managers import SelectionManager
+from _managers import ToolbarManager
+from _managers import WidgetManager
+from _managers import AttributesPanelManager
 #commands
-from commands import CommandStack, MoveWidgets, MoveWidgetsTo
+from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
 #misc
 from PIL import ImageTk
 from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window
@@ -79,7 +79,8 @@ class Designer:
             selection_padding=self.constants["selection"]["padding"],
             selection_color=self.program_theme["selection"]["color"],
             last_selected_color=self.program_theme["selection"]["last_selected_color"],
-            drag_threshold=self.constants["drag_threshold"]
+            drag_threshold=self.constants["drag_threshold"],
+            callbacks=self.callbacks
         )
 
         #create instance of WidgetManager to store created widgets
@@ -87,8 +88,7 @@ class Designer:
             top=self.top,
             canvas=self.canvas,
             project_document=self.project_document,
-            selection_manager=self.selection_manager,
-            callbacks=self.callbacks
+            selection_manager=self.selection_manager
         )
 
         #create instance of AttributesPanelManager to show/hide the attribute panel for a selected widget
@@ -122,8 +122,8 @@ class Designer:
             "show_menu": self._show_menu,
             "selection": {
                 "press": self.selection_manager.handle_canvas_press,
-                "drag": self.selection_manager.handle_canvas_drag,
-                "release": lambda e: self.selection_manager.handle_canvas_release(e, self._on_selection_changed),
+                "drag": lambda  e: self.selection_manager.handle_canvas_drag(),
+                "release": lambda  e: self.selection_manager.handle_canvas_release(),
                 "select_all": self.selection_manager.select_all
             },
             "project": self.project_callbacks,
@@ -136,7 +136,7 @@ class Designer:
             },
             "widget": {
                 "move": self._move,
-                "begin_drag": self._begin_drag,
+                "start_drag": self._start_drag,
                 "end_drag": self._end_drag,
                 "snap_to_grid": self._snap_to_grid,
                 "delete": self._delete,
@@ -294,7 +294,7 @@ class Designer:
         #set app state to dirty
         self._set_dirty()
 
-    def _begin_drag(self):
+    def _start_drag(self):
         #get selected widgets
         selected_widgets = self.selection_manager.selected_ids()
 
@@ -489,6 +489,9 @@ class Designer:
 
         #delegate redraw of grid to CanvasManager
         self.canvas_manager.refresh_grid()
+
+        #set focus back to canvas
+        self.canvas.focus_set()
 
         #set app state to dirty
         self._set_dirty()

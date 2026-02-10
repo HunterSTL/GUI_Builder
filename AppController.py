@@ -1,7 +1,7 @@
 import os.path
 import tkinter as tk
 import json
-from ProjectDocument import ProjectDocument
+from _dataclasses import ProjectDocument
 from tkinter import messagebox, filedialog
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
