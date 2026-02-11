@@ -122,8 +122,8 @@ class Designer:
             "show_menu": self._show_menu,
             "selection": {
                 "press": self.selection_manager.handle_canvas_press,
-                "drag": lambda  e: self.selection_manager.handle_canvas_drag(),
-                "release": lambda  e: self.selection_manager.handle_canvas_release(),
+                "drag": self.selection_manager.handle_canvas_drag,
+                "release": self.selection_manager.handle_canvas_release,
                 "select_all": self.selection_manager.select_all
             },
             "project": self.project_callbacks,

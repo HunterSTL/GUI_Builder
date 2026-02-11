@@ -28,6 +28,7 @@ class SelectionManager:
         self._selected: Set[int] = set()                                    #selected widget IDs (window items)
         self._rects: Dict[int, int] = {}                                    #widget_id -> rectangle_id
         self._last_selected = None
+        self._in_canvas_drag = False
 
         self._mode = None                                                   #mode (selection or drag)
 
@@ -99,7 +100,7 @@ class SelectionManager:
 
     #refreshes the outline for the widget with the given widget_id
     def refresh(self, widget_id: int):
-        self._ensure_highlight(widget_id)
+        self.canvas.after_idle(lambda:self._ensure_highlight(widget_id))
 
     #refreshes the ouline of all widgets
     def refresh_all(self):
@@ -107,24 +108,28 @@ class SelectionManager:
             self._ensure_highlight(widget_id)
 
     #records mouse position at drag start and notifies the designer of the drag start
-    def start_widget_drag(self):
+    def start_widget_drag(self, event):
         wds = self._widget_drag_state
-        wds.start_coords = self._pointer_in_canvas_coords()
+        wds.start_coords = self._pointer_in_canvas_coords(event)
         wds.last_total_dx = 0
         wds.last_total_dy = 0
         wds.is_dragging = False
 
+        try:
+            self.canvas.grab_set()
+        except Exception:
+            pass
+
         self.callbacks["widget"]["start_drag"]()                            #notify Designer that drag gesture starts (initializes MoveWidgetsTo command to store original widget positions)
 
     #computes drag delta and applies if threshold is exceeded
-    def handle_widget_drag(self, move_callback):
+    def handle_widget_drag(self, event, move_callback):
         wds = self._widget_drag_state
 
         if not wds:
             return
 
-        canvas_x, canvas_y = self._pointer_in_canvas_coords()
-
+        canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
         total_dx = canvas_x - wds.start_coords[0]                           #total delta (since drag start)
         total_dy = canvas_y - wds.start_coords[1]
 
@@ -145,8 +150,8 @@ class SelectionManager:
             wds.last_total_dx = 0
             wds.last_total_dy = 0
 
-        move_callback(incremental_dx, incremental_dy)
-        return
+        #defer movement to idle time to prevent re-entry
+        self.canvas.after_idle(lambda: move_callback(incremental_dx, incremental_dy))
 
     #resets widget drag state
     def end_widget_drag(self):
@@ -154,26 +159,32 @@ class SelectionManager:
         wds.start_coords = None
         wds.is_dragging = False
 
+        try:
+            self.canvas.grab_release()
+        except Exception:
+            pass
+
         self.callbacks["widget"]["end_drag"]()                              #notify Designer that drag gesture ends (executes the MoveWidgetsTo command)
 
     #records start coordinates an whether ctrl is held (additive selection)
-    def start_rectangle_selection(self, x, y, event):
+    def start_rectangle_selection(self, event):
         rss = self._rectangle_selection_state
-        rss.start_coords = (x, y)
+        canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
+        rss.start_coords = (canvas_x, canvas_y)
         rss.is_additive = bool(event.state & self.ctrl_key)
 
         if rss.selection_rectangle_id is None:                              #create/update rectangle outline
             rss.selection_rectangle_id = self.canvas.create_rectangle(
-                x, y, x, y,
+                canvas_x, canvas_y, canvas_x, canvas_y,
                 outline=self.selection_color, width=self.selection_width, dash=self.selection_dash, fill=""
             )
         else:
-            self.canvas.coords(rss.selection_rectangle_id, x, y, x, y)
+            self.canvas.coords(rss.selection_rectangle_id, canvas_x, canvas_y, canvas_x, canvas_y)
 
         self.canvas.tag_raise(rss.selection_rectangle_id)                   #ensure outline is on top
 
     #updates the selection rectangle to span from RectangleSelectionState.start_coords to the current mouse position
-    def update_selection_rectangle(self):
+    def update_selection_rectangle(self, event):
         rss = self._rectangle_selection_state
 
         if not rss.start_coords:
@@ -182,7 +193,7 @@ class SelectionManager:
         rss.is_dragging = True
 
         x0, y0 = rss.start_coords                                           #get rectangle coords (start coords + current pointer)
-        x1, y1 = self._pointer_in_canvas_coords()
+        x1, y1 = self._pointer_in_canvas_coords(event)
 
         #update rectangle
         self.canvas.coords(rss.selection_rectangle_id, x0, y0, x1, y1)
@@ -192,29 +203,36 @@ class SelectionManager:
     #if widget was clicked → sets mode to "drag" → starts widget drag
     #if canvas was clicked → sets mode to "selection" → starts rectangle selection
     def handle_canvas_press(self, event):
-        canvas_x, canvas_y = self._pointer_in_canvas_coords()               #get canvas coords
-
+        canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
         clicked_widget = self._find_topmost_window_at(canvas_x, canvas_y)   #check for widget at canvas coords
 
         if clicked_widget:                                                  #widget clicked → set mode to "drag" → start widget drag
             self.select_widget(clicked_widget, event)                       #select the clicked widget (toggle or select_only based on CTRL-key)
             self._mode = "drag"
-            self.start_widget_drag()                                        #record start coords for widget drag and notify designer of drag start
+            self.start_widget_drag(event)                                   #record start coords for widget drag and notify designer of drag start
         else:                                                               #no widget clicked → set mode to "selection" → start rectangle selection
             self._mode = "selection"
-            self.start_rectangle_selection(canvas_x, canvas_y, event)       #record start coords for rectangle selection and create/update rectangle outline
+            self.start_rectangle_selection(event)                           #record start coords for rectangle selection and create/update rectangle outline
 
     #if mode is "drag": computes drag delta and applies if threshold is exceeded
     #if mode is "selection": resizes the selection rectangle based on mouse movement
-    def handle_canvas_drag(self):
-        if self._mode == "drag":                                            #move selected widgets
-            self.handle_widget_drag(self.callbacks["widget"]["move"])
-        elif self._mode == "selection":                                     #update selection rectangle
-            self.update_selection_rectangle()
+    def handle_canvas_drag(self, event):
+        if getattr(self, "_in_canvas_drag", False):
+            print("REENTRY")
+            return
+
+        self._in_canvas_drag = True
+        try:
+            if self._mode == "drag":                                        #move selected widgets
+                self.handle_widget_drag(event, self.callbacks["widget"]["move"])
+            elif self._mode == "selection":                                 #update selection rectangle
+                self.update_selection_rectangle(event)
+        finally:
+            self._in_canvas_drag = False
 
     #if mode is "drag": resets the drag state
     #if mode is "selection": selects all widgets that are fully enclosed in the selection rectangle
-    def handle_canvas_release(self):
+    def handle_canvas_release(self, event):
         if self._mode == "drag":
             self.end_widget_drag()
         elif self._mode == "selection":
@@ -225,7 +243,7 @@ class SelectionManager:
                     return
 
                 start_x, start_y = rss.start_coords                         #get rectangle coords (start coords + current pointer)
-                canvas_x, canvas_y = self._pointer_in_canvas_coords()
+                canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
 
                 rss.start_coords = None                                     #reset start coords
 
@@ -271,12 +289,17 @@ class SelectionManager:
         return self._widget_drag_state.is_dragging
 
     #returns pointer in canvas coordinates
-    def _pointer_in_canvas_coords(self):
-        pointer_x = self.canvas.winfo_pointerx()                            #screen coordinates
+    def _pointer_in_canvas_coords(self, event):
+        """
+        pointer_x = self.canvas.winfo_pointerx()                            #coordinates on screen
         pointer_y = self.canvas.winfo_pointery()
-        window_x = pointer_x - self.canvas.winfo_rootx()                    #window coordinates
+        window_x = pointer_x - self.canvas.winfo_rootx()                    #coordinates in the designer window
         window_y = pointer_y - self.canvas.winfo_rooty()
-        return int(self.canvas.canvasx(window_x)), int(self.canvas.canvasy(window_y))
+        canvas_x = int(self.canvas.canvasx(window_x))                       #coordinates on the canvas
+        canvas_y = int(self.canvas.canvasy(window_y))
+        return canvas_x, canvas_y
+        """
+        return int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
 
     #find clicked widget
     def _find_topmost_window_at(self, x: int, y: int):

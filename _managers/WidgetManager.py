@@ -146,6 +146,19 @@ class WidgetManager:
             return
 
     def _bind_widget_events(self, widget, widget_id: int):
+        def forward_to_canvas(event, sequence):
+            print(f"forwarding to canvas: {sequence, event.x, event.y}")
+            canvas_x = event.x_root - self.canvas.winfo_rootx()
+            canvas_y = event.y_root - self.canvas.winfo_rooty()
+
+            self.canvas.event_generate(
+                sequence,
+                x=canvas_x,
+                y=canvas_y,
+                state=event.state
+            )
+            return "break"
+
         #keep outlines in sync when widget resizes
         widget.bind(
             "<Configure>", lambda e, i=widget_id: (
@@ -156,30 +169,6 @@ class WidgetManager:
         )
 
         #forward all mouse events from the widget to the canvas
-        widget.bind(
-            "<ButtonPress-1>",
-            lambda e: self.canvas.event_generate(
-                "<ButtonPress-1>",
-                x=e.x_root,
-                y=e.y_root,
-                state=e.state
-            )
-        )
-        widget.bind(
-            "<B1-Motion>",
-            lambda e: self.canvas.event_generate(
-                "<B1-Motion>",
-                x=e.x_root,
-                y=e.y_root,
-                state=e.state
-            )
-        )
-        widget.bind(
-            "<ButtonRelease-1>",
-            lambda e: self.canvas.event_generate(
-                "<ButtonRelease-1>",
-                x=e.x_root,
-                y=e.y_root,
-                state=e.state
-            )
-        )
+        widget.bind("<ButtonPress-1>", lambda event: forward_to_canvas(event, "<ButtonPress-1>"))
+        #widget.bind("<B1-Motion>", lambda event: forward_to_canvas(event, "<B1-Motion>"))
+        widget.bind("<ButtonRelease-1>", lambda event: forward_to_canvas(event, "<ButtonRelease-1>"))
