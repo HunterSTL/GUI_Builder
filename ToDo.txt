@@ -18,7 +18,7 @@ Features:
 1.	Minimum/maximum window size based on canvas size								[x]
 2.	Implement edit menu (cut, copy, paste, undo, redo and select all)						[  ]
 3.	Implement color picker in attributes panel											[  ]
-4.	Persist icon in ProjectDocument													[  ]
+4.	Persist icon in ProjectDocument													[x]
 5.	Resize widgets by dragging the corner												[  ]
 6.	Mouse wheel scrolling (mouswheel → vertical; shift + mousewheel → horizontal)			[x]
 7.	Resize designer window															[  ]

@@ -14,22 +14,20 @@ from _managers import AttributesPanelManager
 #commands
 from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
 #misc
-from PIL import ImageTk
 from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window
+from UIComponents import CustomTitlebar
 
 class Designer:
     def __init__(
             self,
             parent: tk.Tk,
             project_document: ProjectDocument,
-            icon: ImageTk.PhotoImage,
             program_theme: dict,
             constants: dict,
             project_callbacks: dict
         ):
         self.parent = parent
         self.project_document = project_document
-        self.icon = icon
         self.program_theme = program_theme
         self.constants = constants
         self.project_callbacks = project_callbacks
@@ -498,13 +496,13 @@ class Designer:
 
     def _set_dirty(self):
         self.state.is_dirty = True
-        self.title_label.configure(text=self.project_document.title + "*")
-        self.title_label.update()
+        self.titlebar_label.configure(text=self.project_document.title + "*")
+        self.titlebar_label.update()
 
     def _set_clean(self):
         self.state.is_dirty = False
-        self.title_label.configure(text=self.project_document.title)
-        self.title_label.update()
+        self.titlebar_label.configure(text=self.project_document.title)
+        self.titlebar_label.update()
 
     #create add widget menu
     def _add_widget_menu(self):
@@ -693,61 +691,6 @@ class Designer:
         widget.bind("<MouseWheel>", lambda e: self.viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
         widget.bind("<Shift-MouseWheel>", lambda e: self.viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
 
-    #create a custom draggable title bar with a close button
-    def _create_title_bar(self):
-        def start_move(event):
-            self.state.drag_start_coords = event.x_root, event.y_root
-            self.state.window_coords = self.top.winfo_x(), self.top.winfo_y()
-
-        def do_move(event):
-            dx = event.x_root - self.state.drag_start_coords[0]
-            dy = event.y_root - self.state.drag_start_coords[1]
-            self.top.geometry(f"+{self.state.window_coords[0] + dx}+{self.state.window_coords[1] + dy}")
-
-        #create custom title bar
-        self.top.overrideredirect(True)
-        title_bar = tk.Frame(
-            self.top,
-            height=self.constants["titlebar_height"],
-            bg=self.program_theme["titlebar"]["bg"]
-        )
-        title_bar.pack(fill="x")
-        title_bar.pack_propagate(False)
-        title_bar.bind("<Button-1>", start_move)
-        title_bar.bind("<B1-Motion>", do_move)
-
-        #add icon
-        icon_label = tk.Label(
-            title_bar,
-            image=self.icon,
-            bg=self.program_theme["titlebar"]["bg"]
-        )
-        icon_label.pack(side="left", padx=2, pady=2)
-        icon_label.bind("<Button-1>", start_move)
-        icon_label.bind("<B1-Motion>", do_move)
-
-        #add title
-        self.title_label = tk.Label(
-            title_bar,
-            text=self.project_document.title,
-            bg=self.program_theme["titlebar"]["bg"],
-            fg=self.program_theme["titlebar"]["fg"]
-        )
-        self.title_label.pack(side="left")
-        self.title_label.bind("<Button-1>", start_move)
-        self.title_label.bind("<B1-Motion>", do_move)
-
-        #add close button
-        close_button = tk.Button(
-            title_bar,
-            text=" X ",
-            bg=self.program_theme["titlebar"]["bg"],
-            fg=self.program_theme["titlebar"]["fg"],
-            relief="flat",
-            command=self.project_callbacks["exit_app"]
-        )
-        close_button.pack(side="right")
-
     #center window
     def _center_window(self):
         self.top.update_idletasks()
@@ -767,8 +710,17 @@ class Designer:
         self.top.wm_minsize(self.constants["window"]["min_width"], self.constants["window"]["min_height"])
 
         #create title bar
-        self.title_label = None
-        self._create_title_bar()
+        titlebar = CustomTitlebar(
+            parent=self.top,
+            title=self.project_document.title,
+            height=self.constants["titlebar_height"],
+            bg_color=self.program_theme["titlebar"]["bg"],
+            fg_color=self.program_theme["titlebar"]["fg"],
+            icon_path=self.project_document.icon_path,
+            on_close=self.project_callbacks["exit_app"]
+        )
+        titlebar.frame.pack(fill="x")
+        self.titlebar_label = titlebar.label
 
         #create main frame that hosts work area (column 0) and attributes panel (column 1)
         self.main_frame = tk.Frame(self.top, bg=self.project_document.theme["background"]["color"])

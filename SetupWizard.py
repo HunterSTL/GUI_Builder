@@ -1,19 +1,9 @@
 import os
 import tkinter as tk
 from tkinter import colorchooser, messagebox, filedialog
-from PIL import Image, ImageTk
 from _dataclasses import ProjectDocument, GridConfig
 from Geometry import screen_offset_to_center_window
-
-def load_icon(path, size):
-    try:
-        if path and os.path.exists(path):
-            icon = Image.open(path).convert("RGBA")
-            icon = icon.resize(size, Image.Resampling.LANCZOS)
-            return ImageTk.PhotoImage(icon)
-    except Exception as e:
-        messagebox.showerror("File error", f"File not supported: {e}")
-        return None
+from UIComponents import load_icon, CustomTitlebar
 
 class SetupWizard:
     def __init__(
@@ -33,6 +23,7 @@ class SetupWizard:
         self.exit_callback = exit_callback
 
         self.icon = None
+        self.icon_path = None
         self._win_x = None
         self._win_y = None
         self._drag_start_x = None
@@ -40,45 +31,6 @@ class SetupWizard:
 
         #build setup UI
         self._build_setup_ui()
-
-    #create a custom draggable title bar with a close button
-    def _create_title_bar(self):
-        def start_move(event):
-            self._drag_start_x = event.x_root
-            self._drag_start_y = event.y_root
-            self._win_x = self.root.winfo_x()
-            self._win_y = self.root.winfo_y()
-
-        def do_move(event):
-            dx = event.x_root - self._drag_start_x
-            dy = event.y_root - self._drag_start_y
-            self.root.geometry(f"+{self._win_x + dx}+{self._win_y + dy}")
-
-        #create custom title bar
-        self.root.overrideredirect(True)
-        title_bar = tk.Frame(self.root, bg=self.program_theme["titlebar"]["bg"])
-        title_bar.grid(row=0, column=0, columnspan=5, sticky="EW")
-        title_bar.bind("<Button-1>", start_move)
-        title_bar.bind("<B1-Motion>", do_move)
-
-        #add icon
-        icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
-        self.icon_setup = load_icon(icon_path, (20, 20))
-        if self.icon_setup:
-            icon_label = tk.Label(title_bar, image=self.icon_setup, bg=self.program_theme["titlebar"]["bg"])
-            icon_label.pack(side="left", padx=2, pady=2)
-            icon_label.bind("<Button-1>", start_move)
-            icon_label.bind("<B1-Motion>", do_move)
-
-        #add title
-        title_label = tk.Label(title_bar, text="Tkinter GUI Builder – Setup", bg=self.program_theme["titlebar"]["bg"], fg=self.program_theme["titlebar"]["fg"])
-        title_label.pack(side="left")
-        title_label.bind("<Button-1>", start_move)
-        title_label.bind("<B1-Motion>", do_move)
-
-        #add close button
-        close_button = tk.Button(title_bar, text=" X ", bg=self.program_theme["titlebar"]["bg"], fg=self.program_theme["titlebar"]["fg"], relief="flat", command=self.exit_callback)
-        close_button.pack(side="right")
 
     #center window
     def _center_window(self):
@@ -93,12 +45,20 @@ class SetupWizard:
 
     #build setup UI
     def _build_setup_ui(self):
-        #set title and bg color
+        #set bg color
         self.root.config(bg=self.program_theme["background"]["color"])
-        self.root.title("Tkinter GUI Builder – Setup")
 
         #create title car
-        self._create_title_bar()
+        titlebar = CustomTitlebar(
+            parent=self.root,
+            title="Tkinter GUI Builder – Setup",
+            height=self.constants["titlebar_height"],
+            bg_color=self.program_theme["titlebar"]["bg"],
+            fg_color=self.program_theme["titlebar"]["fg"],
+            icon_path=os.path.join(os.path.dirname(__file__), "icon.ico"),
+            on_close=self.exit_callback
+        )
+        titlebar.frame.grid(row=0, column=0, columnspan=5, sticky="EW")
 
         #window title
         label_window_title = tk.Label(self.root, text="Window Title:", bg=self.program_theme["label"]["bg"], fg=self.program_theme["label"]["fg"])
@@ -170,8 +130,8 @@ class SetupWizard:
         label_icon = tk.Label(self.root, text="Icon:", bg=self.program_theme["label"]["bg"], fg=self.program_theme["label"]["fg"])
         label_icon.grid(row=7, column=0, padx=5, sticky="W")
 
-        icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
-        self.icon = load_icon(icon_path, (20, 20))
+        self.icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
+        self.icon = load_icon(self.icon_path, (20, 20))
         if self.icon:
             self.label_icon_preview = tk.Label(self.root, image=self.icon, bg=self.program_theme["label"]["bg"])
             self.label_icon_preview.grid(row=7, column=1, sticky="W")
@@ -213,6 +173,7 @@ class SetupWizard:
         icon = load_icon(file_path, (20, 20))
         if icon:
             self.icon = icon
+            self.icon_path = file_path
             self.label_icon_preview.config(image=self.icon)
 
     def build_project_document(self):
@@ -244,6 +205,7 @@ class SetupWizard:
             title=title,
             width=width,
             height=height,
+            icon_path=self.icon_path,
             grid=GridConfig(
                 size=self.constants["grid_size"],
                 color=self.program_theme["grid"]["color"],
@@ -255,7 +217,7 @@ class SetupWizard:
 
         #hand the project_document back to the AppController
         if callable(self.on_done_callback):
-            self.on_done_callback(project_document, self.icon)
+            self.on_done_callback(project_document)
 
         #close wizard window
         self.root.destroy()

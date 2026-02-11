@@ -13,6 +13,7 @@ class ProjectDocument:
     title: str = "Untitled Project"
     width: int = 800
     height: int = 600
+    icon_path: str = None
     grid: GridConfig = field(default_factory=GridConfig)
     theme: Dict[str, Dict[str, str]] = field(default_factory=dict)
     widget_models: List[Any] = field(default_factory=list)
@@ -36,6 +37,7 @@ class ProjectDocument:
             title=data.get("title", "Untitled Project"),
             width=int(data["width"]),
             height=int(data["height"]),
+            icon_path=data.get("icon_path"),
             grid=grid,
             theme=data.get("theme", {})
         )

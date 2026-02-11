@@ -147,7 +147,6 @@ class WidgetManager:
 
     def _bind_widget_events(self, widget, widget_id: int):
         def forward_to_canvas(event, sequence):
-            print(f"forwarding to canvas: {sequence, event.x, event.y}")
             canvas_x = event.x_root - self.canvas.winfo_rootx()
             canvas_y = event.y_root - self.canvas.winfo_rooty()
 

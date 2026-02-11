@@ -7,6 +7,7 @@ from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
 from Designer import Designer
 from Geometry import screen_offset_to_center_window
+from UIComponents import CustomTitlebar
 
 class AppController:
     def __init__(
@@ -32,43 +33,6 @@ class AppController:
         #build startup UI
         self._build_startup_ui()
 
-    #create a custom draggable title bar with a close button
-    def _create_title_bar(self):
-        def start_move(event):
-            self._drag_start_x = event.x_root
-            self._drag_start_y = event.y_root
-            self._win_x = self.root.winfo_x()
-            self._win_y = self.root.winfo_y()
-
-        def do_move(event):
-            dx = event.x_root - self._drag_start_x
-            dy = event.y_root - self._drag_start_y
-            self.root.geometry(f"+{self._win_x + dx}+{self._win_y + dy}")
-
-        #create custom title bar
-        self.root.overrideredirect(True)
-        title_bar = tk.Frame(self.root, bg=self.program_theme["titlebar"]["bg"])
-        title_bar.pack()
-        title_bar.bind("<Button-1>", start_move)
-        title_bar.bind("<B1-Motion>", do_move)
-
-        #add title
-        title_label = tk.Label(title_bar, text="Tkinter GUI Builder – Startup", bg=self.program_theme["titlebar"]["bg"], fg=self.program_theme["titlebar"]["fg"])
-        title_label.pack(side="left")
-        title_label.bind("<Button-1>", start_move)
-        title_label.bind("<B1-Motion>", do_move)
-
-        #add close button
-        close_button = tk.Button(
-            title_bar,
-            text=" X ",
-            bg=self.program_theme["titlebar"]["bg"],
-            fg=self.program_theme["titlebar"]["fg"],
-            relief="flat",
-            command=self.exit_app
-        )
-        close_button.pack(side="right")
-
     def _center_window(self):
         self.root.update_idletasks()
         x_offset, y_offset = screen_offset_to_center_window(
@@ -81,12 +45,21 @@ class AppController:
 
     #builds the startup UI with New/Open/Exit actions
     def _build_startup_ui(self):
-        #set title and bg color
+        #set bg color and enforce minimum window size
         self.root.config(bg=self.program_theme["background"]["color"])
-        self.root.title("Tkinter GUI Builder – Startup")
+        self.root.wm_minsize(200, 100)
 
         #create title bar
-        self._create_title_bar()
+        titlebar = CustomTitlebar(
+            parent=self.root,
+            title="Tkinter GUI Builder – Startup",
+            height=self.constants["titlebar_height"],
+            bg_color=self.program_theme["titlebar"]["bg"],
+            fg_color=self.program_theme["titlebar"]["fg"],
+            icon_path=None,
+            on_close=self.exit_app
+        )
+        titlebar.frame.pack(fill="x")
 
         #open project button
         button_open_project = tk.Button(
@@ -139,7 +112,7 @@ class AppController:
         return {key: value.copy() for key, value in self._user_theme.items()}
 
     #destroys any existing Designer and launches a new one from a ProjectDocument
-    def _launch_designer_from_project_document(self, project_document, icon):
+    def _launch_designer_from_project_document(self, project_document):
         #destroy old designer
         if self.designer:
             self.designer.top.destroy()
@@ -151,7 +124,6 @@ class AppController:
             project_document=project_document,
             program_theme=self.program_theme,
             constants=self.constants,
-            icon=icon,
             project_callbacks=self._project_callbacks()
         )
 
@@ -231,7 +203,7 @@ class AppController:
         self._last_directory = os.path.dirname(self._save_path)
 
         #launch designer
-        self._launch_designer_from_project_document(project_document, None)
+        self._launch_designer_from_project_document(project_document)
 
     #saves the current ProjectDocument to the last used path
     def save_project(self):
