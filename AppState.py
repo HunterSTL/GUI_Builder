@@ -14,11 +14,11 @@ class AppState:
         """
 
     #Widgets------------------------------------------------------------------------------------------------------------
-    def add_widget_model(self, model):
+    def add_widget(self, model):
         """append a new widget model to the ProjectDocument"""
         self.project.widget_models.append(model)
 
-    def remove_widget_model(self, model):
+    def remove_widget(self, model):
         """remove an existing widget model from the ProjectDocument"""
         try:
             self.project.widget_models.remove(model)

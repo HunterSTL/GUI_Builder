@@ -6,7 +6,7 @@ from Geometry import allowed_x_range, allowed_y_range
 ATTRIBUTE_CONFIG = {
     "Label": {
         "type": "label",
-        "id": "entry",
+        "id": "label",
         "x": "spinbox",
         "y": "spinbox",
         "width": "spinbox",
@@ -18,7 +18,7 @@ ATTRIBUTE_CONFIG = {
     },
     "Entry": {
         "type": "label",
-        "id": "entry",
+        "id": "label",
         "x": "spinbox",
         "y": "spinbox",
         "width": "spinbox",
@@ -29,7 +29,7 @@ ATTRIBUTE_CONFIG = {
     },
     "Button": {
         "type": "label",
-        "id": "entry",
+        "id": "label",
         "x": "spinbox",
         "y": "spinbox",
         "width": "spinbox",
@@ -44,7 +44,7 @@ ATTRIBUTE_CONFIG = {
 #mapping internal attribute names to display names for the attribute panel
 DISPLAY_NAMES = {
     "type": "Widget Type:",
-    "id": "Widget Name:",
+    "id": "Widget ID:",
     "x": "X Position:",
     "y": "Y Position:",
     "width": "Width:",

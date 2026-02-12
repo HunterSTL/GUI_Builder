@@ -65,6 +65,7 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
 class TestAddWidgetFromModel(unittest.TestCase):
     def test_add_widget_from_model(self):
         import tkinter as tk
+        from AppState import AppState
         from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
         from _managers import WidgetManager
 
@@ -72,9 +73,10 @@ class TestAddWidgetFromModel(unittest.TestCase):
         root.withdraw()
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
+        app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(top=root, canvas=canvas, project_document=project_document, selection_manager=None)
+        widget_manager = WidgetManager(top=root, canvas=canvas, app_state=app_state, selection_manager=None)
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
         model.create_id()
@@ -88,6 +90,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
 class TestMoveWidget(unittest.TestCase):
     def test_move_widget(self):
         import tkinter as tk
+        from AppState import AppState
         from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
         from _managers import WidgetManager
 
@@ -95,9 +98,10 @@ class TestMoveWidget(unittest.TestCase):
         root.withdraw()
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
+        app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(top=root, canvas=canvas, project_document=project_document, selection_manager=DummySelectionManager())
+        widget_manager = WidgetManager(top=root, canvas=canvas, app_state=app_state, selection_manager=DummySelectionManager())
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
@@ -121,6 +125,7 @@ class TestMoveWidget(unittest.TestCase):
 class TestUndoRedoMoveWidget(unittest.TestCase):
     def test_undo_redo_move_widget(self):
         import tkinter as tk
+        from AppState import AppState
         from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
         from _managers import WidgetManager
         from _commands import CommandStack, MoveWidgets
@@ -129,9 +134,10 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         root.withdraw()
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
+        app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(top=root, canvas=canvas, project_document=project_document, selection_manager=DummySelectionManager())
+        widget_manager = WidgetManager(top=root, canvas=canvas, app_state=app_state, selection_manager=DummySelectionManager())
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
@@ -155,17 +161,19 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
 class TestUndoRedoMoveWidgetTo(unittest.TestCase):
     def test_undo_redo_move_widget_to(self):
         import tkinter as tk
+        from AppState import AppState
         from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
         from _managers import WidgetManager
-        from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
+        from _commands import CommandStack, MoveWidgetsTo
 
         root = tk.Tk()
         root.withdraw()
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
+        app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(top=root, canvas=canvas, project_document=project_document, selection_manager=DummySelectionManager())
+        widget_manager = WidgetManager(top=root, canvas=canvas, app_state=app_state, selection_manager=DummySelectionManager())
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()

@@ -5,7 +5,7 @@ Bugs:
 1.	Alt + F4 already closes app without executing the exit_callback						[x]
 2.	Dragging widgets causes outline artefacts											[x]
 3.	Button "Open" and "New" doesn't close startup window								[x]
-4.	Reducing width or height of widget leaves outline trails								[  ]
+4.	Reducing width or height of widget leaves outline trails								[x]
 5.	Small canvas size reduces toolbar width											[x]
 6.	Delete can be called multiple times causing TypeError ("NoneType" not subscriptable)		[x]
 7.	Visualize grid via toolbar not functional											[x]

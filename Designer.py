@@ -29,7 +29,6 @@ class Designer:
             project_callbacks: dict
         ):
         self.parent = parent
-        self.project_document = project_document
         self.program_theme = program_theme
         self.constants = constants
         self.project_callbacks = project_callbacks
@@ -38,7 +37,7 @@ class Designer:
         self.callbacks = {}
 
         #app state (pure model)
-        self.app_state = AppState(self.project_document)
+        self.app_state = AppState(project_document)
 
         #designer state (last click position, dirty flag, deleting flag etc.)
         self.state = DesignerState()
@@ -90,7 +89,7 @@ class Designer:
         self.widget_manager = WidgetManager(
             top=self.top,
             canvas=self.canvas,
-            project_document=self.app_state.project,
+            app_state=self.app_state,
             selection_manager=self.selection_manager
         )
 
@@ -240,13 +239,14 @@ class Designer:
 
         #populate model width and height after creating window and updating widget, otherwise both values are 1
         widget.update()
-        model.width, model.height = widget.winfo_width(), widget.winfo_height()
+        self.app_state.set_widget_attribute(model, "width", widget.winfo_width())
+        self.app_state.set_widget_attribute(model, "height", widget.winfo_height())
 
         #set absolute position via AppState
         self.app_state.move_widget_to(model, clamped_x, clamped_y)
 
         #append the new model to the project_document via AppState
-        self.app_state.add_widget_model(model)
+        self.app_state.add_widget(model)
 
         #set app state to dirty
         self._set_dirty()
@@ -387,7 +387,7 @@ class Designer:
             for widget_id in selected_widgets:
                 #remove model from project_document
                 model = self.widget_manager.get_model_from_widget_id(widget_id)
-                self.app_state.remove_widget_model(model)
+                self.app_state.remove_widget(model)
 
                 #delegate actual deletion (canvas item) to WidgetManager
                 self.widget_manager.delete(widget_id)
@@ -557,11 +557,8 @@ class Designer:
         #apply change to the widget through WidgetManager
         self.widget_manager.update_widget_attribute(widget_id, attribute, value)
 
-        #update model
-        model = self.widget_manager.get_model_from_widget_id(widget_id)
-        self.app_state.set_widget_attribute(model, attribute, value)
-
         #recompute spinbox limits
+        model = self.widget_manager.get_model_from_widget_id(widget_id)
         if attribute in ("anchor", "width", "height"):
             self.attributes_panel_manager.update_spinbox_limits(model)
 

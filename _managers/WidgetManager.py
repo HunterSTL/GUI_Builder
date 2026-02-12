@@ -1,17 +1,17 @@
 import tkinter as tk
-from _dataclasses import ProjectDocument
+from AppState import AppState
 
 class WidgetManager:
     def __init__(
             self,
             top: tk.Toplevel,
             canvas: tk.Canvas,
-            project_document: ProjectDocument,
+            app_state: AppState,
             selection_manager
         ):
         self.top = top
         self.canvas = canvas
-        self.project_document = project_document
+        self.app_state = app_state
         self.selection_manager = selection_manager
         self.widget_map = {}
 
@@ -52,7 +52,8 @@ class WidgetManager:
 
         #populate model width and height after creating window and updating widget, otherwise both values are 1
         widget.update()
-        model.width, model.height = widget.winfo_width(), widget.winfo_height()
+        self.app_state.set_widget_attribute(model, "width", widget.winfo_width())
+        self.app_state.set_widget_attribute(model, "height", widget.winfo_height())
 
         #store both the data model and the tkinter widget in the widget map with the widget_id as the key
         self.widget_map[widget_id] = {"model": model, "widget": widget}
@@ -88,14 +89,14 @@ class WidgetManager:
     def move(self, widget_id: int, dx: int, dy: int):
         self.canvas.move(widget_id, dx, dy)
         model = self.get_model_from_widget_id(widget_id)
-        model.x += dx; model.y += dy
+        self.app_state.move_widget_by(model, dx, dy)
         self.selection_manager.refresh(widget_id)
 
     #move canvas item to (x, y), update model and refresh outline
     def move_to(self, widget_id: int, x: int, y: int):
         self.canvas.coords(widget_id, x, y)
         model = self.get_model_from_widget_id(widget_id)
-        model.x, model.y = x, y
+        self.app_state.move_widget_to(model, x, y)
         self.selection_manager.refresh(widget_id)
 
     #delete widget (canvas item), remove from widget_map and set focus back to canvas
@@ -111,39 +112,42 @@ class WidgetManager:
         if not widget:
             return
 
+        #validate attribute name
+        attribute =attribute.strip().lower()
+        allowed_attributes = {"x", "y", "width", "height", "text", "bg", "fg", "anchor"}
+        if attribute not in allowed_attributes:
+            return
+
         if attribute in ("x", "y"):
             if attribute == "x":
                 x, y = value, model.y
-            elif attribute == "y":
-                x, y = model.x, value
             else:
-                return
+                x, y = model.x, value
             self.canvas.coords(widget_id, x, y)
-            model.x, model.y = x, y
-            self.selection_manager.refresh(widget_id) #update selection outline
+            self.app_state.set_widget_attribute(model, "x", x)
+            self.app_state.set_widget_attribute(model, "y", y)
         elif attribute in ("width", "height"):
             self.canvas.itemconfig(widget_id, **{attribute: value})
             widget.update()
-            model.width, model.height = widget.winfo_width(), widget.winfo_height()
-            self.selection_manager.refresh(widget_id)
+            self.app_state.set_widget_attribute(model, "width", widget.winfo_width())
+            self.app_state.set_widget_attribute(model, "height", widget.winfo_height())
         elif attribute == "text":
             widget.config(text=value)
             widget.update()
-            model.width, model.height = widget.winfo_width(), widget.winfo_height()
-            self.selection_manager.refresh(widget_id)
+            self.app_state.set_widget_attribute(model, "text", value)
+            self.app_state.set_widget_attribute(model, "width", widget.winfo_width())
+            self.app_state.set_widget_attribute(model, "height", widget.winfo_height())
         elif attribute in ("bg", "fg"):
             widget.config(**{attribute: value})
-            widget.update()
-            model.width, model.height = widget.winfo_width(), widget.winfo_height()
-            self.selection_manager.refresh(widget_id)
+            self.app_state.set_widget_attribute(model, attribute, value)
         elif attribute == "anchor":
             try:
                 self.canvas.itemconfig(widget_id, anchor=value)
             except Exception:
                 widget.config(anchor=value)
-            self.selection_manager.refresh(widget_id)
-        else:
-            return
+            self.app_state.set_widget_attribute(model, "anchor", value)
+
+        self.selection_manager.refresh(widget_id)
 
     def _bind_widget_events(self, widget, widget_id: int):
         def forward_to_canvas(event, sequence):
