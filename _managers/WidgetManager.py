@@ -7,13 +7,80 @@ class WidgetManager:
             top: tk.Toplevel,
             canvas: tk.Canvas,
             app_state: AppState,
-            selection_manager
+            selection_manager,
+            request_soft_render_callback=None   #optional for UnitTests
         ):
         self.top = top
         self.canvas = canvas
         self.app_state = app_state
         self.selection_manager = selection_manager
+        self.request_soft_render = request_soft_render_callback
         self.widget_map = {}
+
+    def render_full(self):
+        #clear all canvas items except grid lines
+        for widget_id in list(self.widget_map.keys()):
+            self.canvas.delete(widget_id)
+        self.widget_map.clear()
+
+        #rebuild widgets from models
+        for model in self.app_state.project.widget_models:
+            self._render_widget(model)
+
+    def render_soft(self, model):
+        #get the widget_id of this model
+        widget_id = None
+        for w_id, mapping in self.widget_map.items():
+            if mapping["model"] == model:
+                widget_id = w_id
+                break
+
+        if widget_id is None:
+            #widget does not exist yet → render it fully
+            self._render_widget(model)
+            return
+
+        widget = self.widget_map[widget_id]["widget"]
+
+        #update widget position
+        self.canvas.coords(widget_id, model.x, model.y)
+
+        #update widget attributes (text, color)
+        widget.config(text=getattr(model, "text", widget.cget("text")), bg=model.bg, fg=model.fg)
+
+        #update size if width/height in model
+        if model.width and model.height:
+            self.canvas.itemconfig(widget_id, width=model.width, height=model.height)
+
+        #refresh outline
+        self.selection_manager.refresh(widget_id)
+
+    def _render_widget(self, model):
+        #create the correct Tk widget
+        if model.type == "Label":
+            widget = tk.Label(self.canvas, text=model.text, bg=model.bg, fg=model.fg)
+        elif model.type == "Entry":
+            widget = tk.Entry(self.canvas, bg=model.bg, fg=model.fg)
+        elif model.type == "Button":
+            widget = tk.Button(self.canvas, text=model.text, bg=model.bg, fg=model.fg)
+        else:
+            return None
+
+        #insert widget into canvas
+        widget_id = self.canvas.create_window(
+            model.x, model.y,
+            window=widget,
+            anchor=model.anchor,
+            tags="widget"
+        )
+
+        #insert widget into widget_map
+        self.widget_map[widget_id] = {"model": model, "widget": widget}
+
+        #bind widget events (forward to canvas, configure handling)
+        self._bind_widget_events(widget, widget_id)
+
+        return widget_id
 
     #create new widget
     def add_widget(self, model, widget, x: int, y: int):
@@ -34,12 +101,11 @@ class WidgetManager:
 
     #create widget from model
     def add_widget_from_model(self, model):
-        model_type = getattr(model, "type", "").lower()
-        if model_type == "label":
+        if model.type == "Label":
             widget = tk.Label(self.canvas, text=model.text, bg=model.bg, fg=model.fg)
-        elif model_type == "entry":
+        elif model.type == "Entry":
             widget = tk.Entry(self.canvas, bg=model.bg, fg=model.fg)
-        elif model_type == "button":
+        elif model.type == "Button":
             widget = tk.Button(self.canvas, text=model.text, bg=model.bg, fg=model.fg)
         else:
             return None
@@ -84,20 +150,6 @@ class WidgetManager:
             "right": x2,
             "bottom": y2
         }
-
-    #move canvas item by delta, update model and refresh outline
-    def move(self, widget_id: int, dx: int, dy: int):
-        self.canvas.move(widget_id, dx, dy)
-        model = self.get_model_from_widget_id(widget_id)
-        self.app_state.move_widget_by(model, dx, dy)
-        self.selection_manager.refresh(widget_id)
-
-    #move canvas item to (x, y), update model and refresh outline
-    def move_to(self, widget_id: int, x: int, y: int):
-        self.canvas.coords(widget_id, x, y)
-        model = self.get_model_from_widget_id(widget_id)
-        self.app_state.move_widget_to(model, x, y)
-        self.selection_manager.refresh(widget_id)
 
     #delete widget (canvas item), remove from widget_map and set focus back to canvas
     def delete(self, widget_id: int):

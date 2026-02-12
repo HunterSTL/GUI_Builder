@@ -12,12 +12,20 @@ class MoveWidgets(Command):
     def execute(self):
         for widget_id in self._widget_ids:
             #record original position
-            self._original_positions[widget_id] = self._widget_manager.get_model_coordinates_from_widget_id(widget_id)
+            model = self._widget_manager.get_model_from_widget_id(widget_id)
+            self._original_positions[widget_id] = (model.x, model.y)
 
-            #move the canvas item
-            self._widget_manager.move(widget_id, self._dx, self._dy)
+            #move the widget
+            self._widget_manager.app_state.move_widget_by(model, self._dx, self._dy)
+
+            #request visual update from designer (through callback)
+            self._widget_manager.render_soft(model)
 
     def undo(self):
         for widget_id, (x, y) in self._original_positions.items():
-            #move the canvas item to the original position
-            self._widget_manager.move_to(widget_id, x, y)
+            #move the widget to the original position
+            model = self._widget_manager.get_model_from_widget_id(widget_id)
+            self._widget_manager.app_state.move_widget_to(model, x, y)
+
+            #request visual update from designer (through callback)
+            self._widget_manager.render_soft(model)

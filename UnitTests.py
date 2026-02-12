@@ -76,7 +76,12 @@ class TestAddWidgetFromModel(unittest.TestCase):
         app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(top=root, canvas=canvas, app_state=app_state, selection_manager=None)
+        widget_manager = WidgetManager(
+            top=root,
+            canvas=canvas,
+            app_state=app_state,
+            selection_manager=None
+        )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
         model.create_id()
@@ -101,19 +106,26 @@ class TestMoveWidget(unittest.TestCase):
         app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(top=root, canvas=canvas, app_state=app_state, selection_manager=DummySelectionManager())
+        widget_manager = WidgetManager(
+            top=root,
+            canvas=canvas,
+            app_state=app_state,
+            selection_manager=DummySelectionManager()
+        )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
         widget_id = widget_manager.add_widget_from_model(model)
 
         #move by dx/dy
-        widget_manager.move(widget_id, 50, 50)
+        app_state.move_widget_by(model, 50, 50)
+        widget_manager.render_soft(model)
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
         #move to
-        widget_manager.move_to(widget_id, 150, 150)
+        app_state.move_widget_to(model, 150, 150)
+        widget_manager.render_soft(model)
         self.assertEqual(model.x, 150)
         self.assertEqual(model.y, 150)
 
@@ -137,7 +149,12 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(top=root, canvas=canvas, app_state=app_state, selection_manager=DummySelectionManager())
+        widget_manager = WidgetManager(
+            top=root,
+            canvas=canvas,
+            app_state=app_state,
+            selection_manager=DummySelectionManager()
+        )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
@@ -173,7 +190,12 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(top=root, canvas=canvas, app_state=app_state, selection_manager=DummySelectionManager())
+        widget_manager = WidgetManager(
+            top=root,
+            canvas=canvas,
+            app_state=app_state,
+            selection_manager=DummySelectionManager()
+        )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()

@@ -90,7 +90,8 @@ class Designer:
             top=self.top,
             canvas=self.canvas,
             app_state=self.app_state,
-            selection_manager=self.selection_manager
+            selection_manager=self.selection_manager,
+            request_soft_render_callback=self.request_soft_render
         )
 
         #create instance of AttributesPanelManager to show/hide the attribute panel for a selected widget
@@ -179,6 +180,16 @@ class Designer:
         for model in self.app_state.project.widget_models:
             self.widget_manager.add_widget_from_model(model)
 
+    def request_full_render(self):
+        self.top.after_idle(self._do_full_render)
+
+    def _do_full_render(self):
+        self.widget_manager.render_full()
+        self.selection_manager.refresh_all()
+
+    def request_soft_render(self, model):
+        self.top.after_idle(lambda: self.widget_manager.render_soft(model))
+
     def is_dirty(self):
         return self.state.is_dirty
 
@@ -244,6 +255,9 @@ class Designer:
 
         #set absolute position via AppState
         self.app_state.move_widget_to(model, clamped_x, clamped_y)
+
+        #render the widget
+        self.request_soft_render(model)
 
         #append the new model to the project_document via AppState
         self.app_state.add_widget(model)
@@ -346,13 +360,12 @@ class Designer:
             #calculate necessary movement delta
             model = self.widget_manager.get_model_from_widget_id(widget_id)
             new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
-            dx, dy = new_x - model.x, new_y - model.y
 
-            #delegate actual movement (canvas item) to WidgetManager
-            self.widget_manager.move(widget_id, dx, dy)
-
-            #update model
+            #set absolute position via AppState
             self.app_state.move_widget_to(model, new_x, new_y)
+
+            #render the widget
+            self.request_soft_render(model)
 
         #refresh outline
         self.selection_manager.refresh_all()
@@ -432,12 +445,12 @@ class Designer:
                 #calculate clamped delta so that widget can't be moved outside the canvas
                 dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(widget_id), dx, dy)
 
-                #delegate actual movement (canvas item) to WidgetManager
-                self.widget_manager.move(widget_id, dx, dy)
-
-                #update model
+                #move widget via AppState
                 model = self.widget_manager.get_model_from_widget_id(widget_id)
                 self.app_state.move_widget_by(model, dx, dy)
+
+                #render the widget
+                self.request_soft_render(model)
 
         #refresh outline
         self.selection_manager.refresh_all()
