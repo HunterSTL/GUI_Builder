@@ -1,6 +1,8 @@
 #tkinter
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
+#model
+from AppState import AppState
 #dataclasses
 from _dataclasses import DesignerState
 from _dataclasses import ProjectDocument
@@ -35,6 +37,9 @@ class Designer:
         #shared mutable callbacks dictionary
         self.callbacks = {}
 
+        #app state (pure model)
+        self.app_state = AppState(self.project_document)
+
         #designer state (last click position, dirty flag, deleting flag etc.)
         self.state = DesignerState()
 
@@ -42,7 +47,7 @@ class Designer:
         self.command_stack = CommandStack()
 
         #variable to represent grid state from project_document
-        self.grid_visible_variable = tk.BooleanVar(value=self.project_document.grid.visible)
+        self.grid_visible_variable = tk.BooleanVar(value=self.app_state.project.grid.visible)
 
         #build designer UI
         self._build_designer_ui()
@@ -50,7 +55,7 @@ class Designer:
         #create instance of CanvasManager
         self.canvas_manager = CanvasManager(
             parent=self.viewer,
-            project_document=self.project_document,
+            project_document=self.app_state.project,
             nudge_small=self.constants["nudge"]["small"],
             nudge_big=self.constants["nudge"]["big"],
             callbacks=self.callbacks
@@ -62,7 +67,7 @@ class Designer:
 
         #draw boundry around the work area
         self._boundry = self.canvas.create_rectangle(
-            1, 1, self.project_document.width - 1, self.project_document.height - 1,
+            1, 1, self.app_state.project.width - 1, self.app_state.project.height - 1,
             outline=self.program_theme["selection"]["color"],
             width=1,
             dash=(2, 2)
@@ -85,7 +90,7 @@ class Designer:
         self.widget_manager = WidgetManager(
             top=self.top,
             canvas=self.canvas,
-            project_document=self.project_document,
+            project_document=self.app_state.project,
             selection_manager=self.selection_manager
         )
 
@@ -93,8 +98,8 @@ class Designer:
         self.attributes_panel_manager = AttributesPanelManager(
             root=self.top,
             frame=self.attributes_panel_frame,
-            canvas_width=self.project_document.width,
-            canvas_height=self.project_document.height,
+            canvas_width=self.app_state.project.width,
+            canvas_height=self.app_state.project.height,
             panel_color=self.program_theme["attributes_panel"]["color"],
             widget_color=self.program_theme["attributes_panel"]["widget_color"],
             text_color=self.program_theme["attributes_panel"]["text_color"],
@@ -156,7 +161,7 @@ class Designer:
         })
 
         #toggle grid if grid is set to visible in project_document
-        if self.project_document.grid.visible:
+        if self.app_state.project.grid.visible:
             self.canvas_manager.refresh_grid()
 
         #create toolbar
@@ -172,7 +177,7 @@ class Designer:
         self.canvas_manager.bind_events()
 
         #create widgets for the models from the project_document
-        for model in self.project_document.widget_models:
+        for model in self.app_state.project.widget_models:
             self.widget_manager.add_widget_from_model(model)
 
     def is_dirty(self):
@@ -186,8 +191,8 @@ class Designer:
             text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
             if text is None:
                 return
-            bg = self.project_document.theme["label"]["bg"]
-            fg = self.project_document.theme["label"]["fg"]
+            bg = self.app_state.project.theme["label"]["bg"]
+            fg = self.app_state.project.theme["label"]["fg"]
             widget = tk.Label(
                 self.canvas,
                 text=text,
@@ -196,8 +201,8 @@ class Designer:
             )
             model = LabelWidgetData(x=x, y=y, bg=bg, fg=fg, text=text)
         elif widget_type == "entry":
-            bg = self.project_document.theme["entry"]["bg"]
-            fg = self.project_document.theme["entry"]["fg"]
+            bg = self.app_state.project.theme["entry"]["bg"]
+            fg = self.app_state.project.theme["entry"]["fg"]
             widget = tk.Entry(
                 self.canvas,
                 bg=bg,
@@ -208,8 +213,8 @@ class Designer:
             text = simpledialog.askstring("Button text", "Enter button text:", parent=self.top)
             if text is None:
                 return
-            bg = self.project_document.theme["button"]["bg"]
-            fg = self.project_document.theme["button"]["fg"]
+            bg = self.app_state.project.theme["button"]["bg"]
+            fg = self.app_state.project.theme["button"]["fg"]
             widget = tk.Button(
                 self.canvas,
                 text=text,
@@ -236,10 +241,12 @@ class Designer:
         #populate model width and height after creating window and updating widget, otherwise both values are 1
         widget.update()
         model.width, model.height = widget.winfo_width(), widget.winfo_height()
-        model.x, model.y = clamped_x, clamped_y
 
-        #append the new model to the project_document
-        self.project_document.widget_models.append(model)
+        #set absolute position via AppState
+        self.app_state.move_widget_to(model, clamped_x, clamped_y)
+
+        #append the new model to the project_document via AppState
+        self.app_state.add_widget_model(model)
 
         #set app state to dirty
         self._set_dirty()
@@ -333,7 +340,7 @@ class Designer:
         if not selected_widgets:
             return
 
-        grid_size = self.project_document.grid.size
+        grid_size = self.app_state.project.grid.size
 
         for widget_id in selected_widgets:
             #calculate necessary movement delta
@@ -345,7 +352,7 @@ class Designer:
             self.widget_manager.move(widget_id, dx, dy)
 
             #update model
-            model.x, model.y = new_x, new_y
+            self.app_state.move_widget_to(model, new_x, new_y)
 
         #refresh outline
         self.selection_manager.refresh_all()
@@ -380,10 +387,7 @@ class Designer:
             for widget_id in selected_widgets:
                 #remove model from project_document
                 model = self.widget_manager.get_model_from_widget_id(widget_id)
-                try:
-                    self.project_document.widget_models.remove(model)
-                except ValueError:
-                    pass
+                self.app_state.remove_widget_model(model)
 
                 #delegate actual deletion (canvas item) to WidgetManager
                 self.widget_manager.delete(widget_id)
@@ -433,7 +437,7 @@ class Designer:
 
                 #update model
                 model = self.widget_manager.get_model_from_widget_id(widget_id)
-                model.x += dx; model.y += dy
+                self.app_state.move_widget_by(model, dx, dy)
 
         #refresh outline
         self.selection_manager.refresh_all()
@@ -451,7 +455,7 @@ class Designer:
         visible = self.grid_visible_variable.get()
 
         #write current grid visible state to project_document
-        self.project_document.grid.visible = visible
+        self.app_state.set_grid_visible(visible)
 
         #delegate actual drawing of the grid (draw or clear) to CanvasManager
         self.canvas_manager.apply_grid_visibility()
@@ -467,7 +471,7 @@ class Designer:
             return
 
         #update grid size in project_document
-        self.project_document.grid.size = new_grid_size
+        self.app_state.set_grid_size(new_grid_size)
 
         #delegate redraw of grid to CanvasManager
         self.canvas_manager.refresh_grid()
@@ -483,7 +487,7 @@ class Designer:
             return
 
         #update grid color in project_document
-        self.project_document.grid.color = color
+        self.app_state.set_grid_color(color)
 
         #delegate redraw of grid to CanvasManager
         self.canvas_manager.refresh_grid()
@@ -496,12 +500,12 @@ class Designer:
 
     def _set_dirty(self):
         self.state.is_dirty = True
-        self.titlebar_label.configure(text=self.project_document.title + "*")
+        self.titlebar_label.configure(text=self.app_state.project.title + "*")
         self.titlebar_label.update()
 
     def _set_clean(self):
         self.state.is_dirty = False
-        self.titlebar_label.configure(text=self.project_document.title)
+        self.titlebar_label.configure(text=self.app_state.project.title)
         self.titlebar_label.update()
 
     #create add widget menu
@@ -555,8 +559,7 @@ class Designer:
 
         #update model
         model = self.widget_manager.get_model_from_widget_id(widget_id)
-        if hasattr(model, attribute):
-            setattr(model, attribute, value)
+        self.app_state.set_widget_attribute(model, attribute, value)
 
         #recompute spinbox limits
         if attribute in ("anchor", "width", "height"):
@@ -574,8 +577,8 @@ class Designer:
         self.top.update_idletasks()
 
         #requested canvas dimensions
-        canvas_width = self.project_document.width
-        canvas_height = self.project_document.height
+        canvas_width = self.app_state.project.width
+        canvas_height = self.app_state.project.height
 
         #dimensions of UI elements
         panel_width = self.constants["attributes_panel"]["width"]
@@ -629,8 +632,8 @@ class Designer:
         self.top.update_idletasks()
 
         #canvas dimensions
-        canvas_width = self.project_document.width
-        canvas_height = self.project_document.height
+        canvas_width = self.app_state.project.width
+        canvas_height = self.app_state.project.height
 
         #scrollbar thickness
         vertical_scrollbar_thickness = self.vertical_scrollbar.winfo_reqwidth()
@@ -712,18 +715,18 @@ class Designer:
         #create title bar
         titlebar = CustomTitlebar(
             parent=self.top,
-            title=self.project_document.title,
+            title=self.app_state.project.title,
             height=self.constants["titlebar_height"],
             bg_color=self.program_theme["titlebar"]["bg"],
             fg_color=self.program_theme["titlebar"]["fg"],
-            icon_path=self.project_document.icon_path,
+            icon_path=self.app_state.project.icon_path,
             on_close=self.project_callbacks["exit_app"]
         )
         titlebar.frame.pack(fill="x")
         self.titlebar_label = titlebar.label
 
         #create main frame that hosts work area (column 0) and attributes panel (column 1)
-        self.main_frame = tk.Frame(self.top, bg=self.project_document.theme["background"]["color"])
+        self.main_frame = tk.Frame(self.top, bg=self.app_state.project.theme["background"]["color"])
 
         #define column/row growth
         self.main_frame.columnconfigure(0, weight=1)    #work area expands
@@ -731,7 +734,7 @@ class Designer:
         self.main_frame.rowconfigure(0, weight=1)
 
         #create work area
-        self.work_area = tk.Frame(self.main_frame, bg=self.project_document.theme["background"]["color"])
+        self.work_area = tk.Frame(self.main_frame, bg=self.app_state.project.theme["background"]["color"])
         self.work_area.grid(row=0, column=0, sticky="nsew")
         self.work_area.columnconfigure(0, weight=1)
         self.work_area.rowconfigure(0, weight=1)
@@ -739,7 +742,7 @@ class Designer:
         #create viewer for scrolling
         self.viewer = tk.Canvas(
             self.work_area,
-            bg=self.project_document.theme["background"]["color"],
+            bg=self.app_state.project.theme["background"]["color"],
             highlightthickness=0
         )
         self.viewer.grid(row=0, column=0, sticky="nsew")
