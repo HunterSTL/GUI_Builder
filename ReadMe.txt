@@ -1,302 +1,353 @@
 ===========================================
 Tkinter GUI Builder – README
 -------------------------------------------
-A complete, canvas‑based Tkinter GUI designer featuring pixel‑precise widget
-placement, incremental drag-based movement with a committed undo/redo stack,
-multi‑selection and rectangle selection, scrollable work area, attribute panel
-with two‑way binding, and a fully decoupled manager architecture.
+A complete, canvas‑based Tkinter GUI designer featuring pixel‑accurate
+widget placement, unified event routing, threshold‑based widget dragging,
+incremental preview movement, a committed undo/redo stack, scrollable
+workspace, dynamic attributes panel with strict validation, and a fully
+modular architecture.
 
-The Designer orchestrates multiple specialized managers through a shared
-callback map that keeps responsibilities isolated and the system maintainable.
+The Designer coordinates specialized Managers through a shared callback
+map that ensures separation of concerns, predictable behavior, and
+maintainable code structure.
 ===========================================
+
+
 Quick Start
 -------------------------------------------
 1) Run App.py
-   - Starts the Tk root window and attaches AppController.
+   - Starts the Tk root window and builds AppController.
 
 2) Choose “New Project” or “Open Project”
    - New:
-       • Opens SetupWizard for window size, theme, and optional icon.
-       • Produces a ProjectDocument and launches Designer.
+     • Opens SetupWizard (canvas size, theme colors, icon selection)
+     • Produces ProjectDocument → launches Designer
    - Open:
-       • Loads a *.tkui JSON project, restores widgets, theme, and grid.
+     • Loads *.tkui JSON project, restores canvas, theme, widget models
 
 3) Inside the Designer
-   - Right‑click canvas → Add Label / Entry / Button.
-   - Click/CTRL+Click → select or multiselect widgets.
-   - Drag widgets → smooth preview movement with drag‑threshold.
-   - Scroll large canvases using scrollbars or mouse wheel.
-   - Edit properties via Attributes Panel (right side).
-   - Use toolbar for project, widget, grid, and debug actions.
+   - Right‑click canvas → Add Label / Entry / Button
+   - Click / CTRL+Click → selection / multiselection
+   - Drag widgets → smooth incremental preview + threshold activation
+   - Rectangle selection (drag empty canvas) + additive (CTRL)
+   - Scroll with mouse wheel or scrollbars
+   - Edit properties via Attributes Panel
+   - Toolbar provides File / Edit / Widget / Grid / Debug menus
 ===========================================
+
+
 Module Map (Expanded)
 -------------------------------------------
-Below is an expanded list of all modules in the project, grouped by purpose.
-Each heading shows the **actual file path**, exactly as in your project.
+Below is the complete module map based on the current project structure.
 
 -------------------------------------------
 App Entry & Controller
 -------------------------------------------
-
 App.py:
-  - Program entry point.
-  - Creates root Tk, launches AppController, enters mainloop.
+ - Application entry point.
+ - Creates Tk root and attaches AppController.
 
 AppController.py:
-  - Builds the startup window (with custom draggable titlebar).
-  - Manages project lifecycle:
-       * New, Open, Save, Save As, Export JSON, Exit
-  - Tracks unsaved changes and prompts appropriately.
-  - Manages a per-session copy of USER_THEME.
-  - Launches SetupWizard or Designer.
-  - Provides callback map for Designer actions.
+ - Builds startup window using CustomTitlebar.
+ - Manages:
+   *New, *Open, *Save, *Save As, *Export JSON, *Exit
+ - Tracks unsaved changes, window positions, last directory.
+ - Maintains user theme copies and PROGRAM_THEME.
+ - Creates and destroys SetupWizard or Designer.
+ - Provides project‑level callbacks to Designer.
+===========================================
 
--------------------------------------------
+
 Setup Wizard
 -------------------------------------------
-
 SetupWizard.py:
-  - Window title, canvas size, and complete user‑theme configuration.
-  - Live preview widgets for colors (Label, Entry, Button, Background).
-  - Optional icon loading.
-  - Ensures size constraints via CONSTANTS.
-  - Emits (ProjectDocument, icon) to AppController.
+ - Asks for:
+   • Window title
+   • Canvas width/height
+   • Theme colors (background, label, entry, button)
+   • Icon selection (PNG/JPG/ICO)
+ - Shows live previews for theme colors.
+ - Validates canvas sizes via CONSTANTS.
+ - Builds a ProjectDocument + GridConfig.
+ - Returns the ProjectDocument to AppController and closes.
+===========================================
 
--------------------------------------------
+
 Designer (Main Editor)
 -------------------------------------------
-
 Designer.py:
-  - Central workspace for designing UIs.
-  - Creates custom titlebar and main layout:
-       * Scrollable canvas viewer
-       * Attributes panel frame
-       * Toolbar
-  - Instantiates and wires:
-       * CanvasManager
-       * SelectionManager
-       * WidgetManager
-       * AttributesPanelManager
-       * ToolbarManager
-  - Integrates CommandStack for undo/redo.
-  - Loads widgets from ProjectDocument.
-  - Computes window size constraints and activates scrollbars accordingly.
-  - Manages dirty state (“*” appended to title).
+ - Creates main workspace:
+   *CustomTitlebar
+   *Toolbar
+   *Scrollable canvas viewer
+   *Attributes Panel (right side)
+ - Initializes:
+   *CanvasManager
+   *SelectionManager
+   *WidgetManager
+   *AttributesPanelManager
+   *ToolbarManager
+ - Maintains DesignerState (dirty flag, drag command, last click coords).
+ - Integrates CommandStack for undo/redo.
+ - Loads existing widget models into the canvas.
+ - Determines window dimensions & scrollbar requirements dynamically.
+ - Updates title with “*” when project is dirty.
+===========================================
 
--------------------------------------------
+
 Managers (Core Editing Logic)
 -------------------------------------------
-
 _managers/CanvasManager.py:
-  - Creates actual Tkinter Canvas for designing.
-  - Draws / clears / refreshes the grid.
-  - Maintains scrollregion and scrollbar integration.
-  - Binds all keybindings for movement, alignment, grid controls, project actions.
-  - Ensures canvas takes focus for keyboard shortcuts.
+ - Builds the design canvas.
+ - Draws/clears grid lines.
+ - Computes scrollregion and manages scrollbar visibility.
+ - Binds all keyboard shortcuts:
+   movement, alignment, grid tools, project actions, edit actions.
+ - Ensures canvas receives focus.
 
 _managers/SelectionManager.py:
-  - Complete selection engine:
-       * Single-click, CTRL-click, toggle.
-       * Rectangle selection with additive mode (CTRL).
-       * Correct topmost widget detection.
-       * Drag‑threshold detection for switching from “click” to “drag”.
-       * Informs Designer when drag starts/ends.
-  - Maintains outline rectangles (including last‑selected colored highlight).
+ - Full selection engine:
+   *Single, multiselect, toggle selection
+   *Rectangle selection (with additive CTRL mode)
+   *Top‑most window detection
+ - Drag logic:
+   *Threshold‑based activation
+   *Incremental deltas via WidgetDragState
+   *Re‑entry safeguard inside canvas drag handler
+ - Maintains selection outlines:
+   *Blue = selected, Red = last selected
+ - Notifies Designer for attribute panel updates.
 
 _managers/WidgetManager.py:
-  - Responsible for:
-       * Creating widgets (new or from model)
-       * Deleting widgets
-       * Moving widgets (move, move_to)
-       * Updating attributes (size, text, color, anchor, x/y)
-  - Contains mapping: widget_id → {"model": model, "widget": widget}
-  - Forwards all widget mouse events to canvas for unified behavior.
+ - Creates widgets from models or user actions.
+ - Maintains widget_map: widget_id → {model, widget}
+ - Updates widget attributes (x, y, width, height, text, colors, anchor).
+ - Makes all widget mouse events forward to canvas.
+ - Handles deletion and model cleanup.
+ - Ensures outline stays synced via SelectionManager.
 
 _managers/AttributesPanelManager.py:
-  - Builds dynamic attribute panel based on ATTRIBUTE_CONFIG.
-  - Provides entries, spinboxes, anchors, and color previews.
-  - Enforces min/max spinbox limits based on canvas size + anchor.
-  - Two‑way binding with silent update mode.
+ - Dynamically creates attribute editors from ATTRIBUTE_CONFIG.
+ - Provides:
+   *Spinboxes with clamped ranges
+   *Validated text entries
+   *Color preview boxes
+   *Anchor selector
+ - Silent update mode prevents recursive refresh.
+ - Recomputes spinbox limits when anchor/size change.
 
 _managers/ToolbarManager.py:
-  - Builds the top toolbar (File, Edit, Widgets, Grid, Debug menus).
-  - Connects menu commands to the callback map.
-  - Includes checkbutton for grid visualization.
+ - Creates top toolbar with:
+   *File, *Edit, *Widgets, *Grid, *Debug menus
+ - Menus call into Designer callbacks.
+ - Provides grid visibility checkbox bound to BooleanVar.
+===========================================
 
-_managers/__init__.py:
-  - Exports all managers (CanvasManager, SelectionManager, WidgetManager,
-    ToolbarManager, AttributesPanelManager).
 
--------------------------------------------
 Commands (Undo/Redo System)
 -------------------------------------------
-
 _commands/BaseCommand.py:
-  - Abstract base class defining execute() and undo().
+ - Abstract base class for all commands.
 
 _commands/CommandStack.py:
-  - Stores executed commands.
-  - Handles undo/redo behavior with correct stack clearing.
+ - Tracks undo/redo stacks and executes commands.
 
 _commands/MoveWidgets.py:
-  - Represents keyboard‑based movement (dx/dy).
-  - Records original positions on execute().
-  - Undo restores original coordinates using move_to().
+ - Keyboard‑based movement.
+ - Records original positions.
+ - Undo restores previous coordinates.
 
 _commands/MoveWidgetsTo.py:
-  - Core drag‑movement command.
-  - On drag start: captures original positions.
-  - preview_move(dx, dy): incremental movement during drag.
-  - On drag end: freeze_final_positions() records the end state.
-  - execute(): moves widgets to final positions.
-  - undo(): restores original positions.
+ - Drag‑based movement.
+ - On drag start: records original positions.
+ - preview_move(dx,dy): incremental deltas during drag.
+ - freeze_final_positions(): snapshot final placement.
+ - execute(): apply final positions.
+ - undo(): restore original coordinates.
+===========================================
 
-_commands/__init__.py:
-  - Re‑exports Command, CommandStack, MoveWidgets, MoveWidgetsTo.
 
+Dataclasses (Project, Models, States)
 -------------------------------------------
-Dataclasses (Project, Widgets, States)
--------------------------------------------
-
 _dataclasses/ProjectDocument.py:
-  - Primary project data container.
-  - Fields: version, title, width, height, grid, theme, widget_models.
-  - to_json() returns serializable dict.
-  - from_json() loads widget models and updates IdCounters based on IDs present.
+ - Stores:
+   *version, title, width/height, icon_path
+   *theme dictionary
+   *GridConfig
+   *widget_models list
+ - Handles JSON (to_json/from_json) and restores ID counters.
 
-_dataclasses/GridConfig (in ProjectDocument.py):
-  - Grid size, color, visibility.
+_dataclasses/GridConfig:
+ - Grid size, color, visibility.
 
 _dataclasses/WidgetModels.py:
-  - Defines BaseWidgetData + subclasses:
-       * LabelWidgetData
-       * EntryWidgetData
-       * ButtonWidgetData
-  - Each has create_id() that uses central IdCounters.
-  - Includes global IdCounters for ID consistency across sessions.
+ - BaseWidgetData + LabelWidgetData + EntryWidgetData + ButtonWidgetData.
+ - Each provides create_id() using global IdCounters.
+ - Stores text, size, colors, anchor, x/y.
 
 _dataclasses/DesignerState.py:
-  - Tracks Designer internal state:
-       * last click coords
-       * dragging window
-       * window coordinates
-       * is_dirty
-       * is_deleting
-       * active MoveWidgetsTo command during drag
+ - Tracks dirty flag, deleting flag, last click coords,
+   and active MoveWidgetsTo command.
 
 _dataclasses/RectangleSelectionState.py:
-  - Data for rectangle selection:
-       * selection_rectangle_id
-       * start coords
-       * flags for dragging and additive mode.
+ - Start coords, rectangle id, dragging flag, additive flag.
 
 _dataclasses/WidgetDragState.py:
-  - Data used internally by SelectionManager for drag tracking:
-       * start coords
-       * end coords
-       * last_total_dx / last_total_dy
-       * is_dragging flag
+ - Drag state for widget movement:
+   start_coords, end_coords, last incremental deltas, state flag.
+===========================================
 
-_dataclasses/__init__.py:
-  - Re‑exports all dataclasses and IdCounters.
 
+Utility & Geometry
 -------------------------------------------
-Geometry / Utility Logic
--------------------------------------------
+UIComponents.py:
+ - load_icon(path,size)
+   *Loads PNG/JPG/ICO via PIL
+   *Resizes with LANCZOS filtering
+ - CustomTitlebar
+   *Draggable overrideredirect titlebar
+   *Supports icon + title + close button
+   *Used by Startup, SetupWizard, Designer
 
 Geometry.py:
-  - allowed_x_range(), allowed_y_range():
-       * Provides min/max allowed coordinates based on widget size + anchor.
-  - clamp(): bounds a value in [min, max].
-  - clamped_delta(): clamps movement so widgets remain inside canvas.
-  - screen_offset_to_center_window(): centers window on screen.
+ - allowed_x_range(), allowed_y_range()
+   *Anchor‑aware coordinate limits
+ - clamp(): clamps value to [min,max]
+ - clamped_delta(): prevents widgets from exiting canvas bounds
+ - screen_offset_to_center_window(): centers window
+===========================================
 
--------------------------------------------
+
 Theme & Constants
 -------------------------------------------
-
 Theme.py:
-  - USER_THEME defaults (overridden by SetupWizard).
-  - PROGRAM_THEME for internal UI.
-  - CONSTANTS:
-       * window min/max sizes
-       * canvas min/max sizes
-       * titlebar/toolbar heights
-       * selection styling
-       * grid size
-       * nudge values (small/big)
-       * drag_threshold
+ - USER_THEME: default user‑modifiable theme (SetupWizard).
+ - PROGRAM_THEME: static theme used for app UI.
+ - CONSTANTS:
+   *window min/max sizes
+   *canvas min/max sizes
+   *titlebar/toolbar/attribute panel dimensions
+   *selection styling (padding, width, dash)
+   *grid size
+   *nudge distances
+   *drag threshold
 ===========================================
+
+
 Core Features
 -------------------------------------------
-- Project lifecycle fully managed (New/Open/Save/Save As/Export JSON).
-- Scrollable canvas with smart scrollbar enabling.
-- Pixel‑accurate widget placement with anchor support.
-- Comprehensive selection system:
-    * Single select, multi-select, toggle, rectangle selection.
-    * Correct ordering and outline layering.
-- Drag-threshold‑based widget movement with incremental deltas.
-- Alignment:
-    * Left / Right / Top / Bottom relative to last-selected.
-- Snap-to-grid, toggle-grid, change grid color and size.
-- Attributes panel with strict validation and dynamic spinbox limits.
-- Full undo/redo using command pattern.
-- Custom draggable titlebars for Startup and Designer windows.
+- Complete project lifecycle support.
+- Scrollable canvas with dynamic scrollbar control.
+- Accurate widget placement with anchor‑aware bounds.
+- Robust selection engine:
+  *Single, multi, toggle, rectangle selection
+  *Additive rectangle selection via CTRL
+- Advanced drag system:
+  *Threshold detection
+  *Incremental preview movement
+  *Safe re‑entry protection
+- Widget alignment tools relative to last‑selected widget.
+- Grid tools (toggle, recolor, resize).
+- Dynamic Attributes Panel with strict constraints.
+- Full undo/redo for all widget move operations.
+- Custom draggable titlebars for all windows.
 ===========================================
-Shortcuts & Gestures (default)
+
+
+Shortcuts & Gestures
 -------------------------------------------
 Selection:
-  * Click → select
-  * CTRL+Click → toggle
-  * Drag empty canvas → rectangle selection
-  * CTRL+Drag → additive rectangle select
+ *Click → select
+ *CTRL+Click → toggle
+ *Drag empty canvas → rectangle selection
+ *CTRL+Drag → additive rectangle select
 
 Dragging:
-  * Drag widget with mouse → live preview then commit
-  * Drag threshold prevents accidental drags
+ *Drag widget → incremental deltas + preview
+ *Threshold prevents accidental drags
 
 Movement:
-  * Arrow Keys → 1px nudge
-  * Shift+Arrow → 10px nudge
+ *Arrow Keys → 1px nudge
+ *Shift+Arrow → 10px nudge
 
 Alignment:
-  * CTRL + ←/→/↑/↓ → align relative to last-selected
+ *CTRL+←/→/↑/↓ → align relative to last selected
 
 Grid:
-  * g → toggle visualization
-  * CTRL+g → change grid size
-  * Shift+G → change grid color
+ *g → toggle grid visibility
+ *CTRL+g → change grid size
+ *Shift+G → change grid color
 
 Project:
-  * CTRL+N / CTRL+O / CTRL+S / CTRL+Shift+S
-  * CTRL+E → Export JSON
-  * ALT+F4 → Exit
+ *CTRL+N / CTRL+O / CTRL+S / CTRL+Shift+S
+ *CTRL+E → Export JSON
+ *ALT+F4 → Exit
 
 Editing:
-  * CTRL+Z / CTRL+Y → undo/redo
-  * CTRL+A → select all
-  * Delete → delete selected widgets
+ *CTRL+Z / CTRL+Y → undo/redo
+ *CTRL+A → select all
+ *Delete → delete widgets
 
 Scrolling:
-  * Mouse wheel → vertical scroll
-  * Shift+wheel → horizontal scroll
+ *Mouse wheel → vertical scroll
+ *Shift+Wheel → horizontal scroll
 ===========================================
+
+
+Unit Tests
+-------------------------------------------
+UnitTests.py:
+ - Contains automated test suites validating core components.
+
+TestProjectDocumentRoundtrip:
+ *Ensures ProjectDocument → JSON → ProjectDocument works correctly.
+ *Checks:
+   version, title, width/height
+   GridConfig (size, color, visibility)
+   widget restoration
+ *Verifies IdCounters are advanced after loading.
+
+TestAddWidgetFromModel:
+ *Confirms WidgetManager.add_widget_from_model:
+   correct widget placement
+   width/height updates
+   widget_map entry creation
+   correct ID creation (label1, entry1, button1)
+
+TestMoveWidget:
+ *Validates:
+   move(dx,dy) correctly updates model + canvas
+   move_to(x,y) correctly positions widget and updates model
+
+TestUndoRedoMoveWidget:
+ *Verifies MoveWidgets command:
+   execute(), undo(), redo() maintain correct positions
+
+TestUndoRedoMoveWidgetTo:
+ *Validates MoveWidgetsTo drag workflow:
+   preview_move(dx,dy)
+   freeze_final_positions()
+   execute(), undo(), redo()
+===========================================
+
+
 File Format
 -------------------------------------------
-*.tkui JSON
-  - Stores:
-       * version
-       * title
-       * width, height
-       * grid config
-       * theme colors
-       * widget_models list
-  - Loader sets IdCounters to avoid ID reuse.
+*.tkui JSON:
+ - Stores:
+   *version
+   *title, width, height
+   *grid configuration
+   *theme colors
+   *list of widget_models
+ - Loader restores ID counters to preserve unique naming.
 ===========================================
+
+
 Notes
 -------------------------------------------
-- Widget movement and selection outlines always stay correctly synchronized.
-- Attributes panel appears only when exactly one widget is selected.
-- Dragging uses incremental deltas (MoveWidgetsTo) to ensure stable undo/redo.
-- Scrollbars appear only when needed, based on window size vs canvas dimensions.
-- All widget interactions are routed through WidgetManager for consistency.
+- Selection outlines always stay in sync with widget geometry.
+- Attributes Panel appears only for single selection.
+- Grid drawing is rebuilt dynamically on changes.
+- Incremental drag deltas ensure stable preview + reliable undo/redo.
+- Scrollbars appear only when needed based on canvas vs. window size.
