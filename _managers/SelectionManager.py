@@ -1,20 +1,24 @@
 import tkinter as tk
-from typing import Dict, Optional, Set
+from typing import Dict
 from _dataclasses import RectangleSelectionState, WidgetDragState
+from CallTracer import call_tracer
 
 class SelectionManager:
     def __init__(
-            self,
-            canvas: tk.Canvas,
-            ctrl_key: str,
-            selection_width: int,
-            selection_dash: tuple[int],
-            selection_padding: int,
-            selection_color: str,
-            last_selected_color: str,
-            drag_threshold: int,
-            callbacks: dict
-        ):
+        self,
+        canvas: tk.Canvas,
+        ctrl_key: str,
+        selection_width: int,
+        selection_dash: tuple[int],
+        selection_padding: int,
+        selection_color: str,
+        last_selected_color: str,
+        drag_threshold: int,
+        callbacks: dict,
+        resolve_model_to_widget,
+        resolve_widget_to_model
+    ):
+        """initialize selection manager, drag states, outline tracking, and callbacks"""
         self.canvas = canvas
         self.ctrl_key = ctrl_key
         self.selection_width = selection_width
@@ -25,9 +29,13 @@ class SelectionManager:
         self.drag_threshold = drag_threshold
         self.callbacks = callbacks
 
-        self._selected: Set[int] = set()                                    #selected widget IDs (window items)
-        self._rects: Dict[int, int] = {}                                    #widget_id -> rectangle_id
-        self._last_selected = None
+        self._resolve_model_to_widget = resolve_model_to_widget             #label1 → 1
+        self._resolve_widget_to_model = resolve_widget_to_model             #1 → label1
+
+        self._selected_models: set[str] = set()                             #selected model IDs
+        self._last_selected_model = None
+
+        self._rects: Dict[str, int] = {}                                    #model -> rectangle_id
         self._in_canvas_drag = False
 
         self._mode = None                                                   #mode (selection or drag)
@@ -36,79 +44,82 @@ class SelectionManager:
 
         self._widget_drag_state = WidgetDragState()                         #widget drag state
 
-    #clears the entire selection
     def clear(self):
-        for widget_id in list(self._selected):
-            self._remove_highlight(widget_id)
-        self._selected.clear()
-        self._last_selected = None
+        """clear the entire selection and remove all outlines"""
+        for model_id in list(self._selected_models):
+            self._remove_highlight(model_id)
+        self._selected_models.clear()
+        self._last_selected_model = None
 
-    #selects only the widget with the given widget_id
-    def select_only(self, widget_id: Optional[int]):
-        if widget_id is None:
+        self.callbacks["attributes_panel"]()                                #selection changed → check if attributes panel should be shown
+
+    def select_only(self, model_id: str):
+        """select only the given model_id"""
+        if model_id is None:
             self.clear()
             return
-        for other in list(self._selected):
-            if other != widget_id:
+        for other in list(self._selected_models):
+            if other != model_id:
                 self._remove_highlight(other)
-        self._selected = {widget_id}
-        self._last_selected = widget_id
+        self._selected_models = {model_id}
+        self._last_selected_model = model_id
 
         self.callbacks["attributes_panel"]()                                #selection changed → check if attributes panel should be shown
 
-    #toggles the widget with the given widget_id
-    def toggle(self, widget_id: Optional[int]):
-        if widget_id is None:
+    def toggle(self, model_id: str):
+        """toggle selection state of a given model_id"""
+        if model_id is None:
             return
-        if widget_id in self._selected:
-            self._remove_highlight(widget_id)
-            self._selected.remove(widget_id)
+        if model_id in self._selected_models:
+            self._remove_highlight(model_id)
+            self._selected_models.remove(model_id)
         else:
-            self._selected.add(widget_id)
-            self._last_selected = widget_id
-
+            self._selected_models.add(model_id)
+            self._last_selected_model = model_id
+    
         self.callbacks["attributes_panel"]()                                #selection changed → check if attributes panel should be shown
 
-    #selects the widget with the given widget_id (toggle or select_only based on CTRL-key) then refreshes outlines
-    def select_widget(self, widget_id: int, event):
+    def select_widget(self, model_id: str, event):
+        """select a widget, respecting CTRL for additive selection"""
         if bool(event.state & self.ctrl_key):
-            self.toggle(widget_id)
+            self.toggle(model_id)
         else:
-            if widget_id not in self.selected_ids():
-                self.select_only(widget_id)
+            if model_id not in self.selected_model_ids():
+                self.select_only(model_id)
 
         self.refresh_all()                                                  #refresh outlines
 
-    #selects all widgets
     def select_all(self):
+        """select all widgets in the canvas"""
         self.clear()                                                        #clear existing selection
 
-        items = self.canvas.find_all()                                      #select all items with type "window" (=widget)
-        for item in items:
-            if self.canvas.type(item) == "window":
-                self.toggle(item)
+        widgets = self.canvas.find_all()                                    #select all items with type "window" (=widget)
+        for widget_id in widgets:
+            if self.canvas.type(widget_id) == "window":
+                model_id = self._resolve_widget_to_model(widget_id)
+                self.toggle(model_id)
 
         self.refresh_all()                                                  #refresh outlines
 
-    #returns a frozenset (so the collection can't be mutated) of all selected widget_ids
-    def selected_ids(self) -> frozenset[int]:
-        return frozenset(self._selected)
+    def selected_model_ids(self) -> frozenset[str]:
+        """return a frozenset of selected model IDs"""
+        return frozenset(self._selected_models)
 
-    #returns the widget_id of the last selected widget
-    def last_selected_id(self):
-        return self._last_selected
+    def last_selected_model_id(self):
+        """return the model ID of the last selected widget"""
+        return self._last_selected_model
 
-    #refreshes the outline for the widget with the given widget_id
-    def refresh(self, widget_id: int):
-        self.canvas.after_idle(lambda:self._ensure_highlight(widget_id))
+    def refresh(self, model_id: str):
+        """refresh the outline for a single widget"""
+        self.canvas.after_idle(lambda:self._ensure_highlight(model_id))
 
-    #refreshes the ouline of all widgets
     def refresh_all(self):
-        for widget_id in self._selected:
-            self._ensure_highlight(widget_id)
+        """refresh outlines of all selected widgets"""
+        for model_id in self._selected_models:
+            self._ensure_highlight(model_id)
 
-    #records mouse position at drag start and notifies the designer of the drag start
     def start_widget_drag(self, event):
+        """record drag start position and notify Designer"""
         wds = self._widget_drag_state
         wds.start_coords = self._pointer_in_canvas_coords(event)
         wds.last_total_dx = 0
@@ -122,8 +133,8 @@ class SelectionManager:
 
         self.callbacks["widget"]["start_drag"]()                            #notify Designer that drag gesture starts (initializes MoveWidgetsTo command to store original widget positions)
 
-    #computes drag delta and applies if threshold is exceeded
     def handle_widget_drag(self, event, move_callback):
+        """handle widget drag movement, applying deltas after threshold"""
         wds = self._widget_drag_state
 
         if not wds:
@@ -153,8 +164,8 @@ class SelectionManager:
         #defer movement to idle time to prevent re-entry
         self.canvas.after_idle(lambda: move_callback(incremental_dx, incremental_dy))
 
-    #resets widget drag state
     def end_widget_drag(self):
+        """reset widget drag state and notify Designer"""
         wds = self._widget_drag_state
         wds.start_coords = None
         wds.is_dragging = False
@@ -166,8 +177,8 @@ class SelectionManager:
 
         self.callbacks["widget"]["end_drag"]()                              #notify Designer that drag gesture ends (executes the MoveWidgetsTo command)
 
-    #records start coordinates an whether ctrl is held (additive selection)
     def start_rectangle_selection(self, event):
+        """begin a rectangle selection gesture"""
         rss = self._rectangle_selection_state
         canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
         rss.start_coords = (canvas_x, canvas_y)
@@ -183,8 +194,8 @@ class SelectionManager:
 
         self.canvas.tag_raise(rss.selection_rectangle_id)                   #ensure outline is on top
 
-    #updates the selection rectangle to span from RectangleSelectionState.start_coords to the current mouse position
     def update_selection_rectangle(self, event):
+        """update the rectangle selection outline while dragging"""
         rss = self._rectangle_selection_state
 
         if not rss.start_coords:
@@ -199,26 +210,23 @@ class SelectionManager:
         self.canvas.coords(rss.selection_rectangle_id, x0, y0, x1, y1)
         self.canvas.tag_raise(rss.selection_rectangle_id)
 
-    #check for widget at click position
-    #if widget was clicked → sets mode to "drag" → starts widget drag
-    #if canvas was clicked → sets mode to "selection" → starts rectangle selection
     def handle_canvas_press(self, event):
+        """handle mouse press, deciding between selection or dragging mode"""
         canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
-        clicked_widget = self._find_topmost_window_at(canvas_x, canvas_y)   #check for widget at canvas coords
+        model_id = self.model_at_click_location(canvas_x, canvas_y)         #check for model at canvas coords
 
-        if clicked_widget:                                                  #widget clicked → set mode to "drag" → start widget drag
-            self.select_widget(clicked_widget, event)                       #select the clicked widget (toggle or select_only based on CTRL-key)
+        if model_id:                                                        #widget clicked → set mode to "drag" → start widget drag
+            self.select_widget(model_id, event)                             #select the clicked widget (toggle or select_only based on CTRL-key)
             self._mode = "drag"
             self.start_widget_drag(event)                                   #record start coords for widget drag and notify designer of drag start
         else:                                                               #no widget clicked → set mode to "selection" → start rectangle selection
             self._mode = "selection"
             self.start_rectangle_selection(event)                           #record start coords for rectangle selection and create/update rectangle outline
 
-    #if mode is "drag": computes drag delta and applies if threshold is exceeded
-    #if mode is "selection": resizes the selection rectangle based on mouse movement
     def handle_canvas_drag(self, event):
+        """handle drag and delegate to drag or selection logic"""
         if getattr(self, "_in_canvas_drag", False):
-            print("REENTRY")
+            call_tracer.log_event("REENTRY")
             return
 
         self._in_canvas_drag = True
@@ -230,9 +238,8 @@ class SelectionManager:
         finally:
             self._in_canvas_drag = False
 
-    #if mode is "drag": resets the drag state
-    #if mode is "selection": selects all widgets that are fully enclosed in the selection rectangle
     def handle_canvas_release(self, event):
+        """finalize drag or rectangle selection"""
         if self._mode == "drag":
             self.end_widget_drag()
         elif self._mode == "selection":
@@ -251,15 +258,14 @@ class SelectionManager:
                 y0n, y1n = sorted((start_y, canvas_y))
 
                 if not rss.is_dragging:                                     #when dragging is false → treat as normal click
-                    widget_id = self._find_topmost_window_at(canvas_x, canvas_y)
-                    if widget_id is None:
+                    model_id = self.model_at_click_location(canvas_x, canvas_y)
+                    if model_id is None:
                         self.clear()
                     else:
                         if rss.is_additive:
-                            self.toggle(widget_id)
+                            self.toggle(model_id)
                         else:
-                            self.select_only(widget_id)
-                    self.callbacks["attributes_panel"]()                    #selection changed → check if attributes panel should be shown
+                            self.select_only(model_id)
                 else:                                                       #when dragging is true → select all items fully enclosed by rectangle selection
                     enclosed_widgets = self.canvas.find_enclosed(x0n, y0n, x1n, y1n)
                     #filter out everything that's not a window item
@@ -267,13 +273,14 @@ class SelectionManager:
 
                     if rss.is_additive:
                         for widget_id in enclosed_windows:
-                            if widget_id not in self.selected_ids():
-                                self.toggle(widget_id)                      #only toggle widgets that are not yet selected
+                            model_id = self._resolve_widget_to_model(widget_id)
+                            if model_id not in self.selected_model_ids():
+                                self.toggle(model_id)                      #only toggle widgets that are not yet selected
                     else:
                         self.clear()
                         for widget_id in enclosed_windows:
-                            self.toggle(widget_id)
-                    self.callbacks["attributes_panel"]()                    #selection changed → check if attributes panel should be shown
+                            model_id = self._resolve_widget_to_model(widget_id)
+                            self.toggle(model_id)
             finally:
                 self.refresh_all()                                          #refresh outlines
 
@@ -286,36 +293,36 @@ class SelectionManager:
         self._mode = None
 
     def is_dragging(self):
+        """return True if a widget drag gesture is active"""
         return self._widget_drag_state.is_dragging
 
-    #returns pointer in canvas coordinates
+    def model_at_click_location(self, x: int, y: int):
+        """return model_id at the given canvas coordinates"""
+        widget_id = self._find_topmost_window_at(x, y)
+        return self._resolve_widget_to_model(widget_id)
+
     def _pointer_in_canvas_coords(self, event):
-        """
-        pointer_x = self.canvas.winfo_pointerx()                            #coordinates on screen
-        pointer_y = self.canvas.winfo_pointery()
-        window_x = pointer_x - self.canvas.winfo_rootx()                    #coordinates in the designer window
-        window_y = pointer_y - self.canvas.winfo_rooty()
-        canvas_x = int(self.canvas.canvasx(window_x))                       #coordinates on the canvas
-        canvas_y = int(self.canvas.canvasy(window_y))
-        return canvas_x, canvas_y
-        """
+        """convert event coordinates to canvas coordinates"""
         return int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
 
-    #find clicked widget
     def _find_topmost_window_at(self, x: int, y: int):
+        """return the topmost widget window at the given position"""
         items = self.canvas.find_overlapping(x, y, x, y)
         for item in reversed(items):                                        #last is top-most
             if self.canvas.type(item) == "window":
                 return item
         return None
 
-    def _ensure_highlight(self, widget_id: int):
-        if widget_id not in self._selected:                                 #only draw outline if item is selected:
-            self._remove_highlight(widget_id)
+    def _ensure_highlight(self, model_id: str):
+        """ensure outline rectangle exists and matches widget position"""
+        if model_id not in self._selected_models:                           #only draw outline if item is selected:
+            self._remove_highlight(model_id)
             return
 
+        widget_id = self._resolve_model_to_widget(model_id)
         bbox = self.canvas.bbox(widget_id)
         if not bbox:
+            self._remove_highlight(model_id)
             return
 
         x1, y1, x2, y2 = bbox
@@ -324,8 +331,8 @@ class SelectionManager:
         x2 += self.selection_padding
         y2 += self.selection_padding
 
-        outline_color = self.last_selected_color if self._last_selected == widget_id else self.selection_color
-        rect_id = self._rects.get(widget_id)
+        outline_color = self.last_selected_color if self._last_selected_model == model_id else self.selection_color
+        rect_id = self._rects.get(model_id)
 
         if rect_id and self.canvas.type(rect_id) == "rectangle":
             self.canvas.coords(rect_id, x1, y1, x2, y2)
@@ -338,10 +345,11 @@ class SelectionManager:
                 dash=self.selection_dash,
                 fill="",
             )
-            self._rects[widget_id] = rect_id
+            self._rects[model_id] = rect_id
         self.canvas.tag_raise(rect_id)
 
-    def _remove_highlight(self, widget_id: int):
-        rect_id = self._rects.pop(widget_id, None)
+    def _remove_highlight(self, model_id: str):
+        """remove highlight rectangle for a model_id"""
+        rect_id = self._rects.pop(model_id, None)
         if rect_id and self.canvas.type(rect_id) == "rectangle":
             self.canvas.delete(rect_id)

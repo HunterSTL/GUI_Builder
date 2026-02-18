@@ -3,13 +3,14 @@ from _dataclasses import ProjectDocument
 
 class CanvasManager:
     def __init__(
-            self,
-            parent: tk.Canvas,
-            project_document: ProjectDocument,
-            nudge_small: int,
-            nudge_big: int,
-            callbacks: dict
-        ):
+        self,
+        parent: tk.Canvas,
+        project_document: ProjectDocument,
+        nudge_small: int,
+        nudge_big: int,
+        callbacks: dict
+    ):
+        """initialize the canvas manager and construct the drawing canvas"""
         self.parent = parent
         self.project_document = project_document
         self.nudge_small = nudge_small
@@ -26,18 +27,16 @@ class CanvasManager:
             takefocus=1
         )
 
-    def apply_grid_visibility(self):
-        if self.project_document.grid.visible:
+    def refresh_grid(self):
+        """refresh the grid display based on visibility state"""
+        if self.project_document.grid.visible:  #redraw grid if it's already shown
+            self._clear_grid()
             self._draw_grid()
         else:
             self._clear_grid()
 
-    def refresh_grid(self):
-        if self.project_document.grid.visible:  #redraw grid if it's already shown
-            self._clear_grid()
-            self._draw_grid()
-
     def _draw_grid(self):
+        """draw the grid lines on the canvas"""
         for x in range(0, self.project_document.width, self.project_document.grid.size):
             line = self.canvas.create_line(x, 0, x, self.project_document.height, fill=self.project_document.grid.color)
             self.grid_lines.append(line)
@@ -46,11 +45,13 @@ class CanvasManager:
             self.grid_lines.append(line)
 
     def _clear_grid(self):
+        """remove all existing grid lines"""
         for line in self.grid_lines:
             self.canvas.delete(line)
         self.grid_lines.clear()
 
     def bind_events(self):
+        """bind key, mouse, selection, project, widget, grid, and debug events to the canvas"""
         #set focus on canvas when user clicks anywhere on canvas
         self.canvas.bind("<Enter>", lambda e: self.canvas.focus_set(), add="+")
         self.canvas.bind("<Button-1>", lambda e: self.canvas.focus_set(), add="+")
@@ -105,6 +106,7 @@ class CanvasManager:
         self.canvas.bind("<Control-g>", lambda e: grid_callbacks["change_size"]())
         self.canvas.bind("<Shift-G>", lambda e: grid_callbacks["change_color"]())
 
-        #bind set dirty/clean
+        #bind debug events
+        self.canvas.bind("<Control-Shift-T>", lambda e: self.callbacks["toggle_call_tracing"]())
         self.canvas.bind("<Control-d>", lambda e: self.callbacks["set_dirty"]())
         self.canvas.bind("<Control-Shift-D>", lambda e: self.callbacks["set_clean"]())

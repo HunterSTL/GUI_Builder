@@ -2,53 +2,57 @@ from .BaseCommand import Command
 from _managers import WidgetManager
 
 class MoveWidgetsTo(Command):
-    def __init__(self, widget_ids: frozenset, widget_manager: WidgetManager):
-        self._widget_ids = widget_ids
+    def __init__(
+        self,
+        model_ids: frozenset,
+        widget_manager: WidgetManager
+    ):
+        """initialize MoveWidgetsTo and record original widget positions"""
+        self._model_ids = model_ids
         self._widget_manager = widget_manager
         self._original_positions = {    #record original positions for selected widgets at drag start
-            widget_id: self._widget_manager.get_model_coordinates_from_widget_id(widget_id)
-            for widget_id in self._widget_ids
+            model_id: self._widget_manager.get_model_coordinates_from_model_id(model_id)
+            for model_id in self._model_ids
         }
         self._final_positions = {}
 
     def has_effect(self):
+        """return True if widget positions changed since initialization"""
         return any(
-            self._original_positions[widget_id] != self._widget_manager.get_model_coordinates_from_widget_id(widget_id)
-            for widget_id in self._widget_ids
+            self._original_positions[model_id] != self._widget_manager.get_model_coordinates_from_model_id(model_id)
+            for model_id in self._model_ids
         )
 
     def preview_move(self, dx: int, dy: int):
+        """apply incremental movement during live dragging"""
         #dx and dy are incremental deltas since last drag event
         if dx == 0 and dy == 0:
             return
 
-        for widget_id in self._widget_ids:
-            model = self._widget_manager.get_model_from_widget_id(widget_id)
-            self._widget_manager.app_state.move_widget_by(model, dx, dy)
-
-            #request visual update from designer (through callback)
-            self._widget_manager.render_soft(model)
+        with self._widget_manager.app_state.batch():    #batching so only one notify happens even if multiple widgets are moved
+            for model_id in self._model_ids:
+                model = self._widget_manager.get_model_from_model_id(model_id)
+                self._widget_manager.app_state.move_widget_by(model, dx, dy)
 
     def freeze_final_positions(self):
+        """record final positions at the end of a drag gesture"""
         self._final_positions = {       #record final positions for selected widgets at drag end
-            widget_id: self._widget_manager.get_model_coordinates_from_widget_id(widget_id)
-            for widget_id in self._widget_ids
+            model_id: self._widget_manager.get_model_coordinates_from_model_id(model_id)
+            for model_id in self._model_ids
         }
 
     def execute(self):
-        for widget_id, (x, y) in self._final_positions.items():
-            #move the widget to the final position
-            model = self._widget_manager.get_model_from_widget_id(widget_id)
-            self._widget_manager.app_state.move_widget_to(model, x, y)
-
-            #request visual update from designer (through callback)
-            self._widget_manager.render_soft(model)
+        """apply the final stored positions to the widgets using AppState batching"""
+        with self._widget_manager.app_state.batch():
+            for model_id, (x, y) in self._final_positions.items():
+                #move the widget to the final position
+                model = self._widget_manager.get_model_from_model_id(model_id)
+                self._widget_manager.app_state.move_widget_to(model, x, y)
 
     def undo(self):
-        for widget_id, (x, y) in self._original_positions.items():
-            #move the widget to the original position
-            model = self._widget_manager.get_model_from_widget_id(widget_id)
-            self._widget_manager.app_state.move_widget_to(model, x, y)
-
-            #request visual update from designer (through callback)
-            self._widget_manager.render_soft(model)
+        """restore original positions saved at drag start using AppState batching"""
+        with self._widget_manager.app_state.batch():
+            for model_id, (x, y) in self._original_positions.items():
+                #move the widget to the original position
+                model = self._widget_manager.get_model_from_model_id(model_id)
+                self._widget_manager.app_state.move_widget_to(model, x, y)

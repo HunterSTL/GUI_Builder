@@ -158,12 +158,12 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
-        widget_id = widget_manager.add_widget_from_model(model)
+        widget_manager.add_widget_from_model(model) #create widget_id <> model_id mapping
 
         command_stack = CommandStack()
 
         #move by dx/dy
-        command_stack.execute(MoveWidgets(frozenset({widget_id}), 50, 50, widget_manager))
+        command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, widget_manager))
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
@@ -199,10 +199,10 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
-        widget_id = widget_manager.add_widget_from_model(model)
+        widget_manager.add_widget_from_model(model) #create widget_id <> model_id mapping
 
         command_stack = CommandStack()
-        command = MoveWidgetsTo(frozenset({widget_id}), widget_manager)
+        command = MoveWidgetsTo(frozenset({model.id}), widget_manager)
 
         #simulate drag preview
         command.preview_move(50, 50)

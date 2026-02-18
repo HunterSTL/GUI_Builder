@@ -18,16 +18,18 @@ from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
 #misc
 from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window
 from UIComponents import CustomTitlebar
+from CallTracer import call_tracer
 
 class Designer:
     def __init__(
-            self,
-            parent: tk.Tk,
-            project_document: ProjectDocument,
-            program_theme: dict,
-            constants: dict,
-            project_callbacks: dict
-        ):
+        self,
+        parent: tk.Tk,
+        project_document: ProjectDocument,
+        program_theme: dict,
+        constants: dict,
+        project_callbacks: dict
+    ):
+        """initialize the Designer window, UI, managers, callbacks, and state"""
         self.parent = parent
         self.program_theme = program_theme
         self.constants = constants
@@ -82,7 +84,9 @@ class Designer:
             selection_color=self.program_theme["selection"]["color"],
             last_selected_color=self.program_theme["selection"]["last_selected_color"],
             drag_threshold=self.constants["drag_threshold"],
-            callbacks=self.callbacks
+            callbacks=self.callbacks,
+            resolve_model_to_widget=lambda model_id: self.widget_manager.get_widget_id_from_model_id(model_id),
+            resolve_widget_to_model=lambda widget_id: self.widget_manager.get_model_id_from_widget_id(widget_id)
         )
 
         #create instance of WidgetManager to store created widgets
@@ -90,8 +94,7 @@ class Designer:
             top=self.top,
             canvas=self.canvas,
             app_state=self.app_state,
-            selection_manager=self.selection_manager,
-            request_soft_render_callback=self.request_soft_render
+            selection_manager=self.selection_manager
         )
 
         #create instance of AttributesPanelManager to show/hide the attribute panel for a selected widget
@@ -156,6 +159,7 @@ class Designer:
             },
             "attributes_panel": self._on_selection_changed,
             "attribute_changed": self._on_attribute_changed,
+            "toggle_call_tracing": call_tracer.toggle,
             "set_dirty": self._set_dirty,
             "set_clean": self._set_clean
         })
@@ -180,23 +184,43 @@ class Designer:
         for model in self.app_state.project.widget_models:
             self.widget_manager.add_widget_from_model(model)
 
-    def request_full_render(self):
-        self.top.after_idle(self._do_full_render)
+        #subscribe the function "_on_changed_state" as a listener for state changes
+        self.app_state.subscribe(self._on_changed_state)
+
+    def _on_changed_state(self, state):
+        """respond to AppState mutations by performing full or soft rendering"""
+        #re-render entire app state if structural change happened (widget creation/deletion, grid settings)
+        if state.structural_change or len(state.dirty_model_ids) > 10:  #full render may be faster than doing soft render for multiple models
+            self._do_full_render()
+            return
+
+        #only update dirty models
+        for model_id in state.dirty_model_ids:
+            model = self.widget_manager.get_model_from_model_id(model_id)
+            self._do_soft_render(model)
 
     def _do_full_render(self):
-        self.widget_manager.render_full()
-        self.selection_manager.refresh_all()
+        """perform a full re-render of widgets, selection outlines, and grid"""
+        call_tracer.log_event(f"full render\n{'#'*150}")
+        self.widget_manager.render_full()       #render widgets
+        self.selection_manager.refresh_all()    #refresh widget outlines
+        self.canvas_manager.refresh_grid()      #refresh grid
 
-    def request_soft_render(self, model):
-        self.top.after_idle(lambda: self.widget_manager.render_soft(model))
+    def _do_soft_render(self, model):
+        """perform a soft re-render limited to a single updated widget"""
+        call_tracer.log_event(f"soft render {model.id}")
+        self.widget_manager.render_soft(model)
 
     def is_dirty(self):
+        """return True if the project has unsaved changes"""
         return self.state.is_dirty
 
     def set_clean(self):
+        """mark project state as clean (no unsaved changes)"""
         self._set_clean()
 
     def _add_widget(self, widget_type: str, x: int, y: int):
+        """create a new widget of the given type at the given coordinates"""
         if widget_type == "label":
             text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
             if text is None:
@@ -248,84 +272,95 @@ class Designer:
         #delegate actual widget creation to WidgetManager
         self.widget_manager.add_widget(model, widget, clamped_x, clamped_y)
 
-        #populate model width and height after creating window and updating widget, otherwise both values are 1
-        widget.update()
-        self.app_state.set_widget_attribute(model, "width", widget.winfo_width())
-        self.app_state.set_widget_attribute(model, "height", widget.winfo_height())
+        #batch app state changes so _on_changed_state gets called only once (instead of per change)
+        with self.app_state.batch():
+            #append the new model to the project_document via AppState
+            self.app_state.add_widget(model)
 
-        #set absolute position via AppState
-        self.app_state.move_widget_to(model, clamped_x, clamped_y)
+            #populate model width and height after creating window and updating widget, otherwise both values are 1
+            widget.update()
+            self.app_state.set_widget_attribute(model, "width", widget.winfo_width())
+            self.app_state.set_widget_attribute(model, "height", widget.winfo_height())
 
-        #render the widget
-        self.request_soft_render(model)
+            #set absolute position via AppState
+            self.app_state.move_widget_to(model, clamped_x, clamped_y)
 
-        #append the new model to the project_document via AppState
-        self.app_state.add_widget(model)
+        #clear selection
+        self.selection_manager.clear()
 
         #set app state to dirty
         self._set_dirty()
 
     def _cut(self):
+        """cut selected widgets (placeholder)"""
         print("cut")
 
     def _copy(self):
+        """copy selected widgets (placeholder)"""
         print("copy")
 
     def _paste(self):
+        """paste widgets (placeholder)"""
         print("paste")
 
     def _undo(self):
+        """undo last command and refresh selection outlines"""
         self.command_stack.undo()
         self.selection_manager.refresh_all()
         self._set_dirty()
 
     def _redo(self):
+        """redo last undone command and refresh selection outlines"""
         self.command_stack.redo()
         self.selection_manager.refresh_all()
         self._set_dirty()
 
     def _move(self, dx: int, dy: int):
+        """move selected widgets by a delta or preview drag movement"""
         #get selected widgets
-        selected_widgets = self.selection_manager.selected_ids()
-        if not selected_widgets:
+        selected_model_ids = self.selection_manager.selected_model_ids()
+        if not selected_model_ids:
             return
 
         #calculate clamped delta of all selected widgets so that widgets can't be moved outside the canvas
+        selected_widget_ids = set(self.widget_manager.get_widget_id_from_model_id(model_id) for model_id in selected_model_ids)
         dx, dy = clamped_delta(
             self.canvas.winfo_width(),
             self.canvas.winfo_height(),
-            self.canvas.bbox(*selected_widgets),
+            self.canvas.bbox(*selected_widget_ids),
             dx, dy
         )
 
-        #moving widgets by dragging
         if self.selection_manager.is_dragging() and self.state.active_widget_drag_command:
+            #moving widgets by dragging
             self.state.active_widget_drag_command.preview_move(dx, dy)
         else:
             #moving widgets with keyboard shortcuts (nudge)
-            self.command_stack.execute(MoveWidgets(selected_widgets, dx, dy, self.widget_manager))
+            self.command_stack.execute(MoveWidgets(selected_model_ids, dx, dy, self.widget_manager))
 
         #update attributes panel if only one widget is selected
-        if len(selected_widgets) == 1:
-            model = self.widget_manager.get_model_from_widget_id(next(iter(selected_widgets)))
+        if len(selected_model_ids) == 1:
+            model = self.widget_manager.get_model_from_model_id(next(iter(selected_model_ids)))
             self.attributes_panel_manager.update_variable_from_model(model)
 
         #set app state to dirty
         self._set_dirty()
 
     def _start_drag(self):
+        """initialize a MoveWidgetsTo command when dragging begins"""
         #get selected widgets
-        selected_widgets = self.selection_manager.selected_ids()
+        selected_model_ids = self.selection_manager.selected_model_ids()
 
         #reset active_widget_drag_command if no widgets selected
-        if not selected_widgets:
+        if not selected_model_ids:
             self.state.active_widget_drag_command = None
             return
 
         #create the MoveWidgetsTo command to record original widget positions
-        self.state.active_widget_drag_command = MoveWidgetsTo(selected_widgets, self.widget_manager)
+        self.state.active_widget_drag_command = MoveWidgetsTo(selected_model_ids, self.widget_manager)
 
     def _end_drag(self):
+        """finalize drag movement, executing stored MoveWidgetsTo command"""
         #get active widget drag command
         cmd = self.state.active_widget_drag_command
 
@@ -349,134 +384,133 @@ class Designer:
         self._set_dirty()
 
     def _snap_to_grid(self):
+        """align selected widgets to nearest grid positions"""
         #get selected widgets
-        selected_widgets = self.selection_manager.selected_ids()
-        if not selected_widgets:
+        selected_model_ids = self.selection_manager.selected_model_ids()
+        if not selected_model_ids:
             return
 
         grid_size = self.app_state.project.grid.size
 
-        for widget_id in selected_widgets:
-            #calculate necessary movement delta
-            model = self.widget_manager.get_model_from_widget_id(widget_id)
-            new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
+        with self.app_state.batch():
+            for model_id in selected_model_ids:
+                #calculate necessary movement delta
+                model = self.widget_manager.get_model_from_model_id(model_id)
+                new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
 
-            #set absolute position via AppState
-            self.app_state.move_widget_to(model, new_x, new_y)
-
-            #render the widget
-            self.request_soft_render(model)
-
-        #refresh outline
-        self.selection_manager.refresh_all()
+                #set absolute position via AppState
+                self.app_state.move_widget_to(model, new_x, new_y)
 
         #set app state to dirty
         self._set_dirty()
 
     def _delete(self):
+        """delete selected widgets from project and canvas"""
         #prevent concurrent delete calls
         if self.state.is_deleting:
             return
 
-        #get selected widgets
-        selected_widgets = self.selection_manager.selected_ids()
+        #get selected model ids
+        selected_model_ids = self.selection_manager.selected_model_ids()
 
         #build messagebox text
-        count_selected_widgets = len(selected_widgets)
-        if count_selected_widgets == 0:
+        count = len(selected_model_ids)
+        if count == 0:
             return
-        elif count_selected_widgets == 1:
+        elif count == 1:
             messagebox_text = "Delete selected widget?"
         else:
-            messagebox_text = f"Delete {str(count_selected_widgets)} selected widgets?"
+            messagebox_text = f"Delete {str(count)} selected widgets?"
 
         if not messagebox.askyesno("Delete", messagebox_text):
             return
+
+        #clear selection
+        self.selection_manager.clear()
 
         #set deleting flag
         self.state.is_deleting = True
 
         try:
-            for widget_id in selected_widgets:
-                #remove model from project_document
-                model = self.widget_manager.get_model_from_widget_id(widget_id)
-                self.app_state.remove_widget(model)
+            with self.app_state.batch():
+                for model_id in selected_model_ids:
+                    #remove model from project_document
+                    model = self.widget_manager.get_model_from_model_id(model_id)
+                    self.app_state.remove_widget(model)
 
-                #delegate actual deletion (canvas item) to WidgetManager
-                self.widget_manager.delete(widget_id)
-
-            #clear selection
-            self.selection_manager.clear()
-
-            #hide attributes panel
-            self._on_selection_changed()
-
-            #set app state to dirty
-            self._set_dirty()
+                    #delete widget from widget manager
+                    widget_id = self.widget_manager.get_widget_id_from_model_id(model_id)
+                    self.widget_manager.delete(widget_id)   #removes from widget_id <> model_id mapping and widget map and deletes the actual tk widget
         finally:
             #clear deleting flag
             self.state.is_deleting = False
 
+            #set app state to dirty
+            self._set_dirty()
+
     def _align(self, direction):
+        """align selected widgets relative to the last selected widget"""
         #get selected widgets and last selected widget
-        selected_widgets = self.selection_manager.selected_ids()
-        last_selected_widget = self.selection_manager.last_selected_id()
-        if not selected_widgets or not last_selected_widget:
+        selected_model_ids = self.selection_manager.selected_model_ids()
+        last_selected_model_id = self.selection_manager.last_selected_model_id()
+        if not selected_model_ids or not last_selected_model_id:
             return
 
-        reference_model_bbox = self.widget_manager.get_bbox_from_widget_id(last_selected_widget)
+        reference_widget_bbox = self.widget_manager.get_bbox_from_model_id(last_selected_model_id)
 
-        for widget_id in selected_widgets:
-            if not widget_id == last_selected_widget:
-                model_bbox = self.widget_manager.get_bbox_from_widget_id(widget_id)
+        if not reference_widget_bbox:
+            return
 
-                #calculate necessary movement delta
-                if direction == "left":
-                    dx, dy = reference_model_bbox["left"] - model_bbox["left"], 0
-                elif direction == "right":
-                    dx, dy = reference_model_bbox["right"] - model_bbox["right"], 0
-                elif direction == "top":
-                    dx, dy = 0, reference_model_bbox["top"] - model_bbox["top"]
-                elif direction == "bottom":
-                    dx, dy = 0, reference_model_bbox["bottom"] - model_bbox["bottom"]
-                else:
-                    dx, dy = 0, 0
+        with self.app_state.batch():
+            for model_id in selected_model_ids:
+                if not model_id == last_selected_model_id:
+                    widget_bbox = self.widget_manager.get_bbox_from_model_id(model_id)
 
-                #calculate clamped delta so that widget can't be moved outside the canvas
-                dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(widget_id), dx, dy)
+                    if not widget_bbox:
+                        return
 
-                #move widget via AppState
-                model = self.widget_manager.get_model_from_widget_id(widget_id)
-                self.app_state.move_widget_by(model, dx, dy)
+                    #calculate necessary movement delta
+                    if direction == "left":
+                        dx, dy = reference_widget_bbox["left"] - widget_bbox["left"], 0
+                    elif direction == "right":
+                        dx, dy = reference_widget_bbox["right"] - widget_bbox["right"], 0
+                    elif direction == "top":
+                        dx, dy = 0, reference_widget_bbox["top"] - widget_bbox["top"]
+                    elif direction == "bottom":
+                        dx, dy = 0, reference_widget_bbox["bottom"] - widget_bbox["bottom"]
+                    else:
+                        dx, dy = 0, 0
 
-                #render the widget
-                self.request_soft_render(model)
+                    #calculate clamped delta so that widget can't be moved outside the canvas
+                    widget_id = self.widget_manager.get_widget_id_from_model_id(model_id)
+                    dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(widget_id), dx, dy)
 
-        #refresh outline
-        self.selection_manager.refresh_all()
+                    #move widget via AppState
+                    model = self.widget_manager.get_model_from_model_id(model_id)
+                    self.app_state.move_widget_by(model, dx, dy)
 
         #set app state to dirty
         self._set_dirty()
 
     def _toggle_grid(self):
+        """toggle grid visibility"""
         #flip grid visible variable
         self.grid_visible_variable.set(not self.grid_visible_variable.get())
         #apply grid visible state
         self._apply_grid_from_variable()
 
     def _apply_grid_from_variable(self):
+        """apply grid visibility state from BooleanVar to AppState"""
         visible = self.grid_visible_variable.get()
 
         #write current grid visible state to project_document
         self.app_state.set_grid_visible(visible)
 
-        #delegate actual drawing of the grid (draw or clear) to CanvasManager
-        self.canvas_manager.apply_grid_visibility()
-
         #set app state to dirty
         self._set_dirty()
 
     def _change_grid_size(self):
+        """prompt for and apply a new grid size"""
         #prompt for new grid size
         new_grid_size = simpledialog.askinteger("Grid size", "Enter new grid size:", minvalue=5, maxvalue=100, parent=self.parent)
 
@@ -486,13 +520,11 @@ class Designer:
         #update grid size in project_document
         self.app_state.set_grid_size(new_grid_size)
 
-        #delegate redraw of grid to CanvasManager
-        self.canvas_manager.refresh_grid()
-
         #set app state to dirty
         self._set_dirty()
 
     def _change_grid_color(self):
+        """prompt for and apply a new grid color"""
         color = colorchooser.askcolor()[1]
 
         #abort if user didn't select a color
@@ -502,9 +534,6 @@ class Designer:
         #update grid color in project_document
         self.app_state.set_grid_color(color)
 
-        #delegate redraw of grid to CanvasManager
-        self.canvas_manager.refresh_grid()
-
         #set focus back to canvas
         self.canvas.focus_set()
 
@@ -512,17 +541,19 @@ class Designer:
         self._set_dirty()
 
     def _set_dirty(self):
+        """mark project as dirty and update titlebar"""
         self.state.is_dirty = True
         self.titlebar_label.configure(text=self.app_state.project.title + "*")
         self.titlebar_label.update()
 
     def _set_clean(self):
+        """mark project as clean and update titlebar"""
         self.state.is_dirty = False
         self.titlebar_label.configure(text=self.app_state.project.title)
         self.titlebar_label.update()
 
-    #create add widget menu
     def _add_widget_menu(self):
+        """construct the context menu for adding widgets"""
         self.menu = tk.Menu(
             self.top,
             bg=self.program_theme["toolbar"]["bg"],
@@ -549,40 +580,43 @@ class Designer:
             command=lambda: self._add_widget("button", *_pos())
         )
 
-    #post context menu
     def _show_menu(self, event):
+        """show the context menu at the mouse position"""
         self.state.last_click_coords = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
 
     def _on_selection_changed(self):
-        selected_ids = self.selection_manager.selected_ids()
-        if len(selected_ids) == 1:
-            widget_id = next(iter(selected_ids))
-            model = self.widget_manager.widget_map.get(widget_id)["model"]
+        """update attributes panel when selection changes"""
+        selected_model_ids = self.selection_manager.selected_model_ids()
+        call_tracer.log_event(f"selection changed: {selected_model_ids}")
+        if len(selected_model_ids) == 1:
+            model_id = next(iter(selected_model_ids))
+            model = self.widget_manager.get_model_from_model_id(model_id)
             self.attributes_panel_manager.refresh(model)
         else:
             self.attributes_panel_manager.clear()
 
-    def _on_attribute_changed(self, widget_id: int, attribute: str, value):
-        if widget_id is None:
+    def _on_attribute_changed(self, model_id: str, attribute: str, value):
+        """apply attribute changes coming from the attributes panel"""
+        if model_id is None:
             return
 
         #apply change to the widget through WidgetManager
-        self.widget_manager.update_widget_attribute(widget_id, attribute, value)
+        self.widget_manager.update_widget_attribute(model_id, attribute, value)
 
         #recompute spinbox limits
-        model = self.widget_manager.get_model_from_widget_id(widget_id)
+        model = self.widget_manager.get_model_from_model_id(model_id)
         if attribute in ("anchor", "width", "height"):
             self.attributes_panel_manager.update_spinbox_limits(model)
 
         #refresh outline
-        self.selection_manager.refresh(widget_id)
+        self.selection_manager.refresh(model_id)
 
         #set app state to dirty
         self._set_dirty()
 
-    #compute minimum window dimensions to fit the entire canvas without scrollbars, then enforce maximum constraints
     def _compute_initial_window_dimensions(self):
+        """compute initial Designer window size based on canvas and constraints"""
         #ensure geometry is up-to-date
         self.top.update_idletasks()
 
@@ -636,8 +670,8 @@ class Designer:
 
         return window_width_new, window_height_new
 
-    #decide which scrollbars to show based on canvas size and the visible viewport
     def _refresh_scrollbars(self):
+        """compute which scrollbars should be visible and update layout"""
         #ensure geometry is up-to-date
         self.top.update_idletasks()
 
@@ -683,6 +717,7 @@ class Designer:
         self.viewer.configure(scrollregion=(0, 0, canvas_width, canvas_height))
 
     def _configure_scrollbar_style(self):
+        """configure custom scrollbar styles"""
         style = ttk.Style(self.top)
         style.theme_use("default")  #allows colors
         style.configure(
@@ -701,11 +736,12 @@ class Designer:
         )
 
     def _bind_mousewheel(self, widget):
+        """bind mousewheel scrolling behavior to a widget (in this case the Toplevel)"""
         widget.bind("<MouseWheel>", lambda e: self.viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
         widget.bind("<Shift-MouseWheel>", lambda e: self.viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
 
-    #center window
     def _center_window(self):
+        """center the Designer window on screen"""
         self.top.update_idletasks()
         x_offset, y_offset = screen_offset_to_center_window(
             self.top.winfo_screenwidth(),
@@ -716,6 +752,7 @@ class Designer:
         self.top.geometry(f"+{x_offset}+{y_offset}")
 
     def _build_designer_ui(self):
+        """construct the full Designer UI layout and its components"""
         #create window
         self.top = tk.Toplevel(self.parent)
 

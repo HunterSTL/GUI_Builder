@@ -14,6 +14,7 @@ class AppController:
         self,
         root: tk.Tk
     ):
+        """initialize the main application controller"""
         self.root = root
         self.program_theme = PROGRAM_THEME
         self.constants = CONSTANTS
@@ -34,6 +35,7 @@ class AppController:
         self._build_startup_ui()
 
     def _center_window(self):
+        """center the startup window on the screen"""
         self.root.update_idletasks()
         x_offset, y_offset = screen_offset_to_center_window(
             self.root.winfo_screenwidth(),
@@ -43,8 +45,8 @@ class AppController:
         )
         self.root.geometry(f"+{x_offset}+{y_offset}")
 
-    #builds the startup UI with New/Open/Exit actions
     def _build_startup_ui(self):
+        """build the startup UI with New/Open/Exit actions"""
         #set bg color and enforce minimum window size
         self.root.config(bg=self.program_theme["background"]["color"])
         self.root.wm_minsize(200, 100)
@@ -96,8 +98,8 @@ class AppController:
 
         self._center_window()
 
-    #returns a dict of project callbacks
     def _project_callbacks(self):
+        """return a dictionary containing project‑level callback functions"""
         return {
             "new": self.new_project,
             "open": self.open_project,
@@ -107,12 +109,12 @@ class AppController:
             "exit_app": self.exit_app
         }
 
-    #return a shallow copy of the user them; works fine for dicts with 1 level (currently)
     def _fresh_user_theme(self):
+        """return a shallow copy of the user theme"""
         return {key: value.copy() for key, value in self._user_theme.items()}
 
-    #destroys any existing Designer and launches a new one from a ProjectDocument
     def _launch_designer_from_project_document(self, project_document):
+        """destroy any existing Designer and launch a new one from a ProjectDocument"""
         #destroy old designer
         if self.designer:
             self.designer.top.destroy()
@@ -127,8 +129,8 @@ class AppController:
             project_callbacks=self._project_callbacks()
         )
 
-    #prompts to handle unsaved changes
     def prompt_unsaved_changes(self):
+        """prompt the user when unsaved changes exist and return SAVE / DISCARD / CANCEL"""
         if not self.designer or not self.designer.is_dirty():
             return "DISCARD"
 
@@ -141,8 +143,8 @@ class AppController:
         else:
             return "DISCARD"
 
-    #starts a new project by opening the SetupWizard for theme configuration
     def new_project(self):
+        """start a new project using the SetupWizard, prompting for unsaved changes if needed"""
         #prompt user intent
         user_intent = self.prompt_unsaved_changes()
 
@@ -171,8 +173,8 @@ class AppController:
             exit_callback=self.exit_app
         )
 
-    #opens a .tkui file and launches Designer with its ProjectDocument
     def open_project(self):
+        """open an existing .tkui project file and launch the Designer, prompting for unsaved changes if needed"""
         #prompt user intent
         user_intent = self.prompt_unsaved_changes()
 
@@ -205,8 +207,8 @@ class AppController:
         #launch designer
         self._launch_designer_from_project_document(project_document)
 
-    #saves the current ProjectDocument to the last used path
     def save_project(self):
+        """save the current project to the last used file path"""
         #use save_project_as() if save path is empty
         if not self._save_path:
             self.save_project_as()
@@ -214,13 +216,13 @@ class AppController:
 
         #open .tkui file in write mode and write project_document json
         with open(self._save_path, "w", encoding="utf-8") as file:
-            json.dump(self.designer.project_document.to_json(), file, ensure_ascii=False, indent=2)
+            json.dump(self.designer.app_state.project.to_json(), file, ensure_ascii=False, indent=2)
 
         #set app state to clean
         self.designer.set_clean()
 
-    #prompts user for a path and saves the current ProjectDocument as a .tkui file
     def save_project_as(self):
+        """prompt for a save location and save the project as a .tkui file"""
         #create .tkui file
         file = filedialog.asksaveasfile(
             title="Save as",
@@ -236,7 +238,7 @@ class AppController:
 
         #open .tkui file in write mode and write project_document json
         with open(file.name, "w", encoding="utf-8") as file:
-            json.dump(self.designer.project_document.to_json(), file, ensure_ascii=False, indent=2)
+            json.dump(self.designer.app_state.project.to_json(), file, ensure_ascii=False, indent=2)
 
         #let AppController keep track of save path and last directory
         self._save_path = file.name
@@ -245,12 +247,12 @@ class AppController:
         #set app state to clean
         self.designer.set_clean()
 
-    #placeholder
     def export_json(self):
+        """export the project to JSON (placeholder)"""
         print("export_json")
 
-    #exits the app
     def exit_app(self):
+        """exit application, prompting for unsaved changes if needed"""
         #prompt user intent
         user_intent = self.prompt_unsaved_changes()
 

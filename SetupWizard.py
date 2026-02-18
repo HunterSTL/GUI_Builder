@@ -7,14 +7,14 @@ from UIComponents import load_icon, CustomTitlebar
 
 class SetupWizard:
     def __init__(
-            self,
-            root: tk.Toplevel,
-            user_theme: dict,
-            program_theme: dict,
-            constants: dict,
-            on_done_callback,
-            exit_callback
-        ):
+        self,
+        root: tk.Toplevel,
+        user_theme: dict,
+        program_theme: dict,
+        constants: dict,
+        on_done_callback,
+        exit_callback
+    ):
         self.root = root
         self.user_theme = user_theme
         self.program_theme = program_theme

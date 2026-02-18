@@ -2,17 +2,18 @@ import tkinter as tk
 
 class ToolbarManager:
     def __init__(
-            self,
-            parent: tk.Toplevel,
-            height: int,
-            toolbar_color: str,
-            button_color: str,
-            button_text_color: str,
-            menu_color: str,
-            menu_text_color: str,
-            callbacks: dict,
-            grid_visible_variable: tk.BooleanVar
-        ):
+        self,
+        parent: tk.Toplevel,
+        height: int,
+        toolbar_color: str,
+        button_color: str,
+        button_text_color: str,
+        menu_color: str,
+        menu_text_color: str,
+        callbacks: dict,
+        grid_visible_variable: tk.BooleanVar
+    ):
+        """initialize the toolbar manager and its configuration"""
         self.parent = parent
         self.height = height
         self.toolbar_color = toolbar_color
@@ -26,6 +27,7 @@ class ToolbarManager:
         self.toolbar = None
 
     def create_toolbar(self):
+        """construct and display the complete toolbar"""
         self.toolbar = tk.Frame(self.parent, height=self.height, bg=self.toolbar_color)
         self.toolbar.pack(side="top", fill="x")
         self.toolbar.pack_propagate(False)
@@ -36,6 +38,7 @@ class ToolbarManager:
         self._add_debug_menu()
 
     def _add_file_menu(self):
+        """add the file menu to the toolbar"""
         file_menu_button = tk.Menubutton(self.toolbar, text="File", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
         file_menu = tk.Menu(file_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
         file_menu_button.config(menu=file_menu)
@@ -76,6 +79,7 @@ class ToolbarManager:
         )
 
     def _add_edit_menu(self):
+        """add the edit menu to the toolbar"""
         edit_menu_button = tk.Menubutton(self.toolbar, text="Edit", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
         edit_menu = tk.Menu(edit_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
         edit_menu_button.config(menu=edit_menu)
@@ -115,6 +119,7 @@ class ToolbarManager:
         )
 
     def _add_widget_menu(self):
+        """add the widget menu to the toolbar"""
         widget_menu_button = tk.Menubutton(self.toolbar, text="Widgets", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
         widget_menu = tk.Menu(widget_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
         widget_menu_button.config(menu=widget_menu)
@@ -154,6 +159,7 @@ class ToolbarManager:
         )
 
     def _add_grid_menu(self):
+        """add the grid menu to the toolbar"""
         grid_menu_button = tk.Menubutton(self.toolbar, text="Grid", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
         grid_menu = tk.Menu(grid_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
         grid_menu_button.config(menu=grid_menu)
@@ -179,12 +185,18 @@ class ToolbarManager:
         )
 
     def _add_debug_menu(self):
+        """add the debug menu to the toolbar"""
         debug_menu_button = tk.Menubutton(self.toolbar, text="Debug", bg=self.button_color, fg=self.button_text_color, relief="raised", width=10)
         debug_menu = tk.Menu(debug_menu_button, bg=self.menu_color, fg=self.menu_text_color, tearoff=0)
         debug_menu_button.config(menu=debug_menu)
         debug_menu_button.pack(side="left")
 
         #debug events
+        debug_menu.add_checkbutton(
+            label="Call tracing",
+            command=self.callbacks["toggle_call_tracing"],
+            accelerator="[CTRL] + [SHIFT] + [T]"
+        )
         debug_menu.add_command(
             label="Set dirty",
             command=self.callbacks["set_dirty"],

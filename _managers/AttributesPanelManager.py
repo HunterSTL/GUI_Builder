@@ -57,17 +57,18 @@ DISPLAY_NAMES = {
 
 class AttributesPanelManager:
     def __init__(
-            self,
-            root: tk.Toplevel,
-            frame: tk.Frame,
-            canvas_width: int,
-            canvas_height: int,
-            panel_color: str,
-            widget_color: str,
-            text_color: str,
-            selection_manager,
-            callbacks: dict
-        ):
+        self,
+        root: tk.Toplevel,
+        frame: tk.Frame,
+        canvas_width: int,
+        canvas_height: int,
+        panel_color: str,
+        widget_color: str,
+        text_color: str,
+        selection_manager,
+        callbacks: dict
+    ):
+        """initialize the attributes panel manager and build internal state"""
         self.root = root
         self.frame = frame
         self.canvas_width = canvas_width
@@ -84,13 +85,16 @@ class AttributesPanelManager:
         self._silent_update = False
 
     def refresh(self, model):
+        """refresh the panel by repopulating it with model attributes"""
         self._clear_panel()
         self._populate(model)
 
     def clear(self):
+        """clear the entire panel"""
         self._clear_panel()
 
     def update_variable_from_model(self, model, attributes=None):
+        """update all variable values from the model"""
         self._silent_update = True
         for attribute, variable in self._variables.items():
             if attributes and attribute not in attributes:
@@ -101,7 +105,17 @@ class AttributesPanelManager:
                 variable.set(str(getattr(model, attribute)))
         self._silent_update = False
 
+    def update_spinbox_limits(self, model):
+        """recompute allowed x/y ranges when size or anchor changes"""
+        if "x" in self._spinboxes:
+            new_min_value, new_max_value = allowed_x_range(self.canvas_width, model.width, model.anchor)
+            self._spinboxes["x"].config(from_=new_min_value, to=new_max_value)
+        if "y" in self._spinboxes:
+            new_min_value, new_max_value = allowed_y_range(self.canvas_height, model.height, model.anchor)
+            self._spinboxes["y"].config(from_=new_min_value, to=new_max_value)
+
     def _populate(self, model):
+        """populate the panel with widgets representing model attributes"""
         #clear previous widgets
         self._clear_panel()
 
@@ -115,12 +129,14 @@ class AttributesPanelManager:
             row_index += 1
 
     def _clear_panel(self):
+        """destroy all widgets in the attributes panel"""
         for widget in self.frame.winfo_children():
             widget.destroy()
         self._variables.clear()
         self._spinboxes.clear()
 
     def _bind_variables(self, attribute: str, variable: tk.Variable):
+        """bind a Tk variable so updates propagate into Designer callbacks"""
         def _on_write(*_):
             if self._silent_update:
                 return
@@ -134,16 +150,17 @@ class AttributesPanelManager:
                     return
 
             #delegate the entire mutation to Designer
-            widget_id = self.selection_manager.last_selected_id()
-            if not widget_id:
+            model_id = self.selection_manager.last_selected_model_id()
+            if not model_id:
                 return
 
-            self.callbacks["attribute_changed"](widget_id, attribute, value)
+            self.callbacks["attribute_changed"](model_id, attribute, value)
 
         self._variables[attribute] = variable
         variable.trace_add("write", _on_write)
 
     def _create_displayname_label(self, attribute, row):
+        """create the displayname label for an attribute row"""
         tk.Label(
             self.frame,
             text=DISPLAY_NAMES.get(attribute),
@@ -153,6 +170,7 @@ class AttributesPanelManager:
         ).grid(column=0, row=row, sticky="W")
 
     def _create_label(self, model, attribute, row):
+        """create a static text label for read-only attributes"""
         tk.Label(
             self.frame,
             text=getattr(model, attribute),
@@ -161,6 +179,7 @@ class AttributesPanelManager:
         ).grid(column=1, row=row, sticky="W")
 
     def _create_entry(self, model, attribute, row):
+        """create a text entry for string attributes"""
         variable = tk.StringVar(value=str(getattr(model, attribute)))
         entry = tk.Entry(
             self.frame,
@@ -173,6 +192,7 @@ class AttributesPanelManager:
         self._bind_variables(attribute, variable)
 
     def _create_spinbox(self, model, attribute, row):
+        """create a spinbox for numeric attributes with range validation"""
         min_value = 0
         max_value = 0
 
@@ -228,6 +248,7 @@ class AttributesPanelManager:
         self._bind_variables(attribute, variable)
 
     def _create_colorpicker(self, model, attribute, row):
+        """create a color preview box for color attributes (not fully implemented)"""
         tk.Label(
             self.frame,
             bg=getattr(model, attribute),
@@ -236,6 +257,7 @@ class AttributesPanelManager:
         ).grid(column=1, row=row, sticky="W")
 
     def _create_combobox(self, model, attribute, row):
+        """create a combobox for enumerated attributes (e.g., anchor)"""
         if attribute == "anchor":
             variable = tk.StringVar(value=str(getattr(model, attribute)))
             spinbox = tk.Spinbox(
@@ -255,11 +277,3 @@ class AttributesPanelManager:
             self._silent_update = False
 
             self._bind_variables(attribute, variable)
-
-    def update_spinbox_limits(self, model):
-        if "x" in self._spinboxes:
-            new_min_value, new_max_value = allowed_x_range(self.canvas_width, model.width, model.anchor)
-            self._spinboxes["x"].config(from_=new_min_value, to=new_max_value)
-        if "y" in self._spinboxes:
-            new_min_value, new_max_value = allowed_y_range(self.canvas_height, model.height, model.anchor)
-            self._spinboxes["y"].config(from_=new_min_value, to=new_max_value)
