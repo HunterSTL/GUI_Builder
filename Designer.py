@@ -8,7 +8,8 @@ from _dataclasses import DesignerState
 from _dataclasses import ProjectDocument
 from _dataclasses import LabelWidgetData, EntryWidgetData, ButtonWidgetData
 #managers
-from _managers import CanvasManager
+from _managers import CanvasController
+from _managers import CanvasView
 from _managers import SelectionManager
 from _managers import ToolbarManager
 from _managers import WidgetManager
@@ -53,17 +54,14 @@ class Designer:
         #build designer UI
         self._build_designer_ui()
 
-        #create instance of CanvasManager
-        self.canvas_manager = CanvasManager(
+        #create CanvasView to render the grid---------------------------------------------------------------------------
+        self.canvas_view = CanvasView(
             parent=self.viewer,
-            project_document=self.app_state.project,
-            nudge_small=self.constants["nudge"]["small"],
-            nudge_big=self.constants["nudge"]["big"],
-            callbacks=self.callbacks
+            project_document=self.app_state.project
         )
-        self.canvas = self.canvas_manager.canvas
+        self.canvas = self.canvas_view.canvas
 
-        #embed inner canvas into viewer
+        #embed inner canvas into the scrollable viewer
         self.canvas_window_id = self.viewer.create_window(0, 0, window=self.canvas, anchor="nw")
 
         #draw boundry around the work area
@@ -74,7 +72,18 @@ class Designer:
             dash=(2, 2)
         )
 
-        #create instance of SelectionManager to store selected widgets
+        #draw grid in case project_document.grid.visible is True
+        self.canvas_view.refresh_grid()
+
+        #create CanvasController to create key binds--------------------------------------------------------------------
+        self.canvas_controller = CanvasController(
+            view=self.canvas_view,
+            nudge_small=self.constants["nudge"]["small"],
+            nudge_big=self.constants["nudge"]["big"],
+            callbacks=self.callbacks
+        )
+
+        #create SelectionManager to store selected widgets--------------------------------------------------------------
         self.selection_manager = SelectionManager(
             canvas=self.canvas,
             ctrl_key=self.constants["ctrl_key"],
@@ -89,7 +98,7 @@ class Designer:
             resolve_widget_to_model=lambda widget_id: self.widget_manager.get_model_id_from_widget_id(widget_id)
         )
 
-        #create instance of WidgetManager to store created widgets
+        #create WidgetManager to store created widgets------------------------------------------------------------------
         self.widget_manager = WidgetManager(
             top=self.top,
             canvas=self.canvas,
@@ -97,7 +106,7 @@ class Designer:
             selection_manager=self.selection_manager
         )
 
-        #create instance of AttributesPanelManager to show/hide the attribute panel for a selected widget
+        #create AttributesPanelManager to show/hide the attribute panel for a selected widget---------------------------
         self.attributes_panel_manager = AttributesPanelManager(
             root=self.top,
             frame=self.attributes_panel_frame,
@@ -110,7 +119,7 @@ class Designer:
             callbacks=self.callbacks
         )
 
-        #create instance of ToolbarManager to store theme and function callbacks
+        #create ToolbarManager to store theme and function callbacks----------------------------------------------------
         self.toolbar_manager = ToolbarManager(
             parent=self.top,
             height=self.constants["toolbar_height"],
@@ -123,7 +132,7 @@ class Designer:
             grid_visible_variable=self.grid_visible_variable
         )
 
-        #create shared callback dictionary
+        #build shared callback dictionary-------------------------------------------------------------------------------
         self.callbacks.update({
             "show_menu": self._show_menu,
             "selection": {
@@ -164,23 +173,20 @@ class Designer:
             "set_clean": self._set_clean
         })
 
-        #toggle grid if grid is set to visible in project_document
-        if self.app_state.project.grid.visible:
-            self.canvas_manager.refresh_grid()
-
+        #call functions that require the callback dictionary to be built------------------------------------------------
         #create toolbar
         self.toolbar_manager.create_toolbar()
 
         #pack main frame after creating toolbar so toolbar is on top
         self.main_frame.pack(side="top", fill="both", expand=True)
 
-        #create context menu for creating new widgets
+        #bind events to canvas
+        self.canvas_controller.bind_events()
+
+        #create context menu (right click) for creating new widgets
         self._add_widget_menu()
 
-        #bind events to keybinds
-        self.canvas_manager.bind_events()
-
-        #create widgets for the models from the project_document
+        #create widgets for the existing models in the project_document
         for model in self.app_state.project.widget_models:
             self.widget_manager.add_widget_from_model(model)
 
@@ -204,7 +210,7 @@ class Designer:
         call_tracer.log_event(f"full render\n{'#'*150}")
         self.widget_manager.render_full()       #render widgets
         self.selection_manager.refresh_all()    #refresh widget outlines
-        self.canvas_manager.refresh_grid()      #refresh grid
+        self.canvas_view.refresh_grid()      #refresh grid
 
     def _do_soft_render(self, model):
         """perform a soft re-render limited to a single updated widget"""
