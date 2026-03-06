@@ -1,5 +1,6 @@
 import tkinter as tk
 from Geometry import allowed_x_range, allowed_y_range
+from _dataclasses import SelectionState
 
 #attributes that can be shown in the attributes panel including the type of widget
 #to display the value with (text field, numeric input, color picker, dropwodn etc.)
@@ -65,7 +66,7 @@ class AttributesPanelManager:
         panel_color: str,
         widget_color: str,
         text_color: str,
-        selection_manager,
+        selection_state: "SelectionState",
         callbacks: dict
     ):
         """initialize the attributes panel manager and build internal state"""
@@ -76,7 +77,7 @@ class AttributesPanelManager:
         self.panel_color = panel_color
         self.widget_color = widget_color
         self.text_color = text_color
-        self.selection_manager = selection_manager
+        self.selection_state = selection_state
         self.callbacks = callbacks
 
         self.frame.columnconfigure(0, minsize=50)
@@ -150,7 +151,7 @@ class AttributesPanelManager:
                     return
 
             #delegate the entire mutation to Designer
-            model_id = self.selection_manager.last_selected_model_id()
+            model_id = self.selection_state.last_selected_model
             if not model_id:
                 return
 

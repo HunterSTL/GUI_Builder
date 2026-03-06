@@ -1,4 +1,4 @@
-from _dataclasses import ProjectDocument
+from _dataclasses import ProjectDocument, SelectionState
 from CallTracer import call_tracer
 
 class AppState:
@@ -8,6 +8,7 @@ class AppState:
         project_document: ProjectDocument
     ):
         self.project = project_document
+        self.selection = SelectionState()
 
         self._listeners = []                    #functions that get called when any mutation happens
 
@@ -16,6 +17,7 @@ class AppState:
 
         self.dirty_model_ids: set[str] = set()  #holds the ids of models that changed
         self.structural_change = False          #signals whether a full re-render is necessary
+        self.selection_change = False           #signals whether the selection outlines need to be redrawn
 
     #State change notifications-----------------------------------------------------------------------------------------
     def subscribe(self, function):
@@ -35,8 +37,9 @@ class AppState:
         for function in self._listeners:
             function(self)
 
-        #reset flag and clear dirty models after all listeners have been called
+        #reset flags and clear dirty models after all listeners have been called
         self.structural_change = False
+        self.selection_change = False
         self.dirty_model_ids.clear()
 
     def batch(self):
@@ -115,4 +118,91 @@ class AppState:
 
     def set_title(self, title: str):
         self.project.title = title
+        self._notify()
+
+    #Selection----------------------------------------------------------------------------------------------------------
+    def selection_clear(self):
+        """clear all selected models and notify listeners"""
+        if self.selection.selected_models:
+            self.selection = SelectionState()   #simple reset
+            self.selection_change = True        #forces redraw of selection outlines
+            self._notify()
+
+    def selection_select_only(self, model_id: str):
+        """replace the current selection with the given model and notify listeners"""
+        if model_id is None:
+            return
+
+        self.selection.selected_models = {model_id}
+        self.selection.last_selected_model = model_id
+        self.selection_change = True
+        self._notify()
+
+    def selection_toggle(self, model_id: str):
+        """add the given model to the selection or remove it if it's already selected and notify listeners"""
+        if model_id is None:
+            return
+
+        if model_id in self.selection.selected_models:      #already selected → remove from selection
+            self.selection.selected_models.remove(model_id)
+            if self.selection.last_selected_model == model_id:
+                self.selection.last_selected_model = None
+        else:                                               #not yet selected → add to selection
+            self.selection.selected_models.add(model_id)
+            self.selection.last_selected_model = model_id
+
+        self.selection_change = True
+        self._notify()
+
+    def selection_handle_click(self, model_id: str, is_additive: bool):
+        """toggle the model if selection is additive, otherwise replace selection with the given model"""
+        if is_additive:
+            self.selection_toggle(model_id)
+        else:
+            if model_id not in self.selection.selected_models:
+                self.selection_select_only(model_id)
+
+    def selection_select_all(self):
+        """select all widget models in the project_document"""
+        self.selection.selected_models = {model.id for model in self.project.widget_models}
+
+        if self.selection.selected_models:
+            self.selection.last_selected_model = next(iter(self.selection.selected_models))
+        else:
+            self.selection.last_selected_model = None
+
+        self.selection_change = True
+        self._notify()
+
+    #Selection helpers--------------------------------------------------------------------------------------------------
+    def selection_currently_selected(self):
+        return frozenset(self.selection.selected_models)
+
+    def selection_last_selected(self):
+        return self.selection.last_selected_model
+
+    def selection_is_empty(self):
+        return len(self.selection.selected_models) == 0
+
+    def selection_contains(self, model_id: str):
+        return model_id in self.selection.selected_models
+
+    #Rectangle selection------------------------------------------------------------------------------------------------
+    def apply_rectangle_selection(self, encosed_model_ids: set[str], is_additive):
+        """
+        finalize a rectangle selection gesture
+            -if additive: add enclosed model to selection
+            -if not additive: replace selection entirely
+        resets transient rectangle state and notifies listeners once.
+        """
+        if not is_additive:
+            #replace current selection if not additive
+            self.selection = SelectionState()
+
+        for model_id in encosed_model_ids:  #add models to selection if they are not already selected
+            if model_id not in self.selection.selected_models:
+                self.selection.selected_models.add(model_id)
+                self.selection.last_selected_model = model_id
+                self.selection_change = True
+
         self._notify()

@@ -22,7 +22,7 @@ class CanvasView:
             takefocus=1
         )
 
-    def refresh_grid(self):
+    def render_grid(self):
         """redraw or remove the grid display based on visibility state"""
         if self.project_document.grid.visible:
             self._clear_grid()

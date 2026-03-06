@@ -1,9 +1,5 @@
 import unittest
 
-class DummySelectionManager:
-    def refresh(self, *_):
-        pass
-
 class TestProjectDocumentRoundtrip(unittest.TestCase):
     def test_project_docuemnt_roundtrip(self):
         import json
@@ -79,13 +75,21 @@ class TestAddWidgetFromModel(unittest.TestCase):
         widget_manager = WidgetManager(
             top=root,
             canvas=canvas,
-            app_state=app_state,
-            selection_manager=None
+            app_state=app_state
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
         model.create_id()
-        widget_id = widget_manager.add_widget_from_model(model)
+
+        preview_widget, preview_widget_id = widget_manager.create_preview_widget(model)
+        preview_widget.config(text=model.text, bg=model.bg, fg=model.fg)
+        preview_widget.update_idletasks()
+        model.width = preview_widget.winfo_reqwidth()
+        model.height = preview_widget.winfo_reqheight()
+        canvas.delete(preview_widget_id)
+
+        widget_manager._render_widget(model)
+        widget_id = widget_manager.get_widget_id_from_model_id(model.id)
 
         self.assertIn(widget_id, widget_manager.widget_map)
         self.assertEqual(widget_manager.widget_map[widget_id]["model"].id, "label1")
@@ -109,13 +113,13 @@ class TestMoveWidget(unittest.TestCase):
         widget_manager = WidgetManager(
             top=root,
             canvas=canvas,
-            app_state=app_state,
-            selection_manager=DummySelectionManager()
+            app_state=app_state
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
-        widget_id = widget_manager.add_widget_from_model(model)
+        widget_manager._render_widget(model)
+        widget_id = widget_manager.get_widget_id_from_model_id(model.id)
 
         #move by dx/dy
         app_state.move_widget_by(model, 50, 50)
@@ -152,13 +156,12 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         widget_manager = WidgetManager(
             top=root,
             canvas=canvas,
-            app_state=app_state,
-            selection_manager=DummySelectionManager()
+            app_state=app_state
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
-        widget_manager.add_widget_from_model(model) #create widget_id <> model_id mapping
+        widget_manager._render_widget(model) #create widget_id <> model_id mapping
 
         command_stack = CommandStack()
 
@@ -193,13 +196,12 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         widget_manager = WidgetManager(
             top=root,
             canvas=canvas,
-            app_state=app_state,
-            selection_manager=DummySelectionManager()
+            app_state=app_state
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
-        widget_manager.add_widget_from_model(model) #create widget_id <> model_id mapping
+        widget_manager._render_widget(model) #create widget_id <> model_id mapping
 
         command_stack = CommandStack()
         command = MoveWidgetsTo(frozenset({model.id}), widget_manager)
