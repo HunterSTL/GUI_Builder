@@ -54,7 +54,7 @@ class WidgetManager:
         self._register_widget_mappings(model, widget, widget_id)
 
         #bind events
-        self._bind_widget_events(widget, model.id)
+        self._bind_widget_events(widget)
 
         #apply attributes from model to the widget
         self.render_soft(model)
@@ -115,7 +115,9 @@ class WidgetManager:
         #update canvas owned attributes (anchor)
         self.canvas.itemconfig(
             widget_id,
-            anchor=model.anchor
+            anchor=model.anchor,
+            width=model.width,
+            height=model.height
         )
 
     def get_model_from_model_id(self, model_id: str):
@@ -186,7 +188,6 @@ class WidgetManager:
             widget.config(text=value)
             widget.update_idletasks()
 
-
             #fetch new dimensions
             new_width, new_height = widget.winfo_width(), widget.winfo_height()
 
@@ -198,7 +199,7 @@ class WidgetManager:
         else:
             self.app_state.set_widget_attribute(model, attribute, value)
 
-    def _bind_widget_events(self, widget, model_id: str):
+    def _bind_widget_events(self, widget):
         """bind widget mouse/configure events and forward to canvas where needed"""
         def forward_to_canvas(event, sequence):
             canvas_x = event.x_root - self.canvas.winfo_rootx()

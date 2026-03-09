@@ -211,8 +211,8 @@ class Designer:
         if state.selection_change:
             self._update_attributes_panel_visibility()
             self.selection_view.render_all_outlines(
-                selected_models=self.app_state.selection.selected_models,
-                last_selected_model=self.app_state.selection.last_selected_model,
+                selected_models=state.selection_currently_selected(),
+                last_selected_model=state.selection_last_selected(),
                 resolve_model_to_widget=self.selection_controller.resolve_model_to_widget
             )
 
@@ -601,8 +601,9 @@ class Designer:
 
     def _update_attributes_panel_visibility(self):
         """update attributes panel visibility when selection changes"""
-        selected_models = self.app_state.selection.selected_models
-        call_tracer.log_event(f"selection changed: {selected_models}")
+        selected_models = self.app_state.selection_currently_selected()
+        call_tracer.log_event(f"Selection: {selected_models}")
+        call_tracer.log_event(f"Last Selected: {self.app_state.selection_last_selected()}")
 
         if len(selected_models) == 1:
             model_id = next(iter(selected_models))
@@ -616,7 +617,7 @@ class Designer:
         if model_id is None:
             return
 
-        #apply change to the widget through WidgetManager
+        #apply change to the model through WidgetManager
         self.widget_manager.update_widget_attribute(model_id, attribute, value)
 
         #recompute spinbox limits

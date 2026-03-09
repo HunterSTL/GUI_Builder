@@ -124,7 +124,7 @@ class AppState:
     def selection_clear(self):
         """clear all selected models and notify listeners"""
         if self.selection.selected_models:
-            self.selection = SelectionState()   #simple reset
+            self._clear_selection_state()
             self.selection_change = True        #forces redraw of selection outlines
             self._notify()
 
@@ -174,6 +174,10 @@ class AppState:
         self.selection_change = True
         self._notify()
 
+    def _clear_selection_state(self):
+        self.selection.selected_models.clear()
+        self.selection.last_selected_model = None
+
     #Selection helpers--------------------------------------------------------------------------------------------------
     def selection_currently_selected(self):
         return frozenset(self.selection.selected_models)
@@ -190,14 +194,13 @@ class AppState:
     #Rectangle selection------------------------------------------------------------------------------------------------
     def apply_rectangle_selection(self, encosed_model_ids: set[str], is_additive):
         """
-        finalize a rectangle selection gesture
+        finalize a rectangle selection gesture and notify listeners
             -if additive: add enclosed model to selection
             -if not additive: replace selection entirely
-        resets transient rectangle state and notifies listeners once.
         """
         if not is_additive:
-            #replace current selection if not additive
-            self.selection = SelectionState()
+            self._clear_selection_state()
+            self.selection_change = True
 
         for model_id in encosed_model_ids:  #add models to selection if they are not already selected
             if model_id not in self.selection.selected_models:
