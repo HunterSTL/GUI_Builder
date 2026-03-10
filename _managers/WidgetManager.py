@@ -4,7 +4,7 @@ from AppState import AppState
 class WidgetManager:
     def __init__(
         self,
-        top: tk.Toplevel,
+        top: tk.Tk | tk.Toplevel,
         canvas: tk.Canvas,
         app_state: AppState
     ):

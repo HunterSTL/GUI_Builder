@@ -123,7 +123,7 @@ class AppState:
     #Selection----------------------------------------------------------------------------------------------------------
     def selection_clear(self):
         """clear all selected models and notify listeners"""
-        if self.selection.selected_models:
+        if not self.selection_is_empty():
             self._clear_selection_state()
             self.selection_change = True        #forces redraw of selection outlines
             self._notify()
@@ -143,11 +143,11 @@ class AppState:
         if model_id is None:
             return
 
-        if model_id in self.selection.selected_models:      #already selected → remove from selection
+        if self.selection_contains(model_id):   #already selected → remove from selection
             self.selection.selected_models.remove(model_id)
             if self.selection.last_selected_model == model_id:
                 self.selection.last_selected_model = None
-        else:                                               #not yet selected → add to selection
+        else:                                   #not yet selected → add to selection
             self.selection.selected_models.add(model_id)
             self.selection.last_selected_model = model_id
 
@@ -159,14 +159,14 @@ class AppState:
         if is_additive:
             self.selection_toggle(model_id)
         else:
-            if model_id not in self.selection.selected_models:
+            if not self.selection_contains(model_id):
                 self.selection_select_only(model_id)
 
     def selection_select_all(self):
         """select all widget models in the project_document"""
         self.selection.selected_models = {model.id for model in self.project.widget_models}
 
-        if self.selection.selected_models:
+        if not self.selection_is_empty():
             self.selection.last_selected_model = next(iter(self.selection.selected_models))
         else:
             self.selection.last_selected_model = None
@@ -192,7 +192,7 @@ class AppState:
         return model_id in self.selection.selected_models
 
     #Rectangle selection------------------------------------------------------------------------------------------------
-    def apply_rectangle_selection(self, encosed_model_ids: set[str], is_additive):
+    def apply_rectangle_selection(self, enclosed_model_ids: set[str], is_additive):
         """
         finalize a rectangle selection gesture and notify listeners
             -if additive: add enclosed model to selection
@@ -202,7 +202,7 @@ class AppState:
             self._clear_selection_state()
             self.selection_change = True
 
-        for model_id in encosed_model_ids:  #add models to selection if they are not already selected
+        for model_id in enclosed_model_ids: #add models to selection if they are not already selected
             if model_id not in self.selection.selected_models:
                 self.selection.selected_models.add(model_id)
                 self.selection.last_selected_model = model_id

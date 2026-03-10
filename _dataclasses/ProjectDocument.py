@@ -13,7 +13,7 @@ class ProjectDocument:
     title: str = "Untitled Project"
     width: int = 800
     height: int = 600
-    icon_path: str = None
+    icon_path: str | None = None
     grid: GridConfig = field(default_factory=GridConfig)
     theme: Dict[str, Dict[str, str]] = field(default_factory=dict)
     widget_models: List[Any] = field(default_factory=list)

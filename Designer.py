@@ -18,7 +18,7 @@ from _managers import AttributesPanelManager
 #commands
 from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
 #misc
-from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window
+from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, nearest_in_bounds_grid_step
 from UIComponents import CustomTitlebar
 from CallTracer import call_tracer
 
@@ -334,7 +334,8 @@ class Designer:
     def _move(self, dx: int, dy: int):
         """move selected widgets by a delta or preview drag movement"""
         #get selected widgets
-        selected_models = self.app_state.selection.selected_models
+        selected_models = self.app_state.selection_currently_selected()
+
         if not selected_models:
             return
 
@@ -356,7 +357,7 @@ class Designer:
             #moving widgets with keyboard shortcuts (nudge)
             self.command_stack.execute(MoveWidgets(selected_models, dx, dy, self.widget_manager))
 
-        #update attributes panel if only one widget is selected
+        #refresh attributes panel if only one widget is selected
         if len(selected_models) == 1:
             model = self.widget_manager.get_model_from_model_id(next(iter(selected_models)))
             self.attributes_panel_manager.update_variable_from_model(model)
@@ -368,7 +369,7 @@ class Designer:
     def _start_drag(self):
         """initialize a MoveWidgetsTo command when dragging begins"""
         #get selected widgets
-        selected_models = self.app_state.selection.selected_models
+        selected_models = self.app_state.selection_currently_selected()
 
         #reset active_widget_drag_command if no widgets selected
         if not selected_models:
@@ -402,20 +403,29 @@ class Designer:
     def _snap_to_grid(self):
         """align selected widgets to nearest grid positions"""
         #get selected widgets
-        selected_models = self.app_state.selection.selected_models
+        selected_models = self.app_state.selection_currently_selected()
         if not selected_models:
             return
 
-        grid_size = self.app_state.project.grid.size
-
         with self.app_state.batch():
             for model_id in selected_models:
-                #calculate necessary movement delta
+                #compute allowed x and y range for the model
                 model = self.widget_manager.get_model_from_model_id(model_id)
-                new_x, new_y = round(model.x / grid_size) * grid_size, round(model.y / grid_size) * grid_size
+                min_x, max_x = allowed_x_range(self.app_state.project.width, model.width, model.anchor)
+                min_y, max_y = allowed_y_range(self.app_state.project.height, model.height, model.anchor)
+
+                #find nearest grid step that is still inside the allowed range
+                new_x = nearest_in_bounds_grid_step(model.x, self.app_state.project.grid.size, min_x, max_x)
+                new_y = nearest_in_bounds_grid_step(model.y, self.app_state.project.grid.size, min_y, max_y)
 
                 #set absolute position via AppState
                 self.app_state.move_widget_to(model, new_x, new_y)
+
+
+        #refresh attributes panel if only one widget is selected
+        if len(selected_models) == 1:
+            model = self.widget_manager.get_model_from_model_id(next(iter(selected_models)))
+            self.attributes_panel_manager.update_variable_from_model(model)
 
         #set app state to dirty
         self._set_dirty()
@@ -427,7 +437,7 @@ class Designer:
             return
 
         #get selected model ids
-        selected_models = self.app_state.selection.selected_models
+        selected_models = self.app_state.selection_currently_selected()
 
         #build messagebox text
         count = len(selected_models)
@@ -442,10 +452,8 @@ class Designer:
         self.state.is_deleting = True
 
         if not messagebox.askyesno("Delete", messagebox_text):
+            self.state.is_deleting = False
             return
-
-        #clear selection
-        self.app_state.selection_clear()
 
         try:
             with self.app_state.batch():
@@ -457,6 +465,9 @@ class Designer:
                     #let WidgetManager delete the widget (removes from widget_id <> model_id mapping and widget map and deletes the actual tk widget)
                     self.widget_manager.delete(model_id)
         finally:
+            #clear selection
+            self.app_state.selection_clear()
+
             #clear deleting flag
             self.state.is_deleting = False
 
@@ -466,7 +477,7 @@ class Designer:
     def _align(self, direction):
         """align selected widgets relative to the last selected widget"""
         #get selected widgets and last selected widget
-        selected_models = self.app_state.selection.selected_models
+        selected_models = self.app_state.selection_currently_selected()
         last_selected_model = self.app_state.selection.last_selected_model
         if not selected_models or not last_selected_model:
             return
@@ -606,8 +617,7 @@ class Designer:
         call_tracer.log_event(f"Last Selected: {self.app_state.selection_last_selected()}")
 
         if len(selected_models) == 1:
-            model_id = next(iter(selected_models))
-            model = self.widget_manager.get_model_from_model_id(model_id)
+            model = self.widget_manager.get_model_from_model_id(next(iter(selected_models)))
             self.attributes_panel_manager.refresh(model)
         else:
             self.attributes_panel_manager.clear()

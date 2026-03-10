@@ -1,7 +1,7 @@
 import unittest
 
 class TestProjectDocumentRoundtrip(unittest.TestCase):
-    def test_project_docuemnt_roundtrip(self):
+    def test_project_document_roundtrip(self):
         import json
         from _dataclasses import ProjectDocument, GridConfig, LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
 

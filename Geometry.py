@@ -1,5 +1,7 @@
-#returns the allowed X coordinate range for a widget based on its anchor
-def allowed_x_range(canvas_width: int, widget_width: int, anchor: str):
+from math import floor, ceil
+
+def allowed_x_range(canvas_width: int, widget_width: int, anchor: str) -> tuple[int, int]:
+    """return the allowed X-coordinate range for a widget based on its anchor and canvas dimensions"""
     if anchor in ["sw", "w", "nw"]:
         return 0, canvas_width - widget_width
     elif anchor in ["ne", "e", "se"]:
@@ -8,8 +10,8 @@ def allowed_x_range(canvas_width: int, widget_width: int, anchor: str):
         return widget_width // 2, canvas_width - (widget_width // 2)
     return 0, canvas_width
 
-#returns the allowed Y coordinate range for a widget based on its anchor
-def allowed_y_range(canvas_height: int, widget_height: int, anchor: str):
+def allowed_y_range(canvas_height: int, widget_height: int, anchor: str) -> tuple[int, int]:
+    """return the allowed Y-coordinate range for a widget based on its anchor and canvas dimensions"""
     if anchor in ["sw", "s", "se"]:
         return widget_height, canvas_height
     elif anchor in ["nw", "n", "ne"]:
@@ -18,12 +20,12 @@ def allowed_y_range(canvas_height: int, widget_height: int, anchor: str):
         return widget_height // 2, canvas_height - (widget_height // 2)
     return 0, canvas_height
 
-#clamps a value into the given range
-def clamp(value: int, minimum: int, maximum: int):
+def clamp(value: int, minimum: int, maximum: int) -> int:
+    """clamp a value into the given minimum - maximum range"""
     return max(minimum, min(maximum, value))
 
-#clamps a movement delta so the given bounding box (of one or more widgets) stays fully inside the canvas
 def clamped_delta(canvas_width, canvas_height, bbox: tuple[int, int, int, int], dx: int, dy: int) -> tuple[int, int]:
+    """clamp a movement delta so the given bounding box (of one or more widgets) stays fully within the canvas bounds"""
     if not bbox:
         return 0, 0
 
@@ -32,6 +34,33 @@ def clamped_delta(canvas_width, canvas_height, bbox: tuple[int, int, int, int], 
     max_dx, max_dy = canvas_width - x1, canvas_height - y1
     return clamp(dx, min_dx, max_dx), clamp(dy, min_dy, max_dy)
 
-#returns the x and y offset needed to center the window on the screen
-def screen_offset_to_center_window(screen_width, screen_height, window_width, window_height):
+def screen_offset_to_center_window(screen_width, screen_height, window_width, window_height) -> tuple[int, int]:
+    """return the X- and Y-offset needed to center the window on the screen"""
     return (screen_width // 2) - (window_width // 2), (screen_height // 2) - (window_height // 2)
+
+def nearest_in_bounds_grid_step(value: int, grid_size: int, min_value: int, max_value: int) -> int:
+    """return the value of the nearest grid step of size grid_size that lies within the allowed range"""
+    #no grid size → just clamp
+    if grid_size <= 0:
+        return clamp(value, min_value, max_value)
+
+    #nearest grid step to the actual value
+    nearest_grid_step = round(value / grid_size) * grid_size
+
+    #return the the nearest grid step if it is within bounds
+    if min_value <= nearest_grid_step <= max_value:
+        return nearest_grid_step
+
+    #first and last grid steps that are within the allowed range
+    first_in_bound_grid_step = ceil(min_value / grid_size) * grid_size
+    last_in_bound_grid_step = floor(max_value / grid_size) * grid_size
+
+    #if at least one in-bound grid step exists → choose the nearest grid step
+    if first_in_bound_grid_step <= last_in_bound_grid_step:
+        if nearest_grid_step < first_in_bound_grid_step:
+            return first_in_bound_grid_step
+        elif nearest_grid_step > last_in_bound_grid_step:
+            return last_in_bound_grid_step
+
+    #if there are no grid steps inside the allowed range → only clamp to allowed range
+    return clamp(value, min_value, max_value)
