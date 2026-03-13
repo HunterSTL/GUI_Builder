@@ -1,23 +1,32 @@
 from _managers import CanvasView
+from _dataclasses import ProjectDocument
 
 class CanvasController:
     """wires user interactions from the CanvasView into app intents via callbacks"""
     def __init__(
         self,
-        view: CanvasView,
+        project_document: ProjectDocument,
+        canvas_view: CanvasView,
         nudge_small: int,
         nudge_big: int,
         callbacks: dict
     ):
         """initialize the canvas controller and construct the drawing canvas"""
-        self.view = view
+        self.canvas_view = canvas_view
+        self.project_document = project_document
         self.nudge_small = nudge_small
         self.nudge_big = nudge_big
         self.callbacks = callbacks
 
+    #Grid rendering-----------------------------------------------------------------------------------------------------
+    def render_grid(self):
+        grid_config = self.project_document.grid
+        self.canvas_view.render_grid(grid_config.size, grid_config.color, grid_config.visible)
+
+    #Event binding------------------------------------------------------------------------------------------------------
     def bind_events(self):
         """bind key, mouse, selection, project, widget, grid, and debug events to the canvas"""
-        canvas = self.view.canvas
+        canvas = self.canvas_view.canvas
 
         #keeps focus on canvas
         canvas.bind("<Enter>", lambda e: canvas.focus_set(), add="+")

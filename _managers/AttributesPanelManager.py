@@ -137,7 +137,7 @@ class AttributesPanelManager:
         self._spinboxes.clear()
 
     def _bind_variables(self, attribute: str, variable: tk.Variable):
-        """bind a Tk variable so updates propagate into Designer callbacks"""
+        """bind a tk variable so updates propagate into Designer callbacks"""
         def _on_write(*_):
             if self._silent_update:
                 return

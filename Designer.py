@@ -8,12 +8,13 @@ from _dataclasses import DesignerState
 from _dataclasses import ProjectDocument
 from _dataclasses import LabelWidgetData, EntryWidgetData, ButtonWidgetData
 #managers
-from _managers import CanvasController
 from _managers import CanvasView
-from _managers import SelectionController
+from _managers import CanvasController
 from _managers import SelectionView
+from _managers import SelectionController
+from _managers import WidgetView
+from _managers import WidgetController
 from _managers import ToolbarManager
-from _managers import WidgetManager
 from _managers import AttributesPanelManager
 #commands
 from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
@@ -58,7 +59,9 @@ class Designer:
         #create CanvasView to render the grid---------------------------------------------------------------------------
         self.canvas_view = CanvasView(
             parent=self.viewer,
-            project_document=self.app_state.project
+            canvas_width=self.app_state.project.width,
+            canvas_height=self.app_state.project.height,
+            background_color=self.app_state.project.theme["background"]["color"]
         )
         self.canvas = self.canvas_view.canvas
 
@@ -75,7 +78,8 @@ class Designer:
 
         #create CanvasController to create key binds--------------------------------------------------------------------
         self.canvas_controller = CanvasController(
-            view=self.canvas_view,
+            project_document=self.app_state.project,
+            canvas_view=self.canvas_view,
             nudge_small=self.constants["nudge"]["small"],
             nudge_big=self.constants["nudge"]["big"],
             callbacks=self.callbacks
@@ -98,16 +102,20 @@ class Designer:
             selection_view=self.selection_view,
             ctrl_key=self.constants["ctrl_key"],
             drag_threshold=self.constants["drag_threshold"],
-            resolve_model_to_widget=lambda model_id: self.widget_manager.get_widget_id_from_model_id(model_id),
-            resolve_widget_to_model=lambda widget_id: self.widget_manager.get_model_id_from_widget_id(widget_id),
+            resolve_model_to_widget=lambda model_id: self.widget_view.get_widget_id_from_model_id(model_id),
+            resolve_widget_to_model=lambda widget_id: self.widget_view.get_model_id_from_widget_id(widget_id),
             callbacks=self.callbacks
         )
 
-        #create WidgetManager to store created widgets------------------------------------------------------------------
-        self.widget_manager = WidgetManager(
-            top=self.top,
-            canvas=self.canvas,
-            app_state=self.app_state
+        #create WidgetView to render widget models and store mappings---------------------------------------------------
+        self.widget_view = WidgetView(
+            canvas=self.canvas
+        )
+
+        #create WidgetController to handle widget mutations-------------------------------------------------------------
+        self.widget_controller = WidgetController(
+            app_state=self.app_state,
+            widget_view=self.widget_view
         )
 
         #create AttributesPanelManager to show/hide the attribute panel for a selected widget---------------------------
@@ -204,35 +212,30 @@ class Designer:
 
         #only update dirty models
         for model_id in state.dirty_model_ids:
-            model = self.widget_manager.get_model_from_model_id(model_id)
-            self._do_soft_render(model)
+            self._do_soft_render(model_id)
 
         #re-render selection outlines if selection changed and refresh attributes panel
         if state.selection_change:
             self._update_attributes_panel_visibility()
-            self.selection_view.render_all_outlines(
-                selected_models=state.selection_currently_selected(),
-                last_selected_model=state.selection_last_selected(),
-                resolve_model_to_widget=self.selection_controller.resolve_model_to_widget
-            )
+            self.selection_controller.render_all_outlines()
 
     def _do_full_render(self):
         """perform a full re-render of widgets, selection outlines, and grid"""
         call_tracer.log_event(f"full render\n{'#'*150}")
         #render widgets
-        self.widget_manager.render_full()
+        self.widget_controller.render_full()
 
         #render grid
-        self.canvas_view.render_grid()
+        self.canvas_controller.render_grid()
 
         #render selection outlines
         self.selection_controller.render_all_outlines()
 
-    def _do_soft_render(self, model):
+    def _do_soft_render(self, model_id: str):
         """perform a soft re-render limited to a single updated widget"""
-        call_tracer.log_event(f"soft render {model.id}")
-        self.widget_manager.render_soft(model)
-        self.selection_controller.render_outline_for(model.id)
+        call_tracer.log_event(f"soft render {model_id}")
+        self.widget_controller.render_soft(model_id)
+        self.selection_controller.render_outline_for(model_id)
 
     def is_dirty(self):
         """return True if the project has unsaved changes"""
@@ -270,7 +273,7 @@ class Designer:
         model.create_id()
 
         #create a temporary preview widget to measure dimensions and clamp coordinates
-        preview_widget, preview_widget_id = self.widget_manager.create_preview_widget(model)
+        preview_widget, preview_widget_id = self.widget_view.create_preview_widget(model)
 
         #update widget's text and colors (can influence dimensions)
         if widget_type in ("Label", "Button"):
@@ -340,7 +343,7 @@ class Designer:
             return
 
         #calculate clamped delta of all selected widgets so that widgets can't be moved outside the canvas
-        selected_widget_ids = set(self.widget_manager.get_widget_id_from_model_id(model_id) for model_id in selected_models)
+        selected_widget_ids = set(self.widget_view.get_widget_id_from_model_id(model_id) for model_id in selected_models)
         dx, dy = clamped_delta(
             self.canvas.winfo_width(),
             self.canvas.winfo_height(),
@@ -355,11 +358,19 @@ class Designer:
             self.state.active_widget_drag_command.preview_move(dx, dy)
         else:
             #moving widgets with keyboard shortcuts (nudge)
-            self.command_stack.execute(MoveWidgets(selected_models, dx, dy, self.widget_manager))
+            self.command_stack.execute(
+                MoveWidgets(
+                    model_ids=selected_models,
+                    dx=dx,
+                    dy=dy,
+                    widget_view=self.widget_view,
+                    widget_controller=self.widget_controller
+                )
+            )
 
         #refresh attributes panel if only one widget is selected
         if len(selected_models) == 1:
-            model = self.widget_manager.get_model_from_model_id(next(iter(selected_models)))
+            model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
             self.attributes_panel_manager.update_variable_from_model(model)
 
         #set app state to dirty
@@ -377,7 +388,11 @@ class Designer:
             return
 
         #create the MoveWidgetsTo command to record original widget positions
-        self.state.active_widget_drag_command = MoveWidgetsTo(selected_models, self.widget_manager)
+        self.state.active_widget_drag_command = MoveWidgetsTo(
+            model_ids=selected_models,
+            widget_view=self.widget_view,
+            widget_controller=self.widget_controller
+        )
 
     def _end_drag(self):
         """finalize drag movement, executing stored MoveWidgetsTo command"""
@@ -410,7 +425,7 @@ class Designer:
         with self.app_state.batch():
             for model_id in selected_models:
                 #compute allowed x and y range for the model
-                model = self.widget_manager.get_model_from_model_id(model_id)
+                model = self.app_state.get_model_from_model_id(model_id)
                 min_x, max_x = allowed_x_range(self.app_state.project.width, model.width, model.anchor)
                 min_y, max_y = allowed_y_range(self.app_state.project.height, model.height, model.anchor)
 
@@ -424,7 +439,7 @@ class Designer:
 
         #refresh attributes panel if only one widget is selected
         if len(selected_models) == 1:
-            model = self.widget_manager.get_model_from_model_id(next(iter(selected_models)))
+            model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
             self.attributes_panel_manager.update_variable_from_model(model)
 
         #set app state to dirty
@@ -455,16 +470,11 @@ class Designer:
             self.state.is_deleting = False
             return
 
-        try:
-            with self.app_state.batch():
-                for model_id in selected_models:
-                    #remove model from project_document
-                    model = self.widget_manager.get_model_from_model_id(model_id)
-                    self.app_state.remove_widget(model)
+        with self.app_state.batch():
+            for model_id in selected_models:
+                #let WidgetController delete the widget (deletes widget model from ProjectDocument, tk widget from canvas and removes widget from mappings)
+                self.widget_controller.delete_widget(model_id)
 
-                    #let WidgetManager delete the widget (removes from widget_id <> model_id mapping and widget map and deletes the actual tk widget)
-                    self.widget_manager.delete(model_id)
-        finally:
             #clear selection
             self.app_state.selection_clear()
 
@@ -482,7 +492,7 @@ class Designer:
         if not selected_models or not last_selected_model:
             return
 
-        reference_widget_bbox = self.widget_manager.get_bbox_from_model_id(last_selected_model)
+        reference_widget_bbox = self.widget_view.get_bbox_from_model_id(last_selected_model)
 
         if not reference_widget_bbox:
             return
@@ -490,7 +500,7 @@ class Designer:
         with self.app_state.batch():
             for model_id in selected_models:
                 if not model_id == last_selected_model:
-                    widget_bbox = self.widget_manager.get_bbox_from_model_id(model_id)
+                    widget_bbox = self.widget_view.get_bbox_from_model_id(model_id)
 
                     if not widget_bbox:
                         return
@@ -508,11 +518,11 @@ class Designer:
                         dx, dy = 0, 0
 
                     #calculate clamped delta so that widget can't be moved outside the canvas
-                    widget_id = self.widget_manager.get_widget_id_from_model_id(model_id)
+                    widget_id = self.widget_view.get_widget_id_from_model_id(model_id)
                     dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(widget_id), dx, dy)
 
                     #move widget via AppState
-                    model = self.widget_manager.get_model_from_model_id(model_id)
+                    model = self.app_state.get_model_from_model_id(model_id)
                     self.app_state.move_widget_by(model, dx, dy)
 
         #set app state to dirty
@@ -617,7 +627,7 @@ class Designer:
         call_tracer.log_event(f"Last Selected: {self.app_state.selection_last_selected()}")
 
         if len(selected_models) == 1:
-            model = self.widget_manager.get_model_from_model_id(next(iter(selected_models)))
+            model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
             self.attributes_panel_manager.refresh(model)
         else:
             self.attributes_panel_manager.clear()
@@ -627,11 +637,11 @@ class Designer:
         if model_id is None:
             return
 
-        #apply change to the model through WidgetManager
-        self.widget_manager.update_widget_attribute(model_id, attribute, value)
+        #apply change to the model through WidgetController
+        self.widget_controller.update_widget_attribute(model_id, attribute, value)
 
         #recompute spinbox limits
-        model = self.widget_manager.get_model_from_model_id(model_id)
+        model = self.app_state.get_model_from_model_id(model_id)
         if attribute in ("anchor", "width", "height"):
             self.attributes_panel_manager.update_spinbox_limits(model)
 

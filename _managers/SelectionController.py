@@ -39,18 +39,18 @@ class SelectionController:
         self._rectangle_selection_state = RectangleSelectionState()
 
     #Selection outline rendering----------------------------------------------------------------------------------------
-    def render_all_outlines(self):
-        """re-render all selection outlines"""
-        self.selection_view.render_all_outlines(
-            selected_models=self.app_state.selection_currently_selected(),
-            last_selected_model=self.app_state.selection.last_selected_model,
-            resolve_model_to_widget=self.resolve_model_to_widget
-        )
-
     def render_outline_for(self, model_id: str):
         """re-render the selection outline for the given model"""
         self.selection_view.render_outline_for(
             model_id=model_id,
+            last_selected_model=self.app_state.selection.last_selected_model,
+            resolve_model_to_widget=self.resolve_model_to_widget
+        )
+
+    def render_all_outlines(self):
+        """re-render all selection outlines"""
+        self.selection_view.render_all_outlines(
+            selected_models=self.app_state.selection_currently_selected(),
             last_selected_model=self.app_state.selection.last_selected_model,
             resolve_model_to_widget=self.resolve_model_to_widget
         )

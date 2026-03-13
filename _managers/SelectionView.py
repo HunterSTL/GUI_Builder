@@ -19,23 +19,15 @@ class SelectionView:
         self.selection_dash = selection_dash
         self.selection_padding = selection_padding
 
-        self.selection_rectangle_id = None  #stores the id of the selection rectangle
+        self._selection_rectangle_id = None  #stores the id of the selection rectangle
         self._selection_outlines = {}       #model_id -> outline rectangle_id
 
-    #Selection outlines-------------------------------------------------------------------------------------------------
+    #Rendering API------------------------------------------------------------------------------------------------------
     def clear_selection_outlines(self):
         """delete all canvas items with tag "selection_outline" and clear the selection_outlines dictionary"""
         for rect_id in self.canvas.find_withtag("selection_outline"):
             self.canvas.delete(rect_id)
         self._selection_outlines.clear()
-
-    def render_all_outlines(self, selected_models: set[str], last_selected_model: str | None, resolve_model_to_widget):
-        """clear existing selection outlines and recreate for all selected widgets"""
-        self.clear_selection_outlines()
-
-        #recreate outlines for selected models
-        for model_id in selected_models:
-            self.render_outline_for(model_id, last_selected_model, resolve_model_to_widget)
 
     def render_outline_for(self, model_id: str, last_selected_model: str | None, resolve_model_to_widget):
         """create or update the selection outline for a single selected widget"""
@@ -76,11 +68,19 @@ class SelectionView:
             self._selection_outlines[model_id] = rect_id
         self.canvas.tag_raise(rect_id)
 
+    def render_all_outlines(self, selected_models: set[str], last_selected_model: str | None, resolve_model_to_widget):
+        """clear existing selection outlines and recreate for all selected widgets"""
+        self.clear_selection_outlines()
+
+        #recreate outlines for selected models
+        for model_id in selected_models:
+            self.render_outline_for(model_id, last_selected_model, resolve_model_to_widget)
+
     #Rectangle selection------------------------------------------------------------------------------------------------
     def draw_selection_rectangle(self, x0: int, y0: int):
         """begin drawing the selection rectangle (UI-element) used for the rectangle selection (gesture)"""
-        if self.selection_rectangle_id is None:
-            self.selection_rectangle_id = self.canvas.create_rectangle(
+        if self._selection_rectangle_id is None:
+            self._selection_rectangle_id = self.canvas.create_rectangle(
                 x0, y0, x0, y0,
                 outline=self.selection_color,
                 width=self.selection_width,
@@ -89,7 +89,7 @@ class SelectionView:
             )
         else:
             self.canvas.coords(
-                self.selection_rectangle_id,
+                self._selection_rectangle_id,
                 x0,
                 y0,
                 x0,
@@ -97,16 +97,16 @@ class SelectionView:
             )
 
         #ensure outline is on top
-        self.canvas.tag_raise(self.selection_rectangle_id)
+        self.canvas.tag_raise(self._selection_rectangle_id)
 
     def update_selection_rectangle(self, x0: int, y0: int, x1: int, y1: int):
         """update the selection rectangle while dragging"""
-        if self.selection_rectangle_id is not None:
-            self.canvas.coords(self.selection_rectangle_id, x0, y0, x1, y1)
-            self.canvas.tag_raise(self.selection_rectangle_id)
+        if self._selection_rectangle_id is not None:
+            self.canvas.coords(self._selection_rectangle_id, x0, y0, x1, y1)
+            self.canvas.tag_raise(self._selection_rectangle_id)
 
     def clear_selection_rectangle(self):
         """remove the selection rectangle"""
-        if self.selection_rectangle_id is not None:
-            self.canvas.delete(self.selection_rectangle_id)
-            self.selection_rectangle_id = None
+        if self._selection_rectangle_id is not None:
+            self.canvas.delete(self._selection_rectangle_id)
+            self._selection_rectangle_id = None

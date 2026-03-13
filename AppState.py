@@ -99,6 +99,8 @@ class AppState:
             setattr(model, attribute, value)
             self.dirty_model_ids.add(model.id)
             self._notify()
+        else:
+            raise AttributeError(f"Model \"{model.id}\" has no attribute {attribute}")
 
     #Grid/Project-------------------------------------------------------------------------------------------------------
     def set_grid_visible(self, visible: bool):
@@ -178,19 +180,6 @@ class AppState:
         self.selection.selected_models.clear()
         self.selection.last_selected_model = None
 
-    #Selection helpers--------------------------------------------------------------------------------------------------
-    def selection_currently_selected(self):
-        return frozenset(self.selection.selected_models)
-
-    def selection_last_selected(self):
-        return self.selection.last_selected_model
-
-    def selection_is_empty(self):
-        return len(self.selection.selected_models) == 0
-
-    def selection_contains(self, model_id: str):
-        return model_id in self.selection.selected_models
-
     #Rectangle selection------------------------------------------------------------------------------------------------
     def apply_rectangle_selection(self, enclosed_model_ids: set[str], is_additive):
         """
@@ -209,3 +198,29 @@ class AppState:
                 self.selection_change = True
 
         self._notify()
+
+    #Model helpers------------------------------------------------------------------------------------------------------
+    def get_model_from_model_id(self, model_id: str):
+        """return the model assosciated with the given model_id"""
+        for model in self.project.widget_models:
+            if model.id == model_id:
+                return model
+        return None
+
+    def get_model_coordinates_from_model_id(self, model_id: str):
+        """return the x,y coordinates of the model"""
+        model = self.get_model_from_model_id(model_id)
+        return model.x, model.y
+
+    #Selection helpers--------------------------------------------------------------------------------------------------
+    def selection_currently_selected(self):
+        return frozenset(self.selection.selected_models)
+
+    def selection_last_selected(self):
+        return self.selection.last_selected_model
+
+    def selection_is_empty(self):
+        return len(self.selection.selected_models) == 0
+
+    def selection_contains(self, model_id: str):
+        return model_id in self.selection.selected_models

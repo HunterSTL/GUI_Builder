@@ -63,7 +63,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
         import tkinter as tk
         from AppState import AppState
         from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
-        from _managers import WidgetManager
+        from _managers import WidgetView, WidgetController
 
         root = tk.Tk()
         root.withdraw()
@@ -72,27 +72,32 @@ class TestAddWidgetFromModel(unittest.TestCase):
         app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(
-            top=root,
-            canvas=canvas,
-            app_state=app_state
+
+        widget_view = WidgetView(
+            canvas=canvas
+        )
+
+        widget_controller = WidgetController(
+            app_state=app_state,
+            widget_view=widget_view
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
         model.create_id()
+        app_state.add_widget(model)
 
-        preview_widget, preview_widget_id = widget_manager.create_preview_widget(model)
+        preview_widget, preview_widget_id = widget_view.create_preview_widget(model)
         preview_widget.config(text=model.text, bg=model.bg, fg=model.fg)
         preview_widget.update_idletasks()
         model.width = preview_widget.winfo_reqwidth()
         model.height = preview_widget.winfo_reqheight()
         canvas.delete(preview_widget_id)
 
-        widget_manager._render_widget(model)
-        widget_id = widget_manager.get_widget_id_from_model_id(model.id)
+        widget_controller.render_soft(model.id)
+        widget_id = widget_view.get_widget_id_from_model_id(model.id)
 
-        self.assertIn(widget_id, widget_manager.widget_map)
-        self.assertEqual(widget_manager.widget_map[widget_id]["model"].id, "label1")
+        self.assertIn(widget_id, widget_view.widget_map)
+        self.assertEqual(widget_view.widget_map[widget_id]["model"].id, "label1")
         self.assertIsNotNone(model.width)
         self.assertIsNotNone(model.height)
 
@@ -101,7 +106,7 @@ class TestMoveWidget(unittest.TestCase):
         import tkinter as tk
         from AppState import AppState
         from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
-        from _managers import WidgetManager
+        from _managers import WidgetView, WidgetController
 
         root = tk.Tk()
         root.withdraw()
@@ -110,26 +115,32 @@ class TestMoveWidget(unittest.TestCase):
         app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(
-            top=root,
-            canvas=canvas,
-            app_state=app_state
+
+        widget_view = WidgetView(
+            canvas=canvas
+        )
+
+        widget_controller = WidgetController(
+            app_state=app_state,
+            widget_view=widget_view
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
-        widget_manager._render_widget(model)
-        widget_id = widget_manager.get_widget_id_from_model_id(model.id)
+        app_state.add_widget(model)
+
+        widget_controller.render_soft(model.id)
+        widget_id = widget_view.get_widget_id_from_model_id(model.id)
 
         #move by dx/dy
         app_state.move_widget_by(model, 50, 50)
-        widget_manager.render_soft(model)
+        widget_controller.render_soft(model.id)
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
         #move to
         app_state.move_widget_to(model, 150, 150)
-        widget_manager.render_soft(model)
+        widget_controller.render_soft(model.id)
         self.assertEqual(model.x, 150)
         self.assertEqual(model.y, 150)
 
@@ -143,7 +154,7 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         import tkinter as tk
         from AppState import AppState
         from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
-        from _managers import WidgetManager
+        from _managers import WidgetView, WidgetController
         from _commands import CommandStack, MoveWidgets
 
         root = tk.Tk()
@@ -153,20 +164,26 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(
-            top=root,
-            canvas=canvas,
-            app_state=app_state
+
+        widget_view = WidgetView(
+            canvas=canvas
+        )
+
+        widget_controller = WidgetController(
+            app_state=app_state,
+            widget_view=widget_view
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
-        widget_manager._render_widget(model) #create widget_id <> model_id mapping
+        app_state.add_widget(model)
+
+        widget_controller.render_soft(model.id)
 
         command_stack = CommandStack()
 
         #move by dx/dy
-        command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, widget_manager))
+        command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, widget_view, widget_controller))
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
@@ -183,7 +200,7 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         import tkinter as tk
         from AppState import AppState
         from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
-        from _managers import WidgetManager
+        from _managers import WidgetView, WidgetController
         from _commands import CommandStack, MoveWidgetsTo
 
         root = tk.Tk()
@@ -193,18 +210,24 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         app_state = AppState(project_document)
 
         IdCounters.label = 1
-        widget_manager = WidgetManager(
-            top=root,
-            canvas=canvas,
-            app_state=app_state
+
+        widget_view = WidgetView(
+            canvas=canvas
+        )
+
+        widget_controller = WidgetController(
+            app_state=app_state,
+            widget_view=widget_view
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id()
-        widget_manager._render_widget(model) #create widget_id <> model_id mapping
+        app_state.add_widget(model)
+
+        widget_controller.render_soft(model.id)
 
         command_stack = CommandStack()
-        command = MoveWidgetsTo(frozenset({model.id}), widget_manager)
+        command = MoveWidgetsTo(frozenset({model.id}), widget_view, widget_controller)
 
         #simulate drag preview
         command.preview_move(50, 50)

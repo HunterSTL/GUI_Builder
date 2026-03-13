@@ -1,17 +1,21 @@
 from .BaseCommand import Command
-from _managers import WidgetManager
+from _managers import WidgetView
+from _managers import WidgetController
 
 class MoveWidgetsTo(Command):
     def __init__(
         self,
         model_ids: frozenset,
-        widget_manager: WidgetManager
+        widget_view: WidgetView,
+        widget_controller: WidgetController
     ):
         """initialize MoveWidgetsTo and record original widget positions"""
+        self.widget_view = widget_view
+        self.widget_controller = widget_controller
+
         self._model_ids = model_ids
-        self._widget_manager = widget_manager
         self._original_positions = {    #record original positions for selected widgets at drag start
-            model_id: self._widget_manager.get_model_coordinates_from_model_id(model_id)
+            model_id: self.widget_controller.app_state.get_model_coordinates_from_model_id(model_id)
             for model_id in self._model_ids
         }
         self._final_positions = {}
@@ -19,7 +23,7 @@ class MoveWidgetsTo(Command):
     def has_effect(self):
         """return True if widget positions changed since initialization"""
         return any(
-            self._original_positions[model_id] != self._widget_manager.get_model_coordinates_from_model_id(model_id)
+            self._original_positions[model_id] != self.widget_controller.app_state.get_model_coordinates_from_model_id(model_id)
             for model_id in self._model_ids
         )
 
@@ -29,30 +33,30 @@ class MoveWidgetsTo(Command):
         if dx == 0 and dy == 0:
             return
 
-        with self._widget_manager.app_state.batch():    #batching so only one notify happens even if multiple widgets are moved
+        with self.widget_controller.app_state.batch():    #batching so only one notify happens even if multiple widgets are moved
             for model_id in self._model_ids:
-                model = self._widget_manager.get_model_from_model_id(model_id)
-                self._widget_manager.app_state.move_widget_by(model, dx, dy)
+                model = self.widget_controller.app_state.get_model_from_model_id(model_id)
+                self.widget_controller.app_state.move_widget_by(model, dx, dy)
 
     def freeze_final_positions(self):
         """record final positions at the end of a drag gesture"""
         self._final_positions = {       #record final positions for selected widgets at drag end
-            model_id: self._widget_manager.get_model_coordinates_from_model_id(model_id)
+            model_id: self.widget_controller.app_state.get_model_coordinates_from_model_id(model_id)
             for model_id in self._model_ids
         }
 
     def execute(self):
         """apply the final stored positions to the widgets using AppState batching"""
-        with self._widget_manager.app_state.batch():
+        with self.widget_controller.app_state.batch():
             for model_id, (x, y) in self._final_positions.items():
                 #move the widget to the final position
-                model = self._widget_manager.get_model_from_model_id(model_id)
-                self._widget_manager.app_state.move_widget_to(model, x, y)
+                model = self.widget_controller.app_state.get_model_from_model_id(model_id)
+                self.widget_controller.app_state.move_widget_to(model, x, y)
 
     def undo(self):
         """restore original positions saved at drag start using AppState batching"""
-        with self._widget_manager.app_state.batch():
+        with self.widget_controller.app_state.batch():
             for model_id, (x, y) in self._original_positions.items():
                 #move the widget to the original position
-                model = self._widget_manager.get_model_from_model_id(model_id)
-                self._widget_manager.app_state.move_widget_to(model, x, y)
+                model = self.widget_controller.app_state.get_model_from_model_id(model_id)
+                self.widget_controller.app_state.move_widget_to(model, x, y)

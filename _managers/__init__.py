@@ -4,7 +4,8 @@ from .CanvasView import CanvasView
 from .SelectionController import SelectionController
 from .SelectionView import SelectionView
 from .ToolbarManager import ToolbarManager
-from .WidgetManager import WidgetManager
+from .WidgetView import WidgetView
+from .WidgetController import WidgetController
 
 __all__ = [
     "AttributesPanelManager",
@@ -13,5 +14,6 @@ __all__ = [
     "SelectionController",
     "SelectionView",
     "ToolbarManager",
-    "WidgetManager"
+    "WidgetView",
+    "WidgetController"
 ]
