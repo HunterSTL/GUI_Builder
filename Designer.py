@@ -78,7 +78,7 @@ class Designer:
 
         #create CanvasController to create key binds--------------------------------------------------------------------
         self.canvas_controller = CanvasController(
-            project_document=self.app_state.project,
+            app_state=self.app_state,
             canvas_view=self.canvas_view,
             nudge_small=self.constants["nudge"]["small"],
             nudge_big=self.constants["nudge"]["big"],

@@ -7,7 +7,7 @@ class AppState:
         self,
         project_document: ProjectDocument
     ):
-        self.project = project_document
+        self.project = project_document         #must only be mutated using AppState API (add_widget, set_grid_visible, set_title...)
         self.selection = SelectionState()
 
         self._listeners = []                    #functions that get called when any mutation happens
