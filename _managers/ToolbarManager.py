@@ -192,18 +192,24 @@ class ToolbarManager:
         debug_menu_button.pack(side="left")
 
         #debug events
+        debug_callbacks = self.callbacks["debug"]
         debug_menu.add_checkbutton(
             label="Call tracing",
-            command=self.callbacks["toggle_call_tracing"],
+            command=debug_callbacks["toggle_call_tracing"],
             accelerator="[CTRL] + [SHIFT] + [T]"
         )
         debug_menu.add_command(
             label="Set dirty",
-            command=self.callbacks["set_dirty"],
+            command=debug_callbacks["set_dirty"],
             accelerator="[CTRL] + [D]"
         )
         debug_menu.add_command(
             label="Set clean",
-            command=self.callbacks["set_clean"],
+            command=debug_callbacks["set_clean"],
             accelerator="[CTRL] + [SHIFT] + [D]"
+        )
+        debug_menu.add_command(
+            label="Print widget count",
+            command=debug_callbacks["print_widget_count"],
+            accelerator="[#]"
         )

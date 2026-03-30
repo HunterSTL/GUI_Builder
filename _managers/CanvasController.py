@@ -83,6 +83,8 @@ class CanvasController:
         canvas.bind("<Shift-G>", lambda e: grid_callbacks["change_color"]())
 
         #debug events
-        canvas.bind("<Control-Shift-T>", lambda e: self.callbacks["toggle_call_tracing"]())
-        canvas.bind("<Control-d>", lambda e: self.callbacks["set_dirty"]())
-        canvas.bind("<Control-Shift-D>", lambda e: self.callbacks["set_clean"]())
+        debug_callbacks = self.callbacks["debug"]
+        canvas.bind("<Control-Shift-T>", lambda e: debug_callbacks["toggle_call_tracing"]())
+        canvas.bind("<Control-d>", lambda e: debug_callbacks["set_dirty"]())
+        canvas.bind("<Control-Shift-D>", lambda e: debug_callbacks["set_clean"]())
+        canvas.bind("<#>", lambda e: debug_callbacks["print_widget_count"]())

@@ -23,7 +23,7 @@ class WidgetView:
         return None
 
     def _insert_widget_into_canvas(self, widget, x, y, anchor):
-        """create a canvas window for the widget and place it on model.x / model.y"""
+        """create a canvas window for the widget and place it on x|y"""
         widget_id = self.canvas.create_window(
             x, y,
             window=widget,
@@ -111,11 +111,17 @@ class WidgetView:
     def render_full(self, models):
         """fully rebuild all widgets from the project models"""
         #clear all canvas items except grid lines
-        for widget_id in list(self.widget_map.keys()):
+        for widget_id, widget_map_entry in list(self.widget_map.items()):
+            #delete the widget from canvas
             self.canvas.delete(widget_id)
-        self.widget_map.clear()
 
-        #clear mappings
+            #delete the tk widget instance
+            if widget_map_entry:
+                widget = widget_map_entry["widget"]
+                widget.destroy()
+
+        #clear widget_map and model_id <> widget_id mappings
+        self.widget_map.clear()
         self.model_id_to_widget_id.clear()
         self.widget_id_to_model_id.clear()
 
@@ -135,13 +141,23 @@ class WidgetView:
 
     def delete_widget(self, model_id: str):
         """delete a widget from the canvas and remove it from all mappings"""
-        #remove widget_id from model id <> widget id mapping
+        #delete widget_id from model_id <> widget_id mapping
         widget_id = self.model_id_to_widget_id.pop(model_id, None)
+
         if widget_id:
+            #delete model_id from widget_id <> model_id mapping
             self.widget_id_to_model_id.pop(widget_id, None)
 
-        self.widget_map.pop(widget_id, None)    #delete widget_id from widget_map
-        self.canvas.delete(widget_id)           #delete canvas item (tk widget)
+            #delete widget_id from widget_map
+            widget_map_entry = self.widget_map.pop(widget_id, None)
+
+            #delete the widget from canvas
+            self.canvas.delete(widget_id)
+
+            #delete the tk widget instance
+            if widget_map_entry:
+                widget = widget_map_entry["widget"]
+                widget.destroy()
 
     #Helpers------------------------------------------------------------------------------------------------------------
     def get_widget_id_from_model_id(self, model_id: str):

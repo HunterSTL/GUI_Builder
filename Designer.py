@@ -178,10 +178,13 @@ class Designer:
                 "change_size": self._change_grid_size,
                 "change_color": self._change_grid_color
             },
-            "attribute_changed": self._on_attribute_changed,
-            "toggle_call_tracing": call_tracer.toggle,
-            "set_dirty": self._set_dirty,
-            "set_clean": self._set_clean
+            "debug": {
+                "toggle_call_tracing": call_tracer.toggle,
+                "set_dirty": self._set_dirty,
+                "set_clean": self._set_clean,
+                "print_widget_count": self._print_widget_count
+            },
+            "attribute_changed": self._on_attribute_changed
         })
 
         #call functions that require the callback dictionary to be built------------------------------------------------
@@ -291,7 +294,8 @@ class Designer:
         clamped_y = clamp(model.y, min_y, max_y)
 
         #delete preview widget
-        self.canvas.delete(preview_widget_id)
+        self.canvas.delete(preview_widget_id)   #delete the widget from canvas
+        preview_widget.destroy()                #delete the tk widget instance
 
         #update model
         with self.app_state.batch():
@@ -586,6 +590,9 @@ class Designer:
         self.state.is_dirty = False
         self.titlebar_label.configure(text=self.app_state.project.title)
         self.titlebar_label.update()
+
+    def _print_widget_count(self):
+        print(f"Live widget count: {len(self.canvas.children)}")
 
     def _add_widget_menu(self):
         """construct the context menu for adding widgets"""
