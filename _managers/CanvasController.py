@@ -2,7 +2,10 @@ from _managers import CanvasView
 from AppState import AppState
 
 class CanvasController:
-    """wires user interactions from the CanvasView into app intents via callbacks"""
+    """
+    Routes all canvas input (keyboard, mouse, gestures) into
+    Designer actions, selection logic and widget manipulation.
+    """
     def __init__(
         self,
         app_state: AppState,
@@ -11,7 +14,7 @@ class CanvasController:
         nudge_big: int,
         callbacks: dict
     ):
-        """initialize the canvas controller and construct the drawing canvas"""
+        """store references and initial configuration"""
         self.canvas_view = canvas_view
         self.app_state = app_state
         self.nudge_small = nudge_small
@@ -20,12 +23,13 @@ class CanvasController:
 
     #Grid rendering-----------------------------------------------------------------------------------------------------
     def render_grid(self):
+        """render or remove the grid based on grid visibility"""
         grid_config = self.app_state.project.grid
         self.canvas_view.render_grid(grid_config.size, grid_config.color, grid_config.visible)
 
     #Event binding------------------------------------------------------------------------------------------------------
     def bind_events(self):
-        """bind key, mouse, selection, project, widget, grid, and debug events to the canvas"""
+        """bind keyboard, mouse, selection, project, widget, grid, and debug events to the canvas"""
         canvas = self.canvas_view.canvas
 
         #keeps focus on canvas

@@ -8,14 +8,11 @@ from _dataclasses import DesignerState
 from _dataclasses import ProjectDocument
 from _dataclasses import LabelWidgetData, EntryWidgetData, ButtonWidgetData
 #managers
-from _managers import CanvasView
-from _managers import CanvasController
-from _managers import SelectionView
-from _managers import SelectionController
-from _managers import WidgetView
-from _managers import WidgetController
+from _managers import AttributesPanelView, AttributesPanelController
+from _managers import CanvasView, CanvasController
+from _managers import SelectionView, SelectionController
+from _managers import WidgetView, WidgetController
 from _managers import ToolbarManager
-from _managers import AttributesPanelManager
 #commands
 from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
 #misc
@@ -118,17 +115,20 @@ class Designer:
             widget_view=self.widget_view
         )
 
-        #create AttributesPanelManager to show/hide the attribute panel for a selected widget---------------------------
-        self.attributes_panel_manager = AttributesPanelManager(
-            root=self.top,
+        #create AttributePanelView to render the attributes and bind tk variables---------------------------------------
+        self.attributes_panel_view = AttributesPanelView(
             frame=self.attributes_panel_frame,
-            canvas_width=self.app_state.project.width,
-            canvas_height=self.app_state.project.height,
             panel_color=self.program_theme["attributes_panel"]["color"],
             widget_color=self.program_theme["attributes_panel"]["widget_color"],
             text_color=self.program_theme["attributes_panel"]["text_color"],
-            selection_state=self.app_state.selection,
-            callbacks=self.callbacks
+            on_attribute_changed_callback=self._on_attribute_changed
+        )
+
+        #create AttributesPanelController to provide refresh/clear API and to compute spinbox limits--------------------
+        self.attributes_panel_controller = AttributesPanelController(
+            attribute_panel_view=self.attributes_panel_view,
+            canvas_width=self.app_state.project.width,
+            canvas_height=self.app_state.project.height
         )
 
         #create ToolbarManager to store theme and function callbacks----------------------------------------------------
@@ -375,7 +375,7 @@ class Designer:
         #refresh attributes panel if only one widget is selected
         if len(selected_models) == 1:
             model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
-            self.attributes_panel_manager.update_variable_from_model(model)
+            self.attributes_panel_view.update_variables_from_model(model)
 
         #set app state to dirty
         if not is_dragging:
@@ -444,7 +444,7 @@ class Designer:
         #refresh attributes panel if only one widget is selected
         if len(selected_models) == 1:
             model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
-            self.attributes_panel_manager.update_variable_from_model(model)
+            self.attributes_panel_view.update_variables_from_model(model)
 
         #set app state to dirty
         self._set_dirty()
@@ -635,12 +635,12 @@ class Designer:
 
         if len(selected_models) == 1:
             model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
-            self.attributes_panel_manager.refresh(model)
+            self.attributes_panel_controller.refresh(model)
         else:
-            self.attributes_panel_manager.clear()
+            self.attributes_panel_controller.clear()
 
     def _on_attribute_changed(self, model_id: str, attribute: str, value):
-        """apply attribute changes coming from the attributes panel"""
+        """apply attribute changes coming from the attributes panel to the model"""
         if model_id is None:
             return
 
@@ -650,7 +650,7 @@ class Designer:
         #recompute spinbox limits
         model = self.app_state.get_model_from_model_id(model_id)
         if attribute in ("anchor", "width", "height"):
-            self.attributes_panel_manager.update_spinbox_limits(model)
+            self.attributes_panel_controller.update_spinbox_limits(model)
 
         #set app state to dirty
         self._set_dirty()

@@ -4,7 +4,10 @@ from _managers import SelectionView
 from AppState import AppState
 
 class SelectionController:
-    """gesture logic, hit-testing and AppState writes"""
+    """
+    Implements click selection, additive selection, rectangle selection,
+    drag gestures, hit-testing and coordinates updates to AppState.
+    """
     def __init__(
         self,
         canvas: tk.Canvas,
@@ -16,7 +19,7 @@ class SelectionController:
         resolve_widget_to_model,
         callbacks: dict
     ):
-        """initialize selection manager, drag states, outline tracking, and callbacks"""
+        """initialize selection/drag states and mappings"""
         self.canvas = canvas
         self.app_state = app_state
         self.selection_view = selection_view
@@ -78,7 +81,7 @@ class SelectionController:
 
     #External API-------------------------------------------------------------------------------------------------------
     def is_dragging(self):
-        """return True if a widget drag gesture is active"""
+        """return whether a widget drag gesture is active"""
         return self._widget_drag_state.is_dragging
 
     #Canvas event handlers----------------------------------------------------------------------------------------------
@@ -128,7 +131,7 @@ class SelectionController:
 
     #Widget drag logic--------------------------------------------------------------------------------------------------
     def start_widget_drag(self, event):
-        """record drag start position and notify Designer"""
+        """begin a widget drag by recording drag start position and notifying the Designer (to store original widget positions)"""
         wds = self._widget_drag_state
 
         wds.drag_start_coords = self.pointer_in_canvas_coords(event)
@@ -181,7 +184,7 @@ class SelectionController:
         self.callbacks["widget"]["move"](incremental_dx, incremental_dy)
 
     def end_widget_drag(self):
-        """reset widget drag state and notify Designer"""
+        """end a widget drag by resetting widget drag state and notifying the Designer (to execute the MoveWidgetsTo command)"""
         wds = self._widget_drag_state
 
         wds.drag_start_coords = None

@@ -2,21 +2,27 @@ from AppState import AppState
 from _managers import WidgetView
 
 class WidgetController:
+    """
+    Controller that manages widget rendering and propagates
+    widget mutation (deletion, attribute changes through attributes panel) to the model.
+    """
     def __init__(
         self,
         app_state: AppState,
         widget_view: WidgetView
     ):
-        """initialize the widget controller"""
+        """store AppState (model) and WidgetView references"""
         self.app_state = app_state
         self.widget_view = widget_view
 
     #Widget rendering---------------------------------------------------------------------------------------------------
     def render_soft(self, model_id: str):
+        """re-render an existing model"""
         model = self.app_state.get_model_from_model_id(model_id)
         self.widget_view.render_soft(model)
 
     def render_full(self):
+        """rebuild all widgets from models"""
         models = self.app_state.project.widget_models
         self.widget_view.render_full(models)
 
@@ -32,7 +38,7 @@ class WidgetController:
         self.widget_view.delete_widget(model_id)
 
     def update_widget_attribute(self, model_id: str, attribute: str, value):
-        """apply an attribute change from the AttributesPanel to a widget and propagate through AppState"""
+        """apply an attribute change from the AttributesPanel to the widget and model"""
         widget = self.widget_view.get_widget_from_model_id(model_id)
         if not widget:
             return

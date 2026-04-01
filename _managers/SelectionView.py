@@ -1,7 +1,9 @@
 import tkinter as tk
 
 class SelectionView:
-    """tk-only view: draws selection outlines and the selection rectangle"""
+    """
+    Tk-only view that draws selection outlines and the selection rectangle (UI-lement) during a rectangle selection (gesture)
+    """
     def __init__(
         self,
         canvas: tk.Canvas,
@@ -11,7 +13,7 @@ class SelectionView:
         selection_dash: tuple[int],
         selection_padding: int
     ):
-        """initialize selection manager, drag states, outline tracking, and callbacks"""
+        """store canvas and appearance settings"""
         self.canvas = canvas
         self.selection_color = selection_color
         self.last_selected_color = last_selected_color

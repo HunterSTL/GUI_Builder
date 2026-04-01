@@ -1,7 +1,10 @@
 import tkinter as tk
 
 class CanvasView:
-    """tk-only view: creates the inner canvas and renders the grid"""
+    """
+    Tk-only view that owns the inner drawing canvas
+    and provides the grid rendering API
+    """
     def __init__(
         self,
         parent: tk.Canvas,

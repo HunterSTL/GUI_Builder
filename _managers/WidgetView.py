@@ -1,11 +1,15 @@
 import tkinter as tk
 
 class WidgetView:
+    """
+    Tk-only view that builds, renders, updates and destroys widget instances
+    based on model data and maintains widget <> model mappings.
+    """
     def __init__(
         self,
         canvas: tk.Canvas
     ):
-        """initialize the widget view and its widget/model mappings"""
+        """store canvas reference and widget/model mappings"""
         self.canvas = canvas
         self.widget_map = {}                            #{widget_id: {"model": model, "widget": widget}}
         self.model_id_to_widget_id: dict[str, int] = {} #model_id → widget_id
@@ -23,7 +27,7 @@ class WidgetView:
         return None
 
     def _insert_widget_into_canvas(self, widget, x, y, anchor):
-        """create a canvas window for the widget and place it on x|y"""
+        """place widget on canvas and return resulting widget_id"""
         widget_id = self.canvas.create_window(
             x, y,
             window=widget,
@@ -39,7 +43,7 @@ class WidgetView:
         self.model_id_to_widget_id[model.id] = widget_id
 
     def _bind_widget_events(self, widget):
-        """bind widget mouse/configure events and forward to canvas where needed"""
+        """forward widget events to the canvas"""
         def forward_to_canvas(event, sequence):
             canvas_x = event.x_root - self.canvas.winfo_rootx()
             canvas_y = event.y_root - self.canvas.winfo_rooty()
