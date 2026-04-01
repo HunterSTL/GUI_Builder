@@ -19,6 +19,7 @@ from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
 from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, nearest_in_bounds_grid_step
 from UIComponents import CustomTitlebar
 from CallTracer import call_tracer
+from EventBus import EventBus
 
 class Designer:
     def __init__(
@@ -27,16 +28,15 @@ class Designer:
         project_document: ProjectDocument,
         program_theme: dict,
         constants: dict,
-        project_callbacks: dict
+        event_bus: EventBus
     ):
         """initialize the Designer window, UI, managers, callbacks, and state"""
         self.parent = parent
         self.program_theme = program_theme
         self.constants = constants
-        self.project_callbacks = project_callbacks
 
-        #shared mutable callbacks dictionary
-        self.callbacks = {}
+        #EventBus: functions subscribe to an event (e.g. function Designer._move() subscribes to the event "widget.move")
+        self.event_bus = event_bus
 
         #app state (pure model)
         self.app_state = AppState(project_document)
@@ -79,7 +79,7 @@ class Designer:
             canvas_view=self.canvas_view,
             nudge_small=self.constants["nudge"]["small"],
             nudge_big=self.constants["nudge"]["big"],
-            callbacks=self.callbacks
+            event_bus=self.event_bus
         )
 
         #create SelectionView to render selection rectangle and selection outlines--------------------------------------
@@ -101,7 +101,7 @@ class Designer:
             drag_threshold=self.constants["drag_threshold"],
             resolve_model_to_widget=lambda model_id: self.widget_view.get_widget_id_from_model_id(model_id),
             resolve_widget_to_model=lambda widget_id: self.widget_view.get_model_id_from_widget_id(widget_id),
-            callbacks=self.callbacks
+            event_bus=self.event_bus
         )
 
         #create WidgetView to render widget models and store mappings---------------------------------------------------
@@ -140,54 +140,13 @@ class Designer:
             button_text_color=self.program_theme["button"]["fg"],
             menu_color=self.program_theme["menu"]["bg"],
             menu_text_color=self.program_theme["menu"]["fg"],
-            callbacks=self.callbacks,
+            event_bus=self.event_bus,
             grid_visible_variable=self.grid_visible_variable
         )
 
-        #build shared callback dictionary-------------------------------------------------------------------------------
-        self.callbacks.update({
-            "show_menu": self._show_menu,
-            "selection": {
-                "press": self.selection_controller.handle_canvas_press,
-                "drag": self.selection_controller.handle_canvas_drag,
-                "release": self.selection_controller.handle_canvas_release,
-                "select_all": self.app_state.selection_select_all
-            },
-            "project": self.project_callbacks,
-            "edit": {
-                "cut": self._cut,
-                "copy": self._copy,
-                "paste": self._paste,
-                "undo": self._undo,
-                "redo": self._redo
-            },
-            "widget": {
-                "move": self._move,
-                "start_drag": self._start_drag,
-                "end_drag": self._end_drag,
-                "snap_to_grid": self._snap_to_grid,
-                "delete": self._delete,
-                "align_left": lambda: self._align("left"),
-                "align_right": lambda: self._align("right"),
-                "align_top": lambda: self._align("top"),
-                "align_bottom": lambda: self._align("bottom")
-            },
-            "grid": {
-                "toggle": self._toggle_grid,
-                "apply_from_variable": self._apply_grid_from_variable,
-                "change_size": self._change_grid_size,
-                "change_color": self._change_grid_color
-            },
-            "debug": {
-                "toggle_call_tracing": call_tracer.toggle,
-                "set_dirty": self._set_dirty,
-                "set_clean": self._set_clean,
-                "print_widget_count": self._print_widget_count
-            },
-            "attribute_changed": self._on_attribute_changed
-        })
+        #subscribe functions to events
+        self._subscribe_functions_to_events()
 
-        #call functions that require the callback dictionary to be built------------------------------------------------
         #create toolbar
         self.toolbar_manager.create_toolbar()
 
@@ -239,14 +198,6 @@ class Designer:
         call_tracer.log_event(f"soft render {model_id}")
         self.widget_controller.render_soft(model_id)
         self.selection_controller.render_outline_for(model_id)
-
-    def is_dirty(self):
-        """return True if the project has unsaved changes"""
-        return self.state.is_dirty
-
-    def set_clean(self):
-        """mark project state as clean (no unsaved changes)"""
-        self._set_clean()
 
     def _add_widget(self, widget_type: str, desired_x: int, desired_y: int):
         """create a new widget of the given type at the given coordinates (with clamping)"""
@@ -807,7 +758,7 @@ class Designer:
             bg_color=self.program_theme["titlebar"]["bg"],
             fg_color=self.program_theme["titlebar"]["fg"],
             icon_path=self.app_state.project.icon_path,
-            on_close=self.project_callbacks["exit_app"]
+            on_close=lambda: self.event_bus.emit("app.exit")
         )
         titlebar.frame.pack(fill="x")
         self.titlebar_label = titlebar.label
@@ -871,3 +822,55 @@ class Designer:
         self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
 
         self._center_window()
+
+    def _subscribe_functions_to_events(self):
+        """subscribe all functions, that should be called when an event is emitted, to the corresponding event"""
+        #menu events
+        self.event_bus.subscribe("menu.show", self._show_menu)
+
+        #selection events
+        self.event_bus.subscribe("selection.handle_press", self.selection_controller.handle_canvas_press)
+        self.event_bus.subscribe("selection.handle_drag", self.selection_controller.handle_canvas_drag)
+        self.event_bus.subscribe("selection.handle_release", self.selection_controller.handle_canvas_release)
+
+        #edit events
+        self.event_bus.subscribe("edit.cut", self._cut)
+        self.event_bus.subscribe("edit.copy", self._copy)
+        self.event_bus.subscribe("edit.paste", self._paste)
+        self.event_bus.subscribe("edit.undo", self._undo)
+        self.event_bus.subscribe("edit.redo", self._redo)
+
+        #widget events
+        self.event_bus.subscribe("widget.move", self._move)
+        self.event_bus.subscribe("widget.start_drag", self._start_drag)
+        self.event_bus.subscribe("widget.end_drag", self._end_drag)
+        self.event_bus.subscribe("widget.snap_to_grid", self._snap_to_grid)
+        self.event_bus.subscribe("widget.delete", self._delete)
+        self.event_bus.subscribe("widget.align.left", lambda: self._align("left"))
+        self.event_bus.subscribe("widget.align.right", lambda: self._align("right"))
+        self.event_bus.subscribe("widget.align.top", lambda: self._align("top"))
+        self.event_bus.subscribe("widget.align.bottom", lambda: self._align("bottom"))
+        self.event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
+
+        #grid events
+        self.event_bus.subscribe("grid.toggle", self._toggle_grid)
+        self.event_bus.subscribe("grid.apply_variable", self._apply_grid_from_variable)
+        self.event_bus.subscribe("grid.change_size", self._change_grid_size)
+        self.event_bus.subscribe("grid.change_color", self._change_grid_color)
+
+        #debug events
+        self.event_bus.subscribe("debug.toggle_call_tracing", call_tracer.toggle)
+        self.event_bus.subscribe("debug.set_dirty", self._set_dirty)
+        self.event_bus.subscribe("debug.set_clean", self._set_clean)
+        self.event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
+
+        #attribute events
+        self.event_bus.subscribe("attribute.changed", self._on_attribute_changed)
+
+    def is_dirty(self):
+        """return True if the project has unsaved changes"""
+        return self.state.is_dirty
+
+    def set_clean(self):
+        """mark project state as clean (no unsaved changes)"""
+        self._set_clean()

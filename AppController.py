@@ -8,6 +8,7 @@ from SetupWizard import SetupWizard
 from Designer import Designer
 from Geometry import screen_offset_to_center_window
 from UIComponents import CustomTitlebar
+from EventBus import EventBus
 
 class AppController:
     def __init__(
@@ -19,6 +20,10 @@ class AppController:
         self.program_theme = PROGRAM_THEME
         self.constants = CONSTANTS
         self.designer = None
+
+        #EventBus: functions subscribe to an event (e.g. function Designer._move() subscribes to the event "widget.move")
+        self.event_bus = EventBus()
+        self._subscribe_functions_to_events()
 
         #copy user theme from Theme.py to prevent mutation
         self._user_theme = {key: value.copy() for key, value in USER_THEME.items()}
@@ -98,17 +103,6 @@ class AppController:
 
         self._center_window()
 
-    def _project_callbacks(self):
-        """return a dictionary containing project‑level callback functions"""
-        return {
-            "new": self.new_project,
-            "open": self.open_project,
-            "save": self.save_project,
-            "save_as": self.save_project_as,
-            "export_json": self.export_json,
-            "exit_app": self.exit_app
-        }
-
     def _fresh_user_theme(self):
         """return a shallow copy of the user theme"""
         return {key: value.copy() for key, value in self._user_theme.items()}
@@ -126,8 +120,19 @@ class AppController:
             project_document=project_document,
             program_theme=self.program_theme,
             constants=self.constants,
-            project_callbacks=self._project_callbacks()
+            event_bus=self.event_bus
         )
+
+    def _subscribe_functions_to_events(self):
+        """subscribe all functions, that should be called when an event is emitted, to the corresponding event"""
+        #project events
+        self.event_bus.subscribe("project.new", self.new_project)
+        self.event_bus.subscribe("project.open", self.open_project)
+        self.event_bus.subscribe("project.save", self.save_project)
+        self.event_bus.subscribe("project.save_as", self.save_project_as)
+
+        #app events
+        self.event_bus.subscribe("app.exit", self.exit_app)
 
     def prompt_unsaved_changes(self):
         """prompt the user when unsaved changes exist and return SAVE / DISCARD / CANCEL"""
@@ -246,10 +251,6 @@ class AppController:
 
         #set app state to clean
         self.designer.set_clean()
-
-    def export_json(self):
-        """export the project to JSON (placeholder)"""
-        print("export_json")
 
     def exit_app(self):
         """exit application, prompting for unsaved changes if needed"""

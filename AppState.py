@@ -10,7 +10,7 @@ class AppState:
         self.project = project_document         #must only be mutated using AppState API (add_widget, set_grid_visible, set_title...)
         self.selection = SelectionState()
 
-        self._listeners = []                    #functions that get called when any mutation happens
+        self._subscribers = []                  #functions that get called when any mutation happens
 
         self._batch_depth = 0                   #keeps track of batch depth so only the outer most batch calls _notify (batches can be nested)
         self._pending_notify = False            #signals whether _notify will be called at the end of the batch
@@ -21,23 +21,23 @@ class AppState:
 
     #State change notifications-----------------------------------------------------------------------------------------
     def subscribe(self, function):
-        """register a listener"""
+        """register a function to be called when the state changes"""
         if not callable(function):
-            raise TypeError("listener must be callable")
-        self._listeners.append(function)
+            raise TypeError("Subscriber must be callable")
+        self._subscribers.append(function)
 
     def _notify(self):
-        """notify all listeners"""
+        """notify all subscribers"""
         if self._batch_depth > 0:
-            #don't call the listeners if called while batching (with batch():)
+            #don't call the subscribers if called while batching (with batch():)
             #instead set flag to notify once batching is complete
             self._pending_notify = True
             return
 
-        for function in self._listeners:
+        for function in self._subscribers:
             function(self)
 
-        #reset flags and clear dirty models after all listeners have been called
+        #reset flags and clear dirty models after all subscribers have been called
         self.structural_change = False
         self.selection_change = False
         self.dirty_model_ids.clear()
@@ -124,14 +124,14 @@ class AppState:
 
     #Selection----------------------------------------------------------------------------------------------------------
     def selection_clear(self):
-        """clear all selected models and notify listeners"""
+        """clear all selected models and notify subscribers"""
         if not self.selection_is_empty():
             self._clear_selection_state()
             self.selection_change = True        #forces redraw of selection outlines
             self._notify()
 
     def selection_select_only(self, model_id: str):
-        """replace the current selection with the given model and notify listeners"""
+        """replace the current selection with the given model and notify subscribers"""
         if model_id is None:
             return
 
@@ -141,7 +141,7 @@ class AppState:
         self._notify()
 
     def selection_toggle(self, model_id: str):
-        """add the given model to the selection or remove it if it's already selected and notify listeners"""
+        """add the given model to the selection or remove it if it's already selected and notify subscribers"""
         if model_id is None:
             return
 
@@ -183,7 +183,7 @@ class AppState:
     #Rectangle selection------------------------------------------------------------------------------------------------
     def apply_rectangle_selection(self, enclosed_model_ids: set[str], is_additive):
         """
-        finalize a rectangle selection gesture and notify listeners
+        finalize a rectangle selection gesture and notify subscribers
             -if additive: add enclosed model to selection
             -if not additive: replace selection entirely
         """

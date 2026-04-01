@@ -1,4 +1,5 @@
 import tkinter as tk
+from EventBus import EventBus
 
 class ToolbarManager:
     def __init__(
@@ -10,7 +11,7 @@ class ToolbarManager:
         button_text_color: str,
         menu_color: str,
         menu_text_color: str,
-        callbacks: dict,
+        event_bus: EventBus,
         grid_visible_variable: tk.BooleanVar
     ):
         """initialize the toolbar manager and its configuration"""
@@ -21,7 +22,7 @@ class ToolbarManager:
         self.button_text_color = button_text_color
         self.menu_color = menu_color
         self.menu_text_color = menu_text_color
-        self.callbacks = callbacks
+        self.event_bus = event_bus
         self.grid_visible_variable = grid_visible_variable
 
         self.toolbar = None
@@ -45,36 +46,30 @@ class ToolbarManager:
         file_menu_button.pack(side="left")
 
         #project events
-        project_callbacks = self.callbacks["project"]
         file_menu.add_command(
             label="New",
-            command=project_callbacks["new"],
+            command=lambda: self.event_bus.emit("project.new"),
             accelerator="[CTRL] + [N]"
         )
         file_menu.add_command(
             label="Open",
-            command=project_callbacks["open"],
+            command=lambda: self.event_bus.emit("project.open"),
             accelerator="[CTRL] + [O]"
         )
         file_menu.add_command(
             label="Save",
-            command=project_callbacks["save"],
+            command=lambda: self.event_bus.emit("project.save"),
             accelerator="[CTRL] + [S]"
         )
         file_menu.add_command(
             label="Save as",
-            command=project_callbacks["save_as"],
+            command=lambda: self.event_bus.emit("project.save_as"),
             accelerator="[CTRL] + [SHIFT] + [S]"
-        )
-        file_menu.add_command(
-            label="Export JSON",
-            command=project_callbacks["export_json"],
-            accelerator="[CTRL] + [E]"
         )
         file_menu.add_separator()
         file_menu.add_command(
             label="Exit",
-            command=project_callbacks["exit_app"],
+            command=lambda: self.event_bus.emit("app.exit"),
             accelerator="[ALT] + [F4]"
         )
 
@@ -86,36 +81,30 @@ class ToolbarManager:
         edit_menu_button.pack(side="left")
 
         #edit events
-        edit_callbacks = self.callbacks["edit"]
         edit_menu.add_command(
             label="Cut",
-            command=edit_callbacks["cut"],
+            command=lambda: self.event_bus.emit("edit.cut"),
             accelerator="[CTRL] + [X]"
         )
         edit_menu.add_command(
             label="Copy",
-            command=edit_callbacks["copy"],
+            command=lambda: self.event_bus.emit("edit.copy"),
             accelerator="[CTRL] + [C]"
         )
         edit_menu.add_command(
             label="Paste",
-            command=edit_callbacks["paste"],
+            command=lambda: self.event_bus.emit("edit.paste"),
             accelerator="[CTRL] + [V]"
         )
         edit_menu.add_command(
             label="Undo",
-            command=edit_callbacks["undo"],
+            command=lambda: self.event_bus.emit("edit.undo"),
             accelerator="[CTRL] + [Z]"
         )
         edit_menu.add_command(
             label="Redo",
-            command=edit_callbacks["redo"],
+            command=lambda: self.event_bus.emit("edit.redo"),
             accelerator="[CTRL] + [Y]"
-        )
-        edit_menu.add_command(
-            label="Select all",
-            command=self.callbacks["selection"]["select_all"],
-            accelerator="[CTRL] + [A]"
         )
 
     def _add_widget_menu(self):
@@ -126,36 +115,40 @@ class ToolbarManager:
         widget_menu_button.pack(side="left")
 
         #widget events
-        widget_callbacks = self.callbacks["widget"]
         widget_menu.add_command(
             label="Delete",
-            command=widget_callbacks["delete"],
+            command=lambda: self.event_bus.emit("widget.delete"),
             accelerator="[Del]"
         )
         widget_menu.add_command(
             label="Snap to grid",
-            command=widget_callbacks["snap_to_grid"],
+            command=lambda: self.event_bus.emit("widget.snap_to_grid"),
             accelerator="[S]"
         )
         widget_menu.add_command(
             label="Align left",
-            command=widget_callbacks["align_left"],
+            command=lambda: self.event_bus.emit("widget.align.left"),
             accelerator="[CTRL] + [←]"
         )
         widget_menu.add_command(
             label="Align right",
-            command=widget_callbacks["align_right"],
+            command=lambda: self.event_bus.emit("widget.align.right"),
             accelerator="[CTRL] + [→]"
         )
         widget_menu.add_command(
             label="Align top",
-            command=widget_callbacks["align_top"],
+            command=lambda: self.event_bus.emit("widget.align.top"),
             accelerator="[CTRL] + [↑]"
         )
         widget_menu.add_command(
             label="Align bottom",
-            command=widget_callbacks["align_bottom"],
+            command=lambda: self.event_bus.emit("widget.align.bottom"),
             accelerator="[CTRL] + [↓]"
+        )
+        widget_menu.add_command(
+            label="Select all",
+            command=lambda: self.event_bus.emit("widget.select_all"),
+            accelerator="[CTRL] + [A]"
         )
 
     def _add_grid_menu(self):
@@ -166,21 +159,20 @@ class ToolbarManager:
         grid_menu_button.pack(side="left")
 
         #grid events
-        grid_callbacks = self.callbacks["grid"]
         grid_menu.add_checkbutton(
             label="Visualize grid",
             variable=self.grid_visible_variable,
-            command=grid_callbacks["apply_from_variable"],
+            command=lambda: self.event_bus.emit("grid.apply_variable"),
             accelerator="[G]"
         )
         grid_menu.add_command(
             label="Change grid size",
-            command=grid_callbacks["change_size"],
+            command=lambda: self.event_bus.emit("grid.change_size"),
             accelerator="[CTRL] + [G]"
         )
         grid_menu.add_command(
             label="Change grid color",
-            command=grid_callbacks["change_color"],
+            command=lambda: self.event_bus.emit("grid.change_color"),
             accelerator="[SHIFT] + [G]"
         )
 
@@ -192,24 +184,23 @@ class ToolbarManager:
         debug_menu_button.pack(side="left")
 
         #debug events
-        debug_callbacks = self.callbacks["debug"]
         debug_menu.add_checkbutton(
             label="Call tracing",
-            command=debug_callbacks["toggle_call_tracing"],
+            command=lambda: self.event_bus.emit("debug.toggle_call_tracing"),
             accelerator="[CTRL] + [SHIFT] + [T]"
         )
         debug_menu.add_command(
             label="Set dirty",
-            command=debug_callbacks["set_dirty"],
+            command=lambda: self.event_bus.emit("debug.set_dirty"),
             accelerator="[CTRL] + [D]"
         )
         debug_menu.add_command(
             label="Set clean",
-            command=debug_callbacks["set_clean"],
+            command=lambda: self.event_bus.emit("debug.set_clean"),
             accelerator="[CTRL] + [SHIFT] + [D]"
         )
         debug_menu.add_command(
             label="Print widget count",
-            command=debug_callbacks["print_widget_count"],
+            command=lambda: self.event_bus.emit("debug.print_widget_count"),
             accelerator="[#]"
         )

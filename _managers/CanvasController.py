@@ -1,5 +1,6 @@
 from _managers import CanvasView
 from AppState import AppState
+from EventBus import EventBus
 
 class CanvasController:
     """
@@ -12,14 +13,14 @@ class CanvasController:
         canvas_view: CanvasView,
         nudge_small: int,
         nudge_big: int,
-        callbacks: dict
+        event_bus: EventBus
     ):
         """store references and initial configuration"""
         self.canvas_view = canvas_view
         self.app_state = app_state
         self.nudge_small = nudge_small
         self.nudge_big = nudge_big
-        self.callbacks = callbacks
+        self.event_bus = event_bus
 
     #Grid rendering-----------------------------------------------------------------------------------------------------
     def render_grid(self):
@@ -37,58 +38,53 @@ class CanvasController:
         canvas.bind("<Button-1>", lambda e: canvas.focus_set(), add="+")
 
         #context menu (right click)
-        canvas.bind("<Button-3>", self.callbacks["show_menu"])
+        canvas.bind("<Button-3>", lambda e: self.event_bus.emit("menu.show", event=e))
 
         #selection events
-        selection_callbacks = self.callbacks["selection"]
-        canvas.bind("<ButtonPress-1>", selection_callbacks["press"])
-        canvas.bind("<B1-Motion>", selection_callbacks["drag"])
-        canvas.bind("<ButtonRelease-1>", selection_callbacks["release"])
-        canvas.bind("<Control-a>", lambda e: selection_callbacks["select_all"]())
+        canvas.bind("<ButtonPress-1>", lambda e: self.event_bus.emit("selection.handle_press", event=e))
+        canvas.bind("<B1-Motion>", lambda e: self.event_bus.emit("selection.handle_drag", event=e))
+        canvas.bind("<ButtonRelease-1>", lambda e: self.event_bus.emit("selection.handle_release", event=e))
 
         #project events
-        project_callbacks = self.callbacks["project"]
-        canvas.bind("<Control-n>", lambda e: project_callbacks["new"]())
-        canvas.bind("<Control-o>", lambda e: project_callbacks["open"]())
-        canvas.bind("<Control-s>", lambda e: project_callbacks["save"]())
-        canvas.bind("<Control-Shift-S>", lambda e: project_callbacks["save_as"]())
-        canvas.bind("<Control-e>", lambda e: project_callbacks["export_json"]())
-        canvas.bind("<Alt-F4>", lambda e: project_callbacks["exit_app"]())
+        canvas.bind("<Control-n>", lambda e: self.event_bus.emit("project.new"))
+        canvas.bind("<Control-o>", lambda e: self.event_bus.emit("project.open"))
+        canvas.bind("<Control-s>", lambda e: self.event_bus.emit("project.save"))
+        canvas.bind("<Control-Shift-S>", lambda e: self.event_bus.emit("project.save_as"))
+
+        #app events
+        canvas.bind("<Alt-F4>", lambda e: self.event_bus.emit("app.exit"))
 
         #edit events
-        edit_callbacks = self.callbacks["edit"]
-        canvas.bind("<Control-x>", lambda e: edit_callbacks["cut"]())
-        canvas.bind("<Control-c>", lambda e: edit_callbacks["copy"]())
-        canvas.bind("<Control-v>", lambda e: edit_callbacks["paste"]())
-        canvas.bind("<Control-z>", lambda e: edit_callbacks["undo"]())
-        canvas.bind("<Control-y>", lambda e: edit_callbacks["redo"]())
+        canvas.bind("<Control-x>", lambda e: self.event_bus.emit("edit.cut"))
+        canvas.bind("<Control-c>", lambda e: self.event_bus.emit("edit.copy"))
+        canvas.bind("<Control-v>", lambda e: self.event_bus.emit("edit.paste"))
+        canvas.bind("<Control-z>", lambda e: self.event_bus.emit("edit.undo"))
+        canvas.bind("<Control-y>", lambda e: self.event_bus.emit("edit.redo"))
 
         #widget events
-        widget_callbacks = self.callbacks["widget"]
-        canvas.bind("<Left>", lambda e: widget_callbacks["move"](-self.nudge_small, 0))
-        canvas.bind("<Right>", lambda e: widget_callbacks["move"](self.nudge_small, 0))
-        canvas.bind("<Up>", lambda e: widget_callbacks["move"](0, -self.nudge_small))
-        canvas.bind("<Down>", lambda e: widget_callbacks["move"](0, self.nudge_small))
-        canvas.bind("<Shift-Left>", lambda e: widget_callbacks["move"](-self.nudge_big, 0))
-        canvas.bind("<Shift-Right>", lambda e: widget_callbacks["move"](self.nudge_big, 0))
-        canvas.bind("<Shift-Up>", lambda e: widget_callbacks["move"](0, -self.nudge_big))
-        canvas.bind("<Shift-Down>", lambda e: widget_callbacks["move"](0, self.nudge_big))
-        canvas.bind("<Key-s>", lambda e: widget_callbacks["snap_to_grid"]())
-        canvas.bind("<Delete>", lambda e: widget_callbacks["delete"]())
-        canvas.bind("<Control-Left>", lambda e: widget_callbacks["align_left"]())
-        canvas.bind("<Control-Right>", lambda e: widget_callbacks["align_right"]())
-        canvas.bind("<Control-Up>", lambda e: widget_callbacks["align_top"]())
-        canvas.bind("<Control-Down>", lambda e: widget_callbacks["align_bottom"]())
+        canvas.bind("<Left>", lambda e: self.event_bus.emit("widget.move", dx=-self.nudge_small, dy=0))
+        canvas.bind("<Right>", lambda e: self.event_bus.emit("widget.move", dx=self.nudge_small, dy=0))
+        canvas.bind("<Up>", lambda e: self.event_bus.emit("widget.move", dx=0, dy=-self.nudge_small))
+        canvas.bind("<Down>", lambda e: self.event_bus.emit("widget.move", dx=0, dy=self.nudge_small))
+        canvas.bind("<Shift-Left>", lambda e: self.event_bus.emit("widget.move", dx=-self.nudge_big, dy=0))
+        canvas.bind("<Shift-Right>", lambda e: self.event_bus.emit("widget.move", dx=self.nudge_big, dy=0))
+        canvas.bind("<Shift-Up>", lambda e: self.event_bus.emit("widget.move", dx=0, dy=-self.nudge_big))
+        canvas.bind("<Shift-Down>", lambda e: self.event_bus.emit("widget.move", dx=0, dy=self.nudge_big))
+        canvas.bind("<Key-s>", lambda e: self.event_bus.emit("widget.snap_to_grid"))
+        canvas.bind("<Delete>", lambda e: self.event_bus.emit("widget.delete"))
+        canvas.bind("<Control-Left>", lambda e: self.event_bus.emit("widget.align.left"))
+        canvas.bind("<Control-Right>", lambda e: self.event_bus.emit("widget.align.right"))
+        canvas.bind("<Control-Up>", lambda e: self.event_bus.emit("widget.align.top"))
+        canvas.bind("<Control-Down>", lambda e: self.event_bus.emit("widget.align.bottom"))
+        canvas.bind("<Control-a>", lambda e: self.event_bus.emit("widget.select_all"))
 
         #grid events
-        grid_callbacks = self.callbacks["grid"]
-        canvas.bind("<Key-g>", lambda e: grid_callbacks["toggle"]())
-        canvas.bind("<Control-g>", lambda e: grid_callbacks["change_size"]())
-        canvas.bind("<Shift-G>", lambda e: grid_callbacks["change_color"]())
+        canvas.bind("<Key-g>", lambda e: self.event_bus.emit("grid.toggle"))
+        canvas.bind("<Control-g>", lambda e: self.event_bus.emit("grid.change_size"))
+        canvas.bind("<Shift-G>", lambda e: self.event_bus.emit("grid.change_color"))
 
         #debug events
-        debug_callbacks = self.callbacks["debug"]
-        canvas.bind("<Control-Shift-T>", lambda e: debug_callbacks["toggle_call_tracing"]())
-        canvas.bind("<Control-d>", lambda e: debug_callbacks["set_dirty"]())
-        canvas.bind("<Control-Shift-D>", lambda e: debug_callbacks["set_clean"]())
-        canvas.bind("<#>", lambda e: debug_callbacks["print_widget_count"]())
+        canvas.bind("<Control-Shift-T>", lambda e: self.event_bus.emit("debug.toggle_call_tracing"))
+        canvas.bind("<Control-d>", lambda e: self.event_bus.emit("debug.set_dirty"))
+        canvas.bind("<Control-Shift-D>",lambda e: self.event_bus.emit("debug.set_clean"))
+        canvas.bind("<#>", lambda e: self.event_bus.emit("debug.print_widget_count"))
