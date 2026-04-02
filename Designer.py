@@ -11,8 +11,8 @@ from _dataclasses import LabelWidgetData, EntryWidgetData, ButtonWidgetData
 from _managers import AttributesPanelView, AttributesPanelController
 from _managers import CanvasView, CanvasController
 from _managers import SelectionView, SelectionController
+from _managers import ToolbarView, ToolbarController
 from _managers import WidgetView, WidgetController
-from _managers import ToolbarManager
 #commands
 from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
 #misc
@@ -131,8 +131,8 @@ class Designer:
             canvas_height=self.app_state.project.height
         )
 
-        #create ToolbarManager to store theme and function callbacks----------------------------------------------------
-        self.toolbar_manager = ToolbarManager(
+        #create ToolbarView to provide the API for building the toolbar-------------------------------------------------
+        self.toolbar_view = ToolbarView(
             parent=self.top,
             height=self.constants["toolbar_height"],
             toolbar_color=self.program_theme["toolbar"]["bg"],
@@ -140,15 +140,20 @@ class Designer:
             button_text_color=self.program_theme["button"]["fg"],
             menu_color=self.program_theme["menu"]["bg"],
             menu_text_color=self.program_theme["menu"]["fg"],
-            event_bus=self.event_bus,
             grid_visible_variable=self.grid_visible_variable
+        )
+
+        #create ToolbarController to build the toolbar and wire the events
+        self.toolbar_controller = ToolbarController(
+            toolbar_view=self.toolbar_view,
+            event_bus=self.event_bus
         )
 
         #subscribe functions to events
         self._subscribe_functions_to_events()
 
         #create toolbar
-        self.toolbar_manager.create_toolbar()
+        self.toolbar_controller.build_toolbar()
 
         #pack main frame after creating toolbar so toolbar is on top
         self.main_frame.pack(side="top", fill="both", expand=True)

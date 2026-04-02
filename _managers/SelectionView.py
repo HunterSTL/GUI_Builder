@@ -21,8 +21,8 @@ class SelectionView:
         self.selection_dash = selection_dash
         self.selection_padding = selection_padding
 
-        self._selection_rectangle_id = None  #stores the id of the selection rectangle
-        self._selection_outlines = {}       #model_id -> outline rectangle_id
+        self._selection_rectangle_id = None     #stores the id of the selection rectangle
+        self._selection_outlines = {}           #model_id -> outline rectangle_id
 
     #Rendering API------------------------------------------------------------------------------------------------------
     def clear_selection_outlines(self):

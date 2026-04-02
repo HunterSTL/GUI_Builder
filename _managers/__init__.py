@@ -4,7 +4,8 @@ from .CanvasView import CanvasView
 from .CanvasController import CanvasController
 from .SelectionView import SelectionView
 from .SelectionController import SelectionController
-from .ToolbarManager import ToolbarManager
+from .ToolbarView import ToolbarView
+from .ToolbarController import ToolbarController
 from .WidgetView import WidgetView
 from .WidgetController import WidgetController
 
@@ -15,7 +16,8 @@ __all__ = [
     "CanvasController",
     "SelectionView",
     "SelectionController",
-    "ToolbarManager",
+    "ToolbarView",
+    "ToolbarController",
     "WidgetView",
     "WidgetController"
 ]
