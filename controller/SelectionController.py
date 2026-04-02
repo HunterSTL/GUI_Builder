@@ -1,6 +1,6 @@
 import tkinter as tk
-from _dataclasses import WidgetDragState, RectangleSelectionState
-from _managers import SelectionView
+from model import WidgetDragState, RectangleSelectionState
+from view import SelectionView
 from AppState import AppState
 from EventBus import EventBus
 

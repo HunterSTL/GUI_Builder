@@ -1,9 +1,9 @@
-from _managers import ToolbarView
+from view import ToolbarView
 from EventBus import EventBus
 
 class ToolbarController:
     """
-    Builds menu structure using ToolbarView and connects commands to the EventBus.
+    Builds menu structure using ToolbarView and connects commands to EventBus.
     """
     def __init__(
         self,

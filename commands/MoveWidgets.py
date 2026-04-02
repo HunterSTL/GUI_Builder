@@ -1,6 +1,5 @@
 from .BaseCommand import Command
-from _managers import WidgetView
-from _managers import WidgetController
+from controller import WidgetController
 
 class MoveWidgets(Command):
     def __init__(
@@ -8,11 +7,9 @@ class MoveWidgets(Command):
         model_ids: frozenset,
         dx: int,
         dy: int,
-        widget_view: WidgetView,
         widget_controller: WidgetController
     ):
         """initialize a MoveWidgets command with deltas and affected model IDs"""
-        self.widget_view = widget_view
         self.widget_controller = widget_controller
 
         self._model_ids = model_ids

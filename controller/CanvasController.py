@@ -1,4 +1,4 @@
-from _managers import CanvasView
+from view import CanvasView
 from AppState import AppState
 from EventBus import EventBus
 

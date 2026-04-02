@@ -2,7 +2,7 @@ import tkinter as tk
 
 class ToolbarView:
     """
-    Tk-only view that builds the toolbar frame and provides an API
+    Tk-only view that builds the toolbar and provides an API
     for adding menus, menu items, checkbox menu items and separators.
     """
     def __init__(

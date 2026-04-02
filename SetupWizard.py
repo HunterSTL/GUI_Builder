@@ -1,9 +1,8 @@
 import os
 import tkinter as tk
 from tkinter import colorchooser, messagebox, filedialog
-from _dataclasses import ProjectDocument, GridConfig
-from Geometry import screen_offset_to_center_window
-from UIComponents import load_icon, CustomTitlebar
+from model import ProjectDocument, GridConfig
+from utils import screen_offset_to_center_window, load_icon, CustomTitlebar
 
 class SetupWizard:
     def __init__(

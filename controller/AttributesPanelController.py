@@ -1,5 +1,5 @@
-from Geometry import allowed_x_range, allowed_y_range
-from _managers import AttributesPanelView
+from utils import allowed_x_range, allowed_y_range
+from view import AttributesPanelView
 
 #attributes that can be shown in the attributes panel including the type of widget
 #to display the value with (text field, numeric input, color picker, dropwodn etc.)

@@ -1,5 +1,5 @@
+from view import WidgetView
 from AppState import AppState
-from _managers import WidgetView
 
 class WidgetController:
     """

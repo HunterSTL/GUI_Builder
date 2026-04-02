@@ -23,7 +23,7 @@ class ProjectDocument:
 
     @classmethod
     def from_json(cls, data: dict) -> "ProjectDocument":
-        from _dataclasses import LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
+        from model import LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
 
         grid_data = data.get("grid", {})
         grid = GridConfig(

@@ -3,7 +3,7 @@ import unittest
 class TestProjectDocumentRoundtrip(unittest.TestCase):
     def test_project_document_roundtrip(self):
         import json
-        from _dataclasses import ProjectDocument, GridConfig, LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
+        from model import ProjectDocument, GridConfig, LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
 
         #reset counters
         IdCounters.label = IdCounters.entry = IdCounters.button = 1
@@ -62,8 +62,9 @@ class TestAddWidgetFromModel(unittest.TestCase):
     def test_add_widget_from_model(self):
         import tkinter as tk
         from AppState import AppState
-        from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
-        from _managers import WidgetView, WidgetController
+        from model import ProjectDocument, LabelWidgetData, IdCounters
+        from view import WidgetView
+        from controller import WidgetController
 
         root = tk.Tk()
         root.withdraw()
@@ -105,8 +106,9 @@ class TestMoveWidget(unittest.TestCase):
     def test_move_widget(self):
         import tkinter as tk
         from AppState import AppState
-        from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
-        from _managers import WidgetView, WidgetController
+        from model import ProjectDocument, LabelWidgetData, IdCounters
+        from view import WidgetView
+        from controller import WidgetController
 
         root = tk.Tk()
         root.withdraw()
@@ -153,9 +155,10 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
     def test_undo_redo_move_widget(self):
         import tkinter as tk
         from AppState import AppState
-        from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
-        from _managers import WidgetView, WidgetController
-        from _commands import CommandStack, MoveWidgets
+        from model import ProjectDocument, LabelWidgetData, IdCounters
+        from view import WidgetView
+        from controller import WidgetController
+        from commands import CommandStack, MoveWidgets
 
         root = tk.Tk()
         root.withdraw()
@@ -183,7 +186,7 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         command_stack = CommandStack()
 
         #move by dx/dy
-        command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, widget_view, widget_controller))
+        command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, widget_controller))
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
@@ -199,9 +202,10 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
     def test_undo_redo_move_widget_to(self):
         import tkinter as tk
         from AppState import AppState
-        from _dataclasses import ProjectDocument, LabelWidgetData, IdCounters
-        from _managers import WidgetView, WidgetController
-        from _commands import CommandStack, MoveWidgetsTo
+        from model import ProjectDocument, LabelWidgetData, IdCounters
+        from view import WidgetView
+        from controller import WidgetController
+        from commands import CommandStack, MoveWidgetsTo
 
         root = tk.Tk()
         root.withdraw()
@@ -227,7 +231,7 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         widget_controller.render_soft(model.id)
 
         command_stack = CommandStack()
-        command = MoveWidgetsTo(frozenset({model.id}), widget_view, widget_controller)
+        command = MoveWidgetsTo(frozenset({model.id}), widget_controller)
 
         #simulate drag preview
         command.preview_move(50, 50)

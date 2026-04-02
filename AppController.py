@@ -1,13 +1,12 @@
 import os.path
-import tkinter as tk
 import json
-from _dataclasses import ProjectDocument
+import tkinter as tk
 from tkinter import messagebox, filedialog
+from model import ProjectDocument
+from utils import screen_offset_to_center_window, CustomTitlebar
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
 from Designer import Designer
-from Geometry import screen_offset_to_center_window
-from UIComponents import CustomTitlebar
 from EventBus import EventBus
 
 class AppController:

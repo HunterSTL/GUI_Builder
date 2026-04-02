@@ -3,7 +3,7 @@ from typing import Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     #this import is only used by the type checker and discarded at runtime
-    from _commands import MoveWidgetsTo
+    from commands import MoveWidgetsTo
 
 @dataclass
 class DesignerState:

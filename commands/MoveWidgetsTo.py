@@ -1,16 +1,13 @@
 from .BaseCommand import Command
-from _managers import WidgetView
-from _managers import WidgetController
+from controller import WidgetController
 
 class MoveWidgetsTo(Command):
     def __init__(
         self,
         model_ids: frozenset,
-        widget_view: WidgetView,
         widget_controller: WidgetController
     ):
         """initialize MoveWidgetsTo and record original widget positions"""
-        self.widget_view = widget_view
         self.widget_controller = widget_controller
 
         self._model_ids = model_ids

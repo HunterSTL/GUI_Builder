@@ -1,24 +1,11 @@
-#tkinter
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
-#model
+from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetData, ButtonWidgetData
+from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
+from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
+from commands import CommandStack, MoveWidgets, MoveWidgetsTo
+from utils import call_tracer, allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, nearest_in_bounds_grid_step, CustomTitlebar
 from AppState import AppState
-#dataclasses
-from _dataclasses import DesignerState
-from _dataclasses import ProjectDocument
-from _dataclasses import LabelWidgetData, EntryWidgetData, ButtonWidgetData
-#managers
-from _managers import AttributesPanelView, AttributesPanelController
-from _managers import CanvasView, CanvasController
-from _managers import SelectionView, SelectionController
-from _managers import ToolbarView, ToolbarController
-from _managers import WidgetView, WidgetController
-#commands
-from _commands import CommandStack, MoveWidgets, MoveWidgetsTo
-#misc
-from Geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, nearest_in_bounds_grid_step
-from UIComponents import CustomTitlebar
-from CallTracer import call_tracer
 from EventBus import EventBus
 
 class Designer:
@@ -38,13 +25,13 @@ class Designer:
         #EventBus: functions subscribe to an event (e.g. function Designer._move() subscribes to the event "widget.move")
         self.event_bus = event_bus
 
-        #app state (pure model)
+        #AppState: central model mutation engine
         self.app_state = AppState(project_document)
 
-        #designer state (last click position, dirty flag, deleting flag etc.)
+        #DesignerState: last click position, dirty flag, deleting flag etc.
         self.state = DesignerState()
 
-        #command stack
+        #CommandStack: provides undo/redo functionality
         self.command_stack = CommandStack()
 
         #variable to represent grid state from project_document
@@ -323,7 +310,6 @@ class Designer:
                     model_ids=selected_models,
                     dx=dx,
                     dy=dy,
-                    widget_view=self.widget_view,
                     widget_controller=self.widget_controller
                 )
             )
@@ -350,7 +336,6 @@ class Designer:
         #create the MoveWidgetsTo command to record original widget positions
         self.state.active_widget_drag_command = MoveWidgetsTo(
             model_ids=selected_models,
-            widget_view=self.widget_view,
             widget_controller=self.widget_controller
         )
 
