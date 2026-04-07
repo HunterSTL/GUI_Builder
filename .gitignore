@@ -1,0 +1,7 @@
+#---IDEs---
+.idea/
+.vscode/
+
+#---Python Cache---
+__pycache__/
+*.pyc

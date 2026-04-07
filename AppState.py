@@ -1,5 +1,5 @@
 from model import ProjectDocument, SelectionState
-from utils import call_tracer
+from utility import call_tracer
 
 class AppState:
     """AppState is the central place where all model state changes happen"""

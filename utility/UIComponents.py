@@ -88,12 +88,12 @@ class CustomTitlebar:
         self.close_button.pack(side="right")
 
     def _start_move(self, event):
-        self.drag_start_x = event.x_root
-        self.drag_start_y = event.y_root
-        self.window_x = self.parent.winfo_x()
-        self.window_y = self.parent.winfo_y()
+        """store the initial mouse position relative to the titlebar as the drag anchor"""
+        self.drag_anchor_x = event.x
+        self.drag_anchor_y = event.y
 
     def _do_move(self, event):
-        dx = event.x_root - self.drag_start_x
-        dy = event.y_root - self.drag_start_y
-        self.parent.geometry(f"+{self.window_x + dx}+{self.window_y + dy}")
+        """move the window by the widget-relative mouse movement since drag start"""
+        dx = event.x - self.drag_anchor_x
+        dy = event.y - self.drag_anchor_y
+        self.parent.geometry(f"+{self.parent.winfo_x() + dx}+{self.parent.winfo_y() + dy}")

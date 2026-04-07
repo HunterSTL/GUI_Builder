@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 from tkinter import colorchooser, messagebox, filedialog
 from model import ProjectDocument, GridConfig
-from utils import screen_offset_to_center_window, load_icon, CustomTitlebar
+from utility import screen_offset_to_center_window, load_icon, CustomTitlebar
 
 class SetupWizard:
     def __init__(
@@ -47,7 +47,7 @@ class SetupWizard:
         #set bg color
         self.root.config(bg=self.program_theme["background"]["color"])
 
-        #create title car
+        #create title bar
         titlebar = CustomTitlebar(
             parent=self.root,
             title="Tkinter GUI Builder – Setup",

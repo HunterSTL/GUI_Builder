@@ -3,7 +3,7 @@ import json
 import tkinter as tk
 from tkinter import messagebox, filedialog
 from model import ProjectDocument
-from utils import screen_offset_to_center_window, CustomTitlebar
+from utility import screen_offset_to_center_window, CustomTitlebar
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
 from Designer import Designer
