@@ -22,7 +22,7 @@ class CallTracer:
             return
 
         mod = frame.f_globals.get("__name__", "")
-        if not mod.startswith(("Designer", "AppState", "_managers", "_commands")):
+        if not mod.startswith(("Designer", "AppState", "view", "controller", "commands")):
             return
 
         self._ensure()

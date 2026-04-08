@@ -88,4 +88,4 @@ class CanvasController:
         canvas.bind("<Control-Shift-T>", lambda e: self.event_bus.emit("debug.toggle_call_tracing"))
         canvas.bind("<Control-d>", lambda e: self.event_bus.emit("debug.set_dirty"))
         canvas.bind("<Control-Shift-D>",lambda e: self.event_bus.emit("debug.set_clean"))
-        canvas.bind("<#>", lambda e: self.event_bus.emit("debug.print_widget_count"))
+        canvas.bind("<numbersign>", lambda e: self.event_bus.emit("debug.print_widget_count"))
