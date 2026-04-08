@@ -6,6 +6,7 @@ class WidgetController:
     Controller that manages widget rendering and propagates
     widget mutation (deletion, attribute changes through attributes panel) to the model.
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         app_state: AppState,
@@ -15,7 +16,7 @@ class WidgetController:
         self.app_state = app_state
         self.widget_view = widget_view
 
-    #Widget rendering---------------------------------------------------------------------------------------------------
+    #Rendering API------------------------------------------------------------------------------------------------------
     def render_soft(self, model_id: str):
         """re-render an existing model"""
         model = self.app_state.get_model_from_model_id(model_id)
@@ -26,7 +27,7 @@ class WidgetController:
         models = self.app_state.project.widget_models
         self.widget_view.render_full(models)
 
-    #Widget mutation----------------------------------------------------------------------------------------------------
+    #Domain logic-------------------------------------------------------------------------------------------------------
     def delete_widget(self, model_id: str):
         """delete widget model from ProjectDocument, tk widget from canvas and remove widget from mappings"""
         model = self.app_state.get_model_from_model_id(model_id)

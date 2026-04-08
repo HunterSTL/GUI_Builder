@@ -4,6 +4,7 @@ class SelectionView:
     """
     Tk-only view that draws selection outlines and the selection rectangle (UI-lement) during a rectangle selection (gesture)
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         canvas: tk.Canvas,
@@ -78,7 +79,6 @@ class SelectionView:
         for model_id in selected_models:
             self.render_outline_for(model_id, last_selected_model, resolve_model_to_widget)
 
-    #Rectangle selection------------------------------------------------------------------------------------------------
     def draw_selection_rectangle(self, x0: int, y0: int):
         """begin drawing the selection rectangle (UI-element) used for the rectangle selection (gesture)"""
         if self._selection_rectangle_id is None:

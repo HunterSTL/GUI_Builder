@@ -9,6 +9,7 @@ class SelectionController:
     Implements click selection, additive selection, rectangle selection,
     drag gestures, hit-testing and coordinates updates to AppState.
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         canvas: tk.Canvas,
@@ -42,7 +43,7 @@ class SelectionController:
         #is_dragging and is_additive flags, drag start coordinates
         self._rectangle_selection_state = RectangleSelectionState()
 
-    #Selection outline rendering----------------------------------------------------------------------------------------
+    #Rendering API------------------------------------------------------------------------------------------------------
     def render_outline_for(self, model_id: str):
         """re-render the selection outline for the given model"""
         self.selection_view.render_outline_for(
@@ -59,33 +60,12 @@ class SelectionController:
             resolve_model_to_widget=self.resolve_model_to_widget
         )
 
-    #Coordinate conversion----------------------------------------------------------------------------------------------
-    def pointer_in_canvas_coords(self, event):
-        """convert tk event coordinates to canvas coordinates"""
-        return int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
-
-    #Hit testing--------------------------------------------------------------------------------------------------------
-    def find_topmost_window_at(self, x: int, y: int):
-        """return the topmost canvas window item (widget) at the given coordinates"""
-        items = self.canvas.find_overlapping(x, y, x, y)
-        for item in reversed(items):    #last is top-most
-            if self.canvas.type(item) == "window":
-                return item
-        return None
-
-    def model_at(self, x: int, y: int):
-        """return the model_id of the widget located at the given canvas coordinates"""
-        widget_id = self.find_topmost_window_at(x, y)
-        if widget_id is None:
-            return None
-        return self.resolve_widget_to_model(widget_id)
-
     #External API-------------------------------------------------------------------------------------------------------
     def is_dragging(self):
         """return whether a widget drag gesture is active"""
         return self._widget_drag_state.is_dragging
 
-    #Canvas event handlers----------------------------------------------------------------------------------------------
+    #Event handling-----------------------------------------------------------------------------------------------------
     def handle_canvas_press(self, event):
         """handle mouse press, deciding between selection or dragging mode"""
         canvas_x, canvas_y = self.pointer_in_canvas_coords(event)
@@ -130,7 +110,7 @@ class SelectionController:
 
         self._mode = None
 
-    #Widget drag logic--------------------------------------------------------------------------------------------------
+    #Domain logic-------------------------------------------------------------------------------------------------------
     def start_widget_drag(self, event):
         """begin a widget drag by recording drag start position and notifying the Designer (to store original widget positions)"""
         wds = self._widget_drag_state
@@ -198,7 +178,6 @@ class SelectionController:
         #notify Designer that drag gesture ends (executes the MoveWidgetsTo command)
         self.event_bus.emit("widget.end_drag")
 
-    #Rectangle selection logic------------------------------------------------------------------------------------------
     def start_rectangle_selection(self, event):
         """begin a rectangle selection gesture"""
         rss = self._rectangle_selection_state
@@ -273,3 +252,23 @@ class SelectionController:
 
         #remove selection rectangle
         self.selection_view.clear_selection_rectangle()
+
+    #Helpers------------------------------------------------------------------------------------------------------------
+    def pointer_in_canvas_coords(self, event):
+        """convert tk event coordinates to canvas coordinates"""
+        return int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
+
+    def find_topmost_window_at(self, x: int, y: int):
+        """return the topmost canvas window item (widget) at the given coordinates"""
+        items = self.canvas.find_overlapping(x, y, x, y)
+        for item in reversed(items):    #last is top-most
+            if self.canvas.type(item) == "window":
+                return item
+        return None
+
+    def model_at(self, x: int, y: int):
+        """return the model_id of the widget located at the given canvas coordinates"""
+        widget_id = self.find_topmost_window_at(x, y)
+        if widget_id is None:
+            return None
+        return self.resolve_widget_to_model(widget_id)

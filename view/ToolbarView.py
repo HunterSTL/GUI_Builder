@@ -5,6 +5,7 @@ class ToolbarView:
     Tk-only view that builds the toolbar and provides an API
     for adding menus, menu items, checkbox menu items and separators.
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         parent: tk.Toplevel,
@@ -29,11 +30,6 @@ class ToolbarView:
         self.toolbar = None
         self._menus = {}    #menu_name: (menu_button, menu)
 
-    #Internals----------------------------------------------------------------------------------------------------------
-    def _get_menu(self, menu_name):
-        return self._menus[menu_name][1]
-
-    #Construction API---------------------------------------------------------------------------------------------------
     def create_toolbar(self):
         """construct and pack the toolbar frame"""
         self.toolbar = tk.Frame(
@@ -85,3 +81,7 @@ class ToolbarView:
     def add_separator(self, menu_name: str):
         menu = self._get_menu(menu_name)
         menu.add_separator()
+
+    #Internals----------------------------------------------------------------------------------------------------------
+    def _get_menu(self, menu_name):
+        return self._menus[menu_name][1]

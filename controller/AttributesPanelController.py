@@ -47,6 +47,7 @@ class AttributesPanelController:
     valid ranges for numeric inputs, and instructs the view to rebuild UI
     elements whenever selection or model geometry changes.
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         attribute_panel_view: AttributesPanelView,
@@ -60,7 +61,7 @@ class AttributesPanelController:
 
         self._silent_update = False
 
-    #Attribute rendering------------------------------------------------------------------------------------------------
+    #Rendering API------------------------------------------------------------------------------------------------------
     def refresh(self, model):
         """rebuild the panel for the given model"""
         #set active model id so view knows which widget is selected (to propagate changes from the panel to the model)
@@ -73,7 +74,7 @@ class AttributesPanelController:
         """clear all UI widgets from the attributes panel"""
         self.attribute_panel_view.clear_panel()
 
-    #Internals----------------------------------------------------------------------------------------------------------
+    #Domain logic-------------------------------------------------------------------------------------------------------
     def _populate(self, model):
         """populate the panel with widgets representing model attributes"""
         #clear previous widgets
@@ -94,6 +95,7 @@ class AttributesPanelController:
 
             row_index += 1
 
+    #Internals----------------------------------------------------------------------------------------------------------
     def _compute_spinbox_limits(self, attribute, model) -> tuple[int, int]:
         """return numeric min/max values of the spinbox for a given attribute"""
         if attribute == "x":
@@ -105,7 +107,7 @@ class AttributesPanelController:
         elif attribute == "height":
             return 1, self.canvas_height
 
-    #Rendering helpers--------------------------------------------------------------------------------------------------
+    #Helpers------------------------------------------------------------------------------------------------------------
     def update_spinbox_limits(self, model):
         """refresh existing spinbox limits when size or anchor changes"""
         spinbox_limits = {}

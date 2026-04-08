@@ -5,6 +5,7 @@ class CanvasView:
     Tk-only view that owns the inner drawing canvas
     and provides the grid rendering API
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         parent: tk.Canvas,
@@ -27,6 +28,15 @@ class CanvasView:
             takefocus=1
         )
 
+    #Rendering API------------------------------------------------------------------------------------------------------
+    def render_grid(self, grid_size: int, grid_color: str, grid_visible: bool):
+        """redraw or remove the grid display based on visibility state"""
+        if grid_visible:
+            self._clear_grid()
+            self._draw_grid(grid_size, grid_color)
+        else:
+            self._clear_grid()
+
     #Internals----------------------------------------------------------------------------------------------------------
     def _draw_grid(self, grid_size: int, grid_color: str):
         """draw the grid lines on the canvas"""
@@ -45,12 +55,3 @@ class CanvasView:
         for line in self.grid_lines:
             self.canvas.delete(line)
         self.grid_lines.clear()
-
-    #Rendering API------------------------------------------------------------------------------------------------------
-    def render_grid(self, grid_size: int, grid_color: str, grid_visible: bool):
-        """redraw or remove the grid display based on visibility state"""
-        if grid_visible:
-            self._clear_grid()
-            self._draw_grid(grid_size, grid_color)
-        else:
-            self._clear_grid()

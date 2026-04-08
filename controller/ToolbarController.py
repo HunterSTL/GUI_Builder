@@ -5,6 +5,7 @@ class ToolbarController:
     """
     Builds menu structure using ToolbarView and connects commands to EventBus.
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         toolbar_view: ToolbarView,

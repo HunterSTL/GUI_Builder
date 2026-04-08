@@ -19,6 +19,7 @@ class AttributesPanelView:
     Tk‑only view responsible for rendering/editing widget attributes, binding
     tk variables to controller callbacks and synchronizing displayed values.
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         frame: tk.Frame,
@@ -43,26 +44,6 @@ class AttributesPanelView:
 
         #call Designer._on_attribute_changed() to apply changes from the attributes panel to the model
         self.on_attribute_changed_callback = on_attribute_changed_callback
-
-    #Internals----------------------------------------------------------------------------------------------------------
-    def _bind_variables(self, attribute: str, variable: tk.Variable):
-        """bind tk variable changes to the update callback (applies changes to the model)"""
-        def _on_write(*_):
-            if self._silent_update:
-                return
-
-            value = variable.get()
-
-            if attribute in ["x", "y", "width", "height"]:
-                try:
-                    value = int(value)
-                except ValueError:
-                    return
-
-            self.on_attribute_changed_callback(self.active_model_id, attribute, value)
-
-        self._variables[attribute] = variable
-        variable.trace_add("write", _on_write)
 
     #Rendering API------------------------------------------------------------------------------------------------------
     def clear_panel(self):
@@ -176,7 +157,27 @@ class AttributesPanelView:
 
             self._bind_variables(attribute, variable)
 
-    #State helpers------------------------------------------------------------------------------------------------------
+    #Internals----------------------------------------------------------------------------------------------------------
+    def _bind_variables(self, attribute: str, variable: tk.Variable):
+        """bind tk variable changes to the update callback (applies changes to the model)"""
+        def _on_write(*_):
+            if self._silent_update:
+                return
+
+            value = variable.get()
+
+            if attribute in ["x", "y", "width", "height"]:
+                try:
+                    value = int(value)
+                except ValueError:
+                    return
+
+            self.on_attribute_changed_callback(self.active_model_id, attribute, value)
+
+        self._variables[attribute] = variable
+        variable.trace_add("write", _on_write)
+
+    #Helpers------------------------------------------------------------------------------------------------------------
     def update_variables_from_model(self, model, attributes=None):
         """sync tk.Variable values with current model state (silent update)"""
         self._silent_update = True

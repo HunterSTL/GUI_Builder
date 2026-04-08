@@ -7,6 +7,7 @@ class CanvasController:
     Routes all canvas input (keyboard, mouse, gestures) into
     Designer actions, selection logic and widget manipulation.
     """
+    #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
         app_state: AppState,
@@ -22,13 +23,13 @@ class CanvasController:
         self.nudge_big = nudge_big
         self.event_bus = event_bus
 
-    #Grid rendering-----------------------------------------------------------------------------------------------------
+    #Rendering API------------------------------------------------------------------------------------------------------
     def render_grid(self):
         """render or remove the grid based on grid visibility"""
         grid_config = self.app_state.project.grid
         self.canvas_view.render_grid(grid_config.size, grid_config.color, grid_config.visible)
 
-    #Event binding------------------------------------------------------------------------------------------------------
+    #Event handling-----------------------------------------------------------------------------------------------------
     def bind_events(self):
         """bind keyboard, mouse, selection, project, widget, grid, and debug events to the canvas"""
         canvas = self.canvas_view.canvas
