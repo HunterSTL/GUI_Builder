@@ -213,14 +213,14 @@ class AppState:
         return model.x, model.y
 
     #Selection helpers--------------------------------------------------------------------------------------------------
-    def selection_currently_selected(self):
+    def selection_currently_selected(self) -> frozenset[str]:
         return frozenset(self.selection.selected_models)
 
-    def selection_last_selected(self):
+    def selection_last_selected(self) -> str:
         return self.selection.last_selected_model
 
-    def selection_is_empty(self):
+    def selection_is_empty(self) -> bool:
         return len(self.selection.selected_models) == 0
 
-    def selection_contains(self, model_id: str):
+    def selection_contains(self, model_id: str) -> bool:
         return model_id in self.selection.selected_models

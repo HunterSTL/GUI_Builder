@@ -34,7 +34,10 @@ class Designer:
         #CommandStack: provides undo/redo functionality
         self.command_stack = CommandStack()
 
-        #variable to represent grid state from project_document
+        #stores a copy of the model for every copied widget
+        self.clipboard = []
+
+        #variable to represent grid state from ProjectDocument
         self.grid_visible_variable = tk.BooleanVar(value=self.app_state.project.grid.visible)
 
         #build designer UI
@@ -151,7 +154,7 @@ class Designer:
         #create context menu (right click) for creating new widgets
         self._add_widget_menu()
 
-        #do full render to create widgets for the existing models in the project_document and to render grid
+        #do full render to create widgets for the existing models in the ProjectDocument and to render grid
         self._do_full_render()
 
         #subscribe the function "_on_changed_state" as a listener for state changes
@@ -159,7 +162,7 @@ class Designer:
 
     def _on_changed_state(self, state: AppState):
         """respond to AppState mutations by performing full or soft rendering"""
-        #re-render entire app state if structural change happened (widget creation/deletion, grid settings, selection outlines)
+        #re-render entire AppState if structural change happened (widget creation/deletion, grid settings, selection outlines)
         if state.structural_change or len(state.dirty_model_ids) > 10:  #full render may be faster than doing soft render for multiple models
             self._do_full_render()
             return
@@ -256,20 +259,101 @@ class Designer:
         #clear selection
         self.app_state.selection_clear()
 
-        #set app state to dirty
+        #set AppState to dirty
         self._set_dirty()
 
+    def _delete_selected_models(self):
+        with self.app_state.batch():
+            for model_id in self.app_state.selection_currently_selected():
+                #let WidgetController delete the widget (deletes widget model from ProjectDocument, tk widget from canvas and removes widget from mappings)
+                self.widget_controller.delete_widget(model_id)
+
+            #clear selection
+            self.app_state.selection_clear()
+
+            #clear deleting flag
+            self.state.is_deleting = False
+
+            #set AppState to dirty
+            self._set_dirty()
+
+    def _delete(self):
+        """delete selected widgets after user confirmation"""
+        #prevent concurrent delete calls
+        if self.state.is_deleting:
+            return
+
+        count = len(self.app_state.selection_currently_selected())
+
+        if count == 0:
+            return
+        elif count == 1:
+            messagebox_text = "Delete selected widget?"
+        else:
+            messagebox_text = f"Delete {str(count)} selected widgets?"
+
+        self.state.is_deleting = True
+
+        if not messagebox.askyesno("Delete", messagebox_text):
+            self.state.is_deleting = False
+            return
+
+        self._delete_selected_models()
+
+    @staticmethod
+    def _serialize_model(model) -> dict:
+        #copy the dictionary of attributes from this model
+        data = model.__dict__.copy()
+
+        #strip the ID attribute
+        data.pop("id", None)
+        return data
+
     def _cut(self):
-        """cut selected widgets (placeholder)"""
-        print("cut")
+        """copy selected widgets to clipboard then delete them"""
+        self._copy()
+        self._delete_selected_models()
 
     def _copy(self):
-        """copy selected widgets (placeholder)"""
-        print("copy")
+        """copy selected widgets to clipboard"""
+        #clear clipboard
+        self.clipboard = []
+
+        #serialize the model of selected widgets into model_data and append it to the clipboard
+        selected_models = self.app_state.selection_currently_selected()
+        for model_id in selected_models:
+            model = self.app_state.get_model_from_model_id(model_id)
+            if model is None:
+                continue
+
+            model_data = self._serialize_model(model)
+            self.clipboard.append(model_data)
 
     def _paste(self):
-        """paste widgets (placeholder)"""
-        print("paste")
+        """paste widgets from clipboard"""
+        if not self.clipboard:
+            return
+
+        #create new widget models from serialized clipboard model_data
+        with self.app_state.batch():
+            for model_data in self.clipboard:
+                widget_type = model_data.get("type")
+
+                if widget_type == "Label":
+                    model = LabelWidgetData(**model_data)
+                elif widget_type == "Entry":
+                    model = EntryWidgetData(**model_data)
+                elif widget_type == "Button":
+                    model = ButtonWidgetData(**model_data)
+                else:
+                    continue
+
+                #create id and add to ProjectDocument
+                model.create_id()
+                self.app_state.add_widget(model)
+
+        #set AppState to dirty
+        self._set_dirty()
 
     def _undo(self):
         """undo last command and refresh selection outlines"""
@@ -283,7 +367,6 @@ class Designer:
 
     def _move(self, dx: int, dy: int):
         """move selected widgets by a delta or preview drag movement"""
-        #get selected widgets
         selected_models = self.app_state.selection_currently_selected()
 
         if not selected_models:
@@ -319,13 +402,12 @@ class Designer:
             model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
             self.attributes_panel_view.update_variables_from_model(model)
 
-        #set app state to dirty
+        #set AppState to dirty
         if not is_dragging:
             self._set_dirty()
 
     def _start_drag(self):
         """initialize a MoveWidgetsTo command when dragging begins"""
-        #get selected widgets
         selected_models = self.app_state.selection_currently_selected()
 
         #reset active_widget_drag_command if no widgets selected
@@ -357,12 +439,11 @@ class Designer:
         #reset active_widget_drag_command
         self.state.active_widget_drag_command = None
 
-        #set app state to dirty
+        #set AppState to dirty
         self._set_dirty()
 
     def _snap_to_grid(self):
         """align selected widgets to nearest grid positions"""
-        #get selected widgets
         selected_models = self.app_state.selection_currently_selected()
         if not selected_models:
             return
@@ -387,51 +468,11 @@ class Designer:
             model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
             self.attributes_panel_view.update_variables_from_model(model)
 
-        #set app state to dirty
+        #set AppState to dirty
         self._set_dirty()
-
-    def _delete(self):
-        """delete selected widgets from project and canvas"""
-        #prevent concurrent delete calls
-        if self.state.is_deleting:
-            return
-
-        #get selected model ids
-        selected_models = self.app_state.selection_currently_selected()
-
-        #build messagebox text
-        count = len(selected_models)
-        if count == 0:
-            return
-        elif count == 1:
-            messagebox_text = "Delete selected widget?"
-        else:
-            messagebox_text = f"Delete {str(count)} selected widgets?"
-
-        #set deleting flag
-        self.state.is_deleting = True
-
-        if not messagebox.askyesno("Delete", messagebox_text):
-            self.state.is_deleting = False
-            return
-
-        with self.app_state.batch():
-            for model_id in selected_models:
-                #let WidgetController delete the widget (deletes widget model from ProjectDocument, tk widget from canvas and removes widget from mappings)
-                self.widget_controller.delete_widget(model_id)
-
-            #clear selection
-            self.app_state.selection_clear()
-
-            #clear deleting flag
-            self.state.is_deleting = False
-
-            #set app state to dirty
-            self._set_dirty()
 
     def _align(self, direction):
         """align selected widgets relative to the last selected widget"""
-        #get selected widgets and last selected widget
         selected_models = self.app_state.selection_currently_selected()
         last_selected_model = self.app_state.selection.last_selected_model
         if not selected_models or not last_selected_model:
@@ -470,7 +511,7 @@ class Designer:
                     model = self.app_state.get_model_from_model_id(model_id)
                     self.app_state.move_widget_by(model, dx, dy)
 
-        #set app state to dirty
+        #set AppState to dirty
         self._set_dirty()
 
     def _toggle_grid(self):
@@ -484,10 +525,10 @@ class Designer:
         """apply grid visibility state from BooleanVar to AppState"""
         visible = self.grid_visible_variable.get()
 
-        #write current grid visible state to project_document
+        #write current grid visible state to ProjectDocument
         self.app_state.set_grid_visible(visible)
 
-        #set app state to dirty
+        #set AppState to dirty
         self._set_dirty()
 
     def _change_grid_size(self):
@@ -498,10 +539,10 @@ class Designer:
         if new_grid_size is None:
             return
 
-        #update grid size in project_document
+        #update grid size in ProjectDocument
         self.app_state.set_grid_size(new_grid_size)
 
-        #set app state to dirty
+        #set AppState to dirty
         self._set_dirty()
 
     def _change_grid_color(self):
@@ -512,13 +553,13 @@ class Designer:
         if color is None:
             return
 
-        #update grid color in project_document
+        #update grid color in ProjectDocument
         self.app_state.set_grid_color(str(color))
 
         #set focus back to canvas
         self.canvas.focus_set()
 
-        #set app state to dirty
+        #set AppState to dirty
         self._set_dirty()
 
     def _set_dirty(self):
@@ -593,7 +634,7 @@ class Designer:
         if attribute in ("anchor", "width", "height"):
             self.attributes_panel_controller.update_spinbox_limits(model)
 
-        #set app state to dirty
+        #set AppState to dirty
         self._set_dirty()
 
     def _compute_initial_window_dimensions(self):

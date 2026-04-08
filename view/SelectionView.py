@@ -70,7 +70,7 @@ class SelectionView:
             self._selection_outlines[model_id] = rect_id
         self.canvas.tag_raise(rect_id)
 
-    def render_all_outlines(self, selected_models: set[str], last_selected_model: str | None, resolve_model_to_widget):
+    def render_all_outlines(self, selected_models: frozenset[str], last_selected_model: str | None, resolve_model_to_widget):
         """clear existing selection outlines and recreate for all selected widgets"""
         self.clear_selection_outlines()
 
