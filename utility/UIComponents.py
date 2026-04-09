@@ -22,7 +22,7 @@ class CustomTitlebar:
         height: int,
         bg_color: str,
         fg_color: str,
-        icon_path: str,
+        icon_path: str | None,
         on_close
     ):
         self.parent = parent

@@ -1,10 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-
-class IdCounters:
-    label = 1
-    entry = 1
-    button = 1
+from model import IdCounters
 
 @dataclass
 class BaseWidgetData:
@@ -22,23 +18,20 @@ class LabelWidgetData(BaseWidgetData):
     text: str = ""
     type: str = "Label"
 
-    def create_id(self):
-        self.id = f"label{IdCounters.label}"
-        IdCounters.label += 1
+    def create_id(self, id_counters: IdCounters):
+        self.id = id_counters.next_label_id()
 
 @dataclass
 class EntryWidgetData(BaseWidgetData):
     type: str = "Entry"
 
-    def create_id(self):
-        self.id = f"entry{IdCounters.entry}"
-        IdCounters.entry += 1
+    def create_id(self, id_counters: IdCounters):
+        self.id = id_counters.next_entry_id()
 
 @dataclass
 class ButtonWidgetData(BaseWidgetData):
     text: str = ""
     type: str = "Button"
 
-    def create_id(self):
-        self.id = f"button{IdCounters.button}"
-        IdCounters.button += 1
+    def create_id(self, id_counters: IdCounters):
+        self.id = id_counters.next_button_id()

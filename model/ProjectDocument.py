@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any
+from model import IdCounters
 
 @dataclass
 class GridConfig:
@@ -17,13 +18,14 @@ class ProjectDocument:
     grid: GridConfig = field(default_factory=GridConfig)
     theme: Dict[str, Dict[str, str]] = field(default_factory=dict)
     widget_models: List[Any] = field(default_factory=list)
+    id_counters: IdCounters = field(default_factory=IdCounters)
 
     def to_json(self) -> dict:
         return asdict(self)
 
     @classmethod
     def from_json(cls, data: dict) -> "ProjectDocument":
-        from model import LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
+        from model import LabelWidgetData, EntryWidgetData, ButtonWidgetData
 
         grid_data = data.get("grid", {})
         grid = GridConfig(
@@ -58,8 +60,8 @@ class ProjectDocument:
                 project_doc.widget_models.append(ButtonWidgetData(**widget_model))
                 max_button_id = max(max_button_id, int(widget_id[6:]))
 
-        IdCounters.entry = max(IdCounters.entry, max_entry_id + 1)
-        IdCounters.label = max(IdCounters.label, max_label_id + 1)
-        IdCounters.button = max(IdCounters.button, max_button_id + 1)
+        project_doc.id_counters.set_next_label_id(max_label_id + 1)
+        project_doc.id_counters.set_next_entry_id(max_entry_id + 1)
+        project_doc.id_counters.set_next_button_id(max_button_id + 1)
 
         return project_doc

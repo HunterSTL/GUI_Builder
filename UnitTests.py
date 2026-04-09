@@ -3,10 +3,7 @@ import unittest
 class TestProjectDocumentRoundtrip(unittest.TestCase):
     def test_project_document_roundtrip(self):
         import json
-        from model import ProjectDocument, GridConfig, LabelWidgetData, EntryWidgetData, ButtonWidgetData, IdCounters
-
-        #reset counters
-        IdCounters.label = IdCounters.entry = IdCounters.button = 1
+        from model import ProjectDocument, GridConfig, LabelWidgetData, EntryWidgetData, ButtonWidgetData
 
         #build project document
         project_document = ProjectDocument(
@@ -26,11 +23,11 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
 
         #add 3 widgets to project document
         widget_1 = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Roundtrip Test")
-        widget_1.create_id()
+        widget_1.create_id(project_document.id_counters)
         widget_2 = EntryWidgetData(x=50, y=100, bg="#222222", fg="#bbbbbb")
-        widget_2.create_id()
+        widget_2.create_id(project_document.id_counters)
         widget_3 = ButtonWidgetData(x=50, y=150, bg="#333333", fg="#cccccc", text="Roundtrip Test")
-        widget_3.create_id()
+        widget_3.create_id(project_document.id_counters)
         project_document.widget_models.extend([widget_1, widget_2, widget_3])
 
         #serialize
@@ -54,15 +51,15 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
         self.assertEqual(types, ["Label", "Entry", "Button"])
 
         #check id counters advanced
-        self.assertGreaterEqual(IdCounters.label, 2)
-        self.assertGreaterEqual(IdCounters.entry, 2)
-        self.assertGreaterEqual(IdCounters.button, 2)
+        self.assertGreaterEqual(project_document.id_counters.label, 2)
+        self.assertGreaterEqual(project_document.id_counters.entry, 2)
+        self.assertGreaterEqual(project_document.id_counters.button, 2)
 
 class TestAddWidgetFromModel(unittest.TestCase):
     def test_add_widget_from_model(self):
         import tkinter as tk
         from AppState import AppState
-        from model import ProjectDocument, LabelWidgetData, IdCounters
+        from model import ProjectDocument, LabelWidgetData
         from view import WidgetView
         from controller import WidgetController
 
@@ -71,8 +68,6 @@ class TestAddWidgetFromModel(unittest.TestCase):
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
-
-        IdCounters.label = 1
 
         widget_view = WidgetView(
             canvas=canvas
@@ -84,7 +79,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
-        model.create_id()
+        model.create_id(project_document.id_counters)
         app_state.add_widget(model)
 
         preview_widget, preview_widget_id = widget_view.create_preview_widget(model)
@@ -106,7 +101,7 @@ class TestMoveWidget(unittest.TestCase):
     def test_move_widget(self):
         import tkinter as tk
         from AppState import AppState
-        from model import ProjectDocument, LabelWidgetData, IdCounters
+        from model import ProjectDocument, LabelWidgetData
         from view import WidgetView
         from controller import WidgetController
 
@@ -115,8 +110,6 @@ class TestMoveWidget(unittest.TestCase):
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
-
-        IdCounters.label = 1
 
         widget_view = WidgetView(
             canvas=canvas
@@ -128,7 +121,7 @@ class TestMoveWidget(unittest.TestCase):
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
-        model.create_id()
+        model.create_id(project_document.id_counters)
         app_state.add_widget(model)
 
         widget_controller.render_soft(model.id)
@@ -155,7 +148,7 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
     def test_undo_redo_move_widget(self):
         import tkinter as tk
         from AppState import AppState
-        from model import ProjectDocument, LabelWidgetData, IdCounters
+        from model import ProjectDocument, LabelWidgetData
         from view import WidgetView
         from controller import WidgetController
         from commands import CommandStack, MoveWidgets
@@ -165,8 +158,6 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
-
-        IdCounters.label = 1
 
         widget_view = WidgetView(
             canvas=canvas
@@ -178,7 +169,7 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
-        model.create_id()
+        model.create_id(project_document.id_counters)
         app_state.add_widget(model)
 
         widget_controller.render_soft(model.id)
@@ -202,7 +193,7 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
     def test_undo_redo_move_widget_to(self):
         import tkinter as tk
         from AppState import AppState
-        from model import ProjectDocument, LabelWidgetData, IdCounters
+        from model import ProjectDocument, LabelWidgetData
         from view import WidgetView
         from controller import WidgetController
         from commands import CommandStack, MoveWidgetsTo
@@ -212,8 +203,6 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
-
-        IdCounters.label = 1
 
         widget_view = WidgetView(
             canvas=canvas
@@ -225,7 +214,7 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
-        model.create_id()
+        model.create_id(project_document.id_counters)
         app_state.add_widget(model)
 
         widget_controller.render_soft(model.id)

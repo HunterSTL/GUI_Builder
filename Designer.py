@@ -506,7 +506,7 @@ class Designer:
                     continue
 
                 #create id and add to ProjectDocument
-                model.create_id()
+                model.create_id(self.app_state.project.id_counters)
                 self.app_state.add_widget(model)
 
         #set AppState to dirty
@@ -803,7 +803,7 @@ class Designer:
         else:
             return
 
-        model.create_id()
+        model.create_id(self.app_state.project.id_counters)
 
         #create a temporary preview widget to measure dimensions and clamp coordinates
         preview_widget, preview_widget_id = self.widget_view.create_preview_widget(model)
