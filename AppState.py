@@ -10,14 +10,22 @@ class AppState:
         self.project = project_document         #must only be mutated using AppState API (add_widget, set_grid_visible, set_title...)
         self.selection = SelectionState()
 
+        #State change notifications-------------------------------------------------------------------------------------
         self._subscribers = []                  #functions that get called when any mutation happens
+        self.dirty_model_ids: set[str] = set()  #holds the IDs of models that changed
+        self.structural_change = False          #signals whether a full re-render is necessary
+        self.selection_change = False           #signals whether the selection outlines need to be redrawn
 
+        #Batching-------------------------------------------------------------------------------------------------------
         self._batch_depth = 0                   #keeps track of batch depth so only the outer most batch calls _notify (batches can be nested)
         self._pending_notify = False            #signals whether _notify will be called at the end of the batch
 
-        self.dirty_model_ids: set[str] = set()  #holds the ids of models that changed
-        self.structural_change = False          #signals whether a full re-render is necessary
-        self.selection_change = False           #signals whether the selection outlines need to be redrawn
+        #Model dictionary-----------------------------------------------------------------------------------------------
+        self._model_by_id = {}                  #{model.id: model} for O(1) lookup; maintained in add_/remove_widget()
+
+        #add existing models in ProjectDocument to the dictionary
+        for model in self.project.widget_models:
+            self._model_by_id[model.id] = model
 
     #State change notifications-----------------------------------------------------------------------------------------
     def subscribe(self, function):
@@ -63,18 +71,22 @@ class AppState:
     #Widgets------------------------------------------------------------------------------------------------------------
     def add_widget(self, model):
         """append a new widget model to the ProjectDocument"""
+        self._model_by_id[model.id] = model
         self.project.widget_models.append(model)
         self.structural_change = True
         self._notify()
 
     def remove_widget(self, model):
         """remove an existing widget model from the ProjectDocument"""
+        self._model_by_id.pop(model.id, None)
+
         try:
             self.project.widget_models.remove(model)
-            self.structural_change = True
-            self._notify()
         except ValueError:
-            pass
+            return
+
+        self.structural_change = True
+        self._notify()
 
     def move_widget_to(self, model, x: int, y: int):
         """set absolute model coordinates"""
@@ -202,10 +214,10 @@ class AppState:
     #Model helpers------------------------------------------------------------------------------------------------------
     def get_model_from_model_id(self, model_id: str):
         """return the model assosciated with the given model_id"""
-        for model in self.project.widget_models:
-            if model.id == model_id:
-                return model
-        return None
+        try:
+            return self._model_by_id[model_id]
+        except KeyError:
+            raise KeyError(f"Unknown model_id: {model_id}")
 
     def get_model_coordinates_from_model_id(self, model_id: str):
         """return the x,y coordinates of the model"""
