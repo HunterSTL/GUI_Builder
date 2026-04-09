@@ -1,14 +1,14 @@
 class EventBus:
-    def __init__(self):
-        """
-        maps events (e.g. widget.move) to a list of subscribers
+    """
+    Maps events (e.g. widget.move) to a list of subscribers.
 
-        self._subscribers = {
-            "widget.move":      [function1, function2],
-            "widget.delete":    [function3],
-            "project.save":     [function4]
-        }
-        """
+    self._subscribers = {
+        "widget.move":      [function1, function2],
+        "widget.delete":    [function3],
+        "project.save":     [function4]
+    }
+    """
+    def __init__(self):
         self._subscribers = {}
 
     def subscribe(self, event_name, function):

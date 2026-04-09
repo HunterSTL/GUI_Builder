@@ -3,11 +3,11 @@ import json
 import tkinter as tk
 from tkinter import messagebox, filedialog
 from model import ProjectDocument
+from events import EventBus
 from utility import screen_offset_to_center_window, CustomTitlebar
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
 from Designer import Designer
-from EventBus import EventBus
 
 class AppController:
     def __init__(
@@ -20,8 +20,8 @@ class AppController:
         self.constants = CONSTANTS
         self.designer = None
 
-        #EventBus: functions subscribe to an event (e.g. function Designer._move() subscribes to the event "widget.move")
-        self.event_bus = EventBus()
+        #App EventBus: owns project and application events and persists across multiple Designer instances during the lifetime of the application
+        self.app_event_bus = EventBus()
         self._subscribe_functions_to_events()
 
         #copy user theme from Theme.py to prevent mutation
@@ -119,19 +119,19 @@ class AppController:
             project_document=project_document,
             program_theme=self.program_theme,
             constants=self.constants,
-            event_bus=self.event_bus
+            app_event_bus=self.app_event_bus
         )
 
     def _subscribe_functions_to_events(self):
         """subscribe all functions, that should be called when an event is emitted, to the corresponding event"""
         #project events
-        self.event_bus.subscribe("project.new", self.new_project)
-        self.event_bus.subscribe("project.open", self.open_project)
-        self.event_bus.subscribe("project.save", self.save_project)
-        self.event_bus.subscribe("project.save_as", self.save_project_as)
+        self.app_event_bus.subscribe("project.new", self.new_project)
+        self.app_event_bus.subscribe("project.open", self.open_project)
+        self.app_event_bus.subscribe("project.save", self.save_project)
+        self.app_event_bus.subscribe("project.save_as", self.save_project_as)
 
         #app events
-        self.event_bus.subscribe("app.exit", self.exit_app)
+        self.app_event_bus.subscribe("app.exit", self.exit_app)
 
     def prompt_unsaved_changes(self):
         """prompt the user when unsaved changes exist and return SAVE / DISCARD / CANCEL"""
@@ -240,9 +240,8 @@ class AppController:
         if file is None:
             return
 
-        #open .tkui file in write mode and write project_document json
-        with open(file.name, "w", encoding="utf-8") as file:
-            json.dump(self.designer.app_state.project.to_json(), file, ensure_ascii=False, indent=2)
+        #write project_document json to .tkui file
+        json.dump(self.designer.app_state.project.to_json(), file, ensure_ascii=False, indent=2)
 
         #let AppController keep track of save path and last directory
         self._save_path = file.name

@@ -52,7 +52,7 @@ class WidgetView:
 
     def render_full(self, models):
         """fully rebuild all widgets from the project models"""
-        #clear all canvas items except grid lines
+        #clear all widgets tracked in widget_map
         for widget_id, widget_map_entry in list(self.widget_map.items()):
             #delete the widget from canvas
             self.canvas.delete(widget_id)

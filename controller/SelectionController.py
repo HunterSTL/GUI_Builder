@@ -1,8 +1,8 @@
 import tkinter as tk
 from model import WidgetDragState, RectangleSelectionState
 from view import SelectionView
+from events import EventRouter
 from AppState import AppState
-from EventBus import EventBus
 
 class SelectionController:
     """
@@ -19,7 +19,7 @@ class SelectionController:
         drag_threshold: int,
         resolve_model_to_widget,
         resolve_widget_to_model,
-        event_bus: EventBus
+        event_router: EventRouter
     ):
         """initialize selection/drag states and mappings"""
         self.canvas = canvas
@@ -32,7 +32,7 @@ class SelectionController:
         self.resolve_model_to_widget = resolve_model_to_widget  #label1 → 1
         self.resolve_widget_to_model = resolve_widget_to_model  #1 → label1
 
-        self.event_bus = event_bus
+        self.event_router = event_router
 
         #"selection", "drag" or None
         self._mode = None
@@ -126,7 +126,7 @@ class SelectionController:
             pass
 
         #notify Designer that drag gesture starts (initializes MoveWidgetsTo command to store original widget positions)
-        self.event_bus.emit("widget.start_drag")
+        self.event_router.emit("widget.start_drag")
 
     def handle_widget_drag(self, event):
         """handle widget drag movement, applying deltas after threshold"""
@@ -161,7 +161,7 @@ class SelectionController:
             wds.last_total_dx = 0
             wds.last_total_dy = 0
 
-        self.event_bus.emit("widget.move", dx=incremental_dx, dy=incremental_dy)
+        self.event_router.emit("widget.move", dx=incremental_dx, dy=incremental_dy)
 
     def end_widget_drag(self):
         """end a widget drag by resetting widget drag state and notifying the Designer (to execute the MoveWidgetsTo command)"""
@@ -176,7 +176,7 @@ class SelectionController:
             pass
 
         #notify Designer that drag gesture ends (executes the MoveWidgetsTo command)
-        self.event_bus.emit("widget.end_drag")
+        self.event_router.emit("widget.end_drag")
 
     def start_rectangle_selection(self, event):
         """begin a rectangle selection gesture"""

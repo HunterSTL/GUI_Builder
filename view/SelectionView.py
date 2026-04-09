@@ -2,7 +2,7 @@ import tkinter as tk
 
 class SelectionView:
     """
-    Tk-only view that draws selection outlines and the selection rectangle (UI-lement) during a rectangle selection (gesture)
+    Tk-only view that draws selection outlines and the selection rectangle (UI element) during a rectangle selection (gesture)
     """
     #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
