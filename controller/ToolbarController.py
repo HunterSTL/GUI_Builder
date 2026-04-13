@@ -179,3 +179,15 @@ class ToolbarController:
             command=lambda: self.event_router.emit("debug.print_widget_count"),
             accelerator="[#]"
         )
+        self.toolbar_view.add_menu_item(
+            menu_name="Debug",
+            label="Print clipboard",
+            command=lambda: self.event_router.emit("debug.print_clipboard"),
+            accelerator="[F1]"
+        )
+        self.toolbar_view.add_menu_item(
+            menu_name="Debug",
+            label="Print command stack",
+            command=lambda: self.event_router.emit("debug.print_command_stack"),
+            accelerator="[F2]"
+        )

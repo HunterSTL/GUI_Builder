@@ -89,3 +89,5 @@ class CanvasController:
         canvas.bind("<Control-d>", lambda e: self.event_router.emit("debug.set_dirty"))
         canvas.bind("<Control-Shift-D>",lambda e: self.event_router.emit("debug.set_clean"))
         canvas.bind("<numbersign>", lambda e: self.event_router.emit("debug.print_widget_count"))
+        canvas.bind("<F1>", lambda e: self.event_router.emit("debug.print_clipboard"))
+        canvas.bind("<F2>", lambda e: self.event_router.emit("debug.print_command_stack"))

@@ -1,4 +1,4 @@
-from .BaseCommand import Command
+from commands import Command
 from controller import WidgetController
 
 class MoveWidgets(Command):
@@ -9,7 +9,7 @@ class MoveWidgets(Command):
         dy: int,
         widget_controller: WidgetController
     ):
-        """initialize a MoveWidgets command with deltas and affected model IDs"""
+        """store deltas and affected model IDs"""
         self.widget_controller = widget_controller
 
         self._model_ids = model_ids
@@ -35,3 +35,10 @@ class MoveWidgets(Command):
                 #move the widget to the original position
                 model = self.widget_controller.app_state.get_model_from_model_id(model_id)
                 self.widget_controller.app_state.move_widget_to(model, x, y)
+
+    def __repr__(self):
+        """called automatically when printing this object"""
+        s = "[MoveWidgets]"
+        s += f"\n\tmodel IDs:\t\t\t{self._model_ids}"
+        s += f"\n\tdx|dy:\t\t\t\t{self._dx}|{self._dy}"
+        return s

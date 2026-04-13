@@ -1,10 +1,11 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
+import copy
 from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetData, ButtonWidgetData
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
-from commands import CommandStack, MoveWidgets, MoveWidgetsTo
+from commands import CommandStack, MoveWidgets, MoveWidgetsTo, PasteWidgetsFromClipboard
 from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, nearest_in_bounds_grid_step, CustomTitlebar
 from AppState import AppState
 
@@ -503,23 +504,12 @@ class Designer:
         if not self.clipboard:
             return
 
-        #create new widget models from serialized clipboard model_data
-        with self.app_state.batch():
-            for model_data in self.clipboard:
-                widget_type = model_data.get("type")
-
-                if widget_type == "Label":
-                    model = LabelWidgetData(**model_data)
-                elif widget_type == "Entry":
-                    model = EntryWidgetData(**model_data)
-                elif widget_type == "Button":
-                    model = ButtonWidgetData(**model_data)
-                else:
-                    continue
-
-                #create id and add to ProjectDocument
-                model.create_id(self.app_state.project.id_counters)
-                self.app_state.add_widget(model)
+        self.command_stack.execute(
+            PasteWidgetsFromClipboard(
+                clipboard=self.clipboard,
+                app_state=self.app_state
+            )
+        )
 
         #set AppState to dirty
         self._set_dirty()
@@ -530,14 +520,14 @@ class Designer:
         self._delete_selected_models()
 
     def _undo(self):
-        """undo last command and refresh selection outlines"""
-        self.command_stack.undo()
-        self._set_dirty()
+        """undo last command"""
+        if self.command_stack.undo():   #only set AppState to dirty if something was undone
+            self._set_dirty()
 
     def _redo(self):
-        """redo last undone command and refresh selection outlines"""
-        self.command_stack.redo()
-        self._set_dirty()
+        """redo last undone command"""
+        if self.command_stack.redo():   #only set AppState to dirty if something was redone
+            self._set_dirty()
 
     #Event handling (widget actions)------------------------------------------------------------------------------------
     def _move(self, dx: int, dy: int):
@@ -785,6 +775,8 @@ class Designer:
         self.ui_event_bus.subscribe("debug.set_dirty", self._set_dirty)
         self.ui_event_bus.subscribe("debug.set_clean", self._set_clean)
         self.ui_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
+        self.ui_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
+        self.ui_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
 
         #attribute events
         self.ui_event_bus.subscribe("attribute.changed", self._on_attribute_changed)
@@ -930,14 +922,26 @@ class Designer:
         self.titlebar_label.update()
 
     def _print_widget_count(self):
+        print("#"*150)
         print(f"Live widget count: {len(self.canvas.children)}")
+
+    def _print_clipboard(self):
+        print("#"*150)
+        print(f"Clipboard:")
+        for model_data in self.clipboard:
+            print(f"{model_data}")
+
+    def _print_command_stack(self):
+        print("#"*150)
+        print(f"Command stack:")
+        print(self.command_stack)
 
     #Helpers------------------------------------------------------------------------------------------------------------
     @staticmethod
     def _serialize_model(model) -> dict:
         #copy the dictionary of attributes from this model
-        data = model.__dict__.copy()
+        model_data = copy.deepcopy(model.__dict__)
 
         #strip the ID attribute
-        data.pop("id", None)
-        return data
+        model_data.pop("id", None)
+        return model_data

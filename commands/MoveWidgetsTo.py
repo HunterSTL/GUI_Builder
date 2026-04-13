@@ -1,4 +1,4 @@
-from .BaseCommand import Command
+from commands import Command
 from controller import WidgetController
 
 class MoveWidgetsTo(Command):
@@ -7,7 +7,7 @@ class MoveWidgetsTo(Command):
         model_ids: frozenset,
         widget_controller: WidgetController
     ):
-        """initialize MoveWidgetsTo and record original widget positions"""
+        """record original widget positions"""
         self.widget_controller = widget_controller
 
         self._model_ids = model_ids
@@ -57,3 +57,11 @@ class MoveWidgetsTo(Command):
                 #move the widget to the original position
                 model = self.widget_controller.app_state.get_model_from_model_id(model_id)
                 self.widget_controller.app_state.move_widget_to(model, x, y)
+
+    def __repr__(self):
+        """called automatically when printing this object"""
+        s = "[MoveWidgetsTo]"
+        s += f"\n\tmodel IDs:\t\t\t{self._model_ids}"
+        s += f"\n\toriginal positions:\t{self._original_positions}"
+        s += f"\n\tfinal positions:\t{self._final_positions}"
+        return s
