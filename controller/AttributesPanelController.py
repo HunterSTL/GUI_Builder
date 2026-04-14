@@ -59,8 +59,6 @@ class AttributesPanelController:
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
 
-        self._silent_update = False
-
     #Rendering API------------------------------------------------------------------------------------------------------
     def refresh(self, model):
         """rebuild the panel for the given model"""

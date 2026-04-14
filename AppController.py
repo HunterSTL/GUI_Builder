@@ -27,15 +27,9 @@ class AppController:
         #copy user theme from Theme.py to prevent mutation
         self._user_theme = {key: value.copy() for key, value in USER_THEME.items()}
 
-        #app state
         self._save_path = None
         self._last_directory = None
-        self._win_x = None
-        self._win_y = None
-        self._drag_start_x = None
-        self._drag_start_y = None
 
-        #build startup UI
         self._build_startup_ui()
 
     def _center_window(self):

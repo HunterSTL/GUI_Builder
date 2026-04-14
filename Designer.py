@@ -83,8 +83,8 @@ class Designer:
         #embed inner canvas into the scrollable viewer
         self.canvas_window_id = self.viewer.create_window(0, 0, window=self.canvas, anchor="nw")
 
-        #draw boundry around the work area
-        self._boundry = self.canvas.create_rectangle(
+        #draw boundary around the work area
+        self.canvas.create_rectangle(
             1, 1, self.app_state.project.width - 1, self.app_state.project.height - 1,
             outline=self.program_theme["selection"]["color"],
             width=1,
@@ -463,8 +463,7 @@ class Designer:
     #Event handling (edit actions)--------------------------------------------------------------------------------------
     def _delete(self):
         """delete selected widgets after user confirmation"""
-        #prevent concurrent delete calls
-        if self.state.is_deleting:
+        if self.state.is_deleting:  #prevents concurrent delete calls
             return
 
         count = len(self.app_state.selection_currently_selected())
@@ -853,17 +852,16 @@ class Designer:
     def _delete_selected_models(self):
         with self.app_state.batch():
             for model_id in self.app_state.selection_currently_selected():
-                #let WidgetController delete the widget (deletes widget model from ProjectDocument, tk widget from canvas and removes widget from mappings)
-                self.widget_controller.delete_widget(model_id)
+                self.widget_controller.delete_widget(model_id)  #deletes widget model from ProjectDocument, tk widget from canvas and removes widget from mappings
 
-            #clear selection
-            self.app_state.selection_clear()
+        #clear selection
+        self.app_state.selection_clear()
 
-            #clear deleting flag
-            self.state.is_deleting = False
+        #clear deleting flag
+        self.state.is_deleting = False
 
-            #set AppState to dirty
-            self._set_dirty()
+        #set AppState to dirty
+        self._set_dirty()
 
     def _on_attribute_changed(self, model_id: str, attribute: str, value):
         """apply attribute changes coming from the attributes panel to the model"""
@@ -939,7 +937,8 @@ class Designer:
     #Helpers------------------------------------------------------------------------------------------------------------
     @staticmethod
     def _serialize_model(model) -> dict:
-        #copy the dictionary of attributes from this model
+        """return a deep-copied dictionary of a model's attributes except the ID, suitable for clipboard use"""
+        #deepcopy the dictionary of attributes from this model
         model_data = copy.deepcopy(model.__dict__)
 
         #strip the ID attribute

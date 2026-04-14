@@ -23,10 +23,6 @@ class SetupWizard:
 
         self.icon = None
         self.icon_path = None
-        self._win_x = None
-        self._win_y = None
-        self._drag_start_x = None
-        self._drag_start_y = None
 
         #build setup UI
         self._build_setup_ui()
