@@ -41,16 +41,16 @@ class Designer:
         #application events live for the entire application lifetime (owned by AppController)
         self.app_event_bus = app_event_bus
 
-        #UI events are local to this Designer instance and are discarded when the Designer window is destroyed
-        self.ui_event_bus = EventBus()
+        #designer events are local to this Designer instance and are discarded when the Designer window is destroyed
+        self.designer_event_bus = EventBus()
 
         #EventRouter: provides a single interface for emitting events and routes events to the correct EventBus
         self.event_router = EventRouter(
             app_event_bus=self.app_event_bus,
-            ui_event_bus=self.ui_event_bus
+            designer_event_bus=self.designer_event_bus
         )
 
-        #This split prevents callbacks from referencing destroyed Tk widgets
+        #this split prevents callbacks from referencing destroyed Tk widgets
         #----------------------------------------------------------------------------------------------------------------
 
         #AppState: central model mutation engine
@@ -422,7 +422,7 @@ class Designer:
             self.selection_controller.render_all_outlines()
 
     def _do_full_render(self):
-        """perform a full re-render of widgets, selection outlines, and grid"""
+        """perform a full re-render of widgets, selection outlines and grid"""
         call_tracer.log_event(f"full render\n{'#'*150}")
         #render widgets
         self.widget_controller.render_full()
@@ -690,7 +690,6 @@ class Designer:
         """prompt for and apply a new grid size"""
         #prompt for new grid size
         new_grid_size = simpledialog.askinteger("Grid size", "Enter new grid size:", minvalue=5, maxvalue=100, parent=self.parent)
-
         if new_grid_size is None:
             return
 
@@ -737,48 +736,48 @@ class Designer:
     def _subscribe_functions_to_events(self):
         """subscribe all functions, that should be called when an event is emitted, to the corresponding event"""
         #menu events
-        self.ui_event_bus.subscribe("menu.show", self._show_menu)
+        self.designer_event_bus.subscribe("menu.show", self._show_menu)
 
         #selection events
-        self.ui_event_bus.subscribe("selection.handle_press", self.selection_controller.handle_canvas_press)
-        self.ui_event_bus.subscribe("selection.handle_drag", self.selection_controller.handle_canvas_drag)
-        self.ui_event_bus.subscribe("selection.handle_release", self.selection_controller.handle_canvas_release)
+        self.designer_event_bus.subscribe("selection.handle_press", self.selection_controller.handle_canvas_press)
+        self.designer_event_bus.subscribe("selection.handle_drag", self.selection_controller.handle_canvas_drag)
+        self.designer_event_bus.subscribe("selection.handle_release", self.selection_controller.handle_canvas_release)
 
         #edit events
-        self.ui_event_bus.subscribe("edit.cut", self._cut)
-        self.ui_event_bus.subscribe("edit.copy", self._copy)
-        self.ui_event_bus.subscribe("edit.paste", self._paste)
-        self.ui_event_bus.subscribe("edit.undo", self._undo)
-        self.ui_event_bus.subscribe("edit.redo", self._redo)
+        self.designer_event_bus.subscribe("edit.cut", self._cut)
+        self.designer_event_bus.subscribe("edit.copy", self._copy)
+        self.designer_event_bus.subscribe("edit.paste", self._paste)
+        self.designer_event_bus.subscribe("edit.undo", self._undo)
+        self.designer_event_bus.subscribe("edit.redo", self._redo)
 
         #widget events
-        self.ui_event_bus.subscribe("widget.move", self._move)
-        self.ui_event_bus.subscribe("widget.start_drag", self._start_drag)
-        self.ui_event_bus.subscribe("widget.end_drag", self._end_drag)
-        self.ui_event_bus.subscribe("widget.snap_to_grid", self._snap_to_grid)
-        self.ui_event_bus.subscribe("widget.delete", self._delete)
-        self.ui_event_bus.subscribe("widget.align.left", lambda: self._align("left"))
-        self.ui_event_bus.subscribe("widget.align.right", lambda: self._align("right"))
-        self.ui_event_bus.subscribe("widget.align.top", lambda: self._align("top"))
-        self.ui_event_bus.subscribe("widget.align.bottom", lambda: self._align("bottom"))
-        self.ui_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
+        self.designer_event_bus.subscribe("widget.move", self._move)
+        self.designer_event_bus.subscribe("widget.start_drag", self._start_drag)
+        self.designer_event_bus.subscribe("widget.end_drag", self._end_drag)
+        self.designer_event_bus.subscribe("widget.snap_to_grid", self._snap_to_grid)
+        self.designer_event_bus.subscribe("widget.delete", self._delete)
+        self.designer_event_bus.subscribe("widget.align.left", lambda: self._align("left"))
+        self.designer_event_bus.subscribe("widget.align.right", lambda: self._align("right"))
+        self.designer_event_bus.subscribe("widget.align.top", lambda: self._align("top"))
+        self.designer_event_bus.subscribe("widget.align.bottom", lambda: self._align("bottom"))
+        self.designer_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
 
         #grid events
-        self.ui_event_bus.subscribe("grid.toggle", self._toggle_grid)
-        self.ui_event_bus.subscribe("grid.apply_variable", self._apply_grid_from_variable)
-        self.ui_event_bus.subscribe("grid.change_size", self._change_grid_size)
-        self.ui_event_bus.subscribe("grid.change_color", self._change_grid_color)
+        self.designer_event_bus.subscribe("grid.toggle", self._toggle_grid)
+        self.designer_event_bus.subscribe("grid.apply_variable", self._apply_grid_from_variable)
+        self.designer_event_bus.subscribe("grid.change_size", self._change_grid_size)
+        self.designer_event_bus.subscribe("grid.change_color", self._change_grid_color)
 
         #debug events
-        self.ui_event_bus.subscribe("debug.toggle_call_tracing", call_tracer.toggle)
-        self.ui_event_bus.subscribe("debug.set_dirty", self._set_dirty)
-        self.ui_event_bus.subscribe("debug.set_clean", self._set_clean)
-        self.ui_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
-        self.ui_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
-        self.ui_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
+        self.designer_event_bus.subscribe("debug.toggle_call_tracing", call_tracer.toggle)
+        self.designer_event_bus.subscribe("debug.set_dirty", self._set_dirty)
+        self.designer_event_bus.subscribe("debug.set_clean", self._set_clean)
+        self.designer_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
+        self.designer_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
+        self.designer_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
 
         #attribute events
-        self.ui_event_bus.subscribe("attribute.changed", self._on_attribute_changed)
+        self.designer_event_bus.subscribe("attribute.changed", self._on_attribute_changed)
 
     #Domain logic-------------------------------------------------------------------------------------------------------
     def _add_widget(self, widget_type: str, desired_x: int, desired_y: int):

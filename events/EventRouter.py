@@ -18,14 +18,14 @@ class EventRouter:
     def __init__(
         self,
         app_event_bus: EventBus,
-        ui_event_bus: EventBus
+        designer_event_bus: EventBus
     ):
         self._app_event_bus = app_event_bus
-        self._ui_event_bus = ui_event_bus
+        self._designer_event_bus = designer_event_bus
 
     def emit(self, event_name, **kwargs):
         """emit an event and forward the event to the correct EventBus"""
         if event_name.startswith(("app.", "project.")):
             self._app_event_bus.emit(event_name, **kwargs)
         else:
-            self._ui_event_bus.emit(event_name, **kwargs)
+            self._designer_event_bus.emit(event_name, **kwargs)
