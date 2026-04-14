@@ -1,0 +1,172 @@
+GUI Builder – Coding and Architecture Conventions
+
+This document defines the architectural and coding conventions used throughout the GUI Builder codebase.
+The goal of these conventions is to make the codebase predictable, readable and architecturally sound.
+
+1. Comments
+
+1.1 Comments above code
+
+Comments above code explain what the code does and can be thought of as a sequence of logical steps.
+They should allow a reader to understand the intent of the code without reading every line.
+
+Example:
+
+	def _change_grid_size(self):
+		#prompt for new grid size
+		new_grid_size = simpledialog.askinteger("Grid size", "Enter new grid size:", minvalue=5, maxvalue=100, parent=self.parent)
+		if new_grid_size is None:
+			return
+
+		#update grid size in ProjectDocument
+		self.app_state.set_grid_size(new_grid_size)
+
+		#set AppState to dirty
+		self._set_dirty()
+
+1.2 Inline comments
+
+Inline comments explain why something non obvious is required.
+They document reasoning, constaints or edge cases that are not obvious from the code itself.
+
+Examples:
+
+	def _delete(self):
+		if self.state.is_deleting:			#prevents concurrent delete calls
+			return
+		...
+
+	self.structural_change = False	#signals whether a full re-render is necessary
+	self._batch_depth = 0			#keeps track of batch depth so only the outer most batch calls _notify (batches can be nested)
+	self._pending_notify = False		#signals whether _notify will be called at the end of the batch
+	self._model_by_id = {}			#{model.id: model} for O(1) lookup; maintained in add_/remove_widget()
+
+2. Architecture
+
+The codebase follows a strict layered MVC architecture.
+Each layer has a clearly defined responsibility and allowed dependencies.
+
+2.1 Model
+
+*Pure data structures representing application state
+*Must not contain Tk, views, controllers, AppState or commands
+*Must not contain domain logic
+*Model IDs are immutable and created exactly once
+
+2.2 View
+
+*Reflects model state visually
+*Must only contain Tk rendering code
+*Must not mutate models
+*Must not import AppState or commands
+
+2.3 Controller
+
+*Translates user input (mouse, keyboard, menu actions) into domain intent
+*Must communicate exclusively cia events or AppState
+*Must not perform rendering
+
+2.4 Commands
+
+*Represent undoable operations
+*Must mutate the model state through AppState
+*Must be deterministic
+
+3. Model Mutation
+
+3.1 Single Source of Truth
+
+All model mutation must go through AppState.
+Models must never be mutated directly from anywhere else.
+
+Incorrect:
+
+	model.x += dx
+	model.y += dy
+
+Correct:
+
+	self.app_state.move_widget_by(model, dx, dy)
+
+3.2 Batching
+
+Any operation that mutates multiple models or performs multiple related mutations must use AppState batching.
+Batching guarantees that subscribers are only notified once and that rendering remains efficient.
+
+Example:
+
+	with self.app_state.batch():
+		for model_id in self.app_state.selection_currently_selected():
+			model = self.app_state.get_model_from_model_id(model_id)
+			self.app_state.move_widget_to(model, new_x, new_y)
+
+4. Command system
+
+4.1 Commands
+
+Commands represent domain level, undoable operations.
+Commands must only receive the required input data (model IDs, movement deltas, clipboard data etc.) and AppState (model mutator).
+All command attributes must be private (prefixed with underscore).
+
+The public API of a command must only consists of:
+	1. execute()
+	2. undo()
+	3. Optional predicate methods (e.g. has_effect())
+
+Example:
+
+	class MoveWidgets(Command):
+		def __init__(self, model_ids, dx, dy, app_state):
+			#input date
+			self._model_ids = model_ids
+			self._dx = dx
+			self._dy = dy
+
+			#AppState
+			self._app_state = app_state
+
+			#internal state
+			self._original_positions = {}
+
+		def execute(self):
+			...
+
+		def undo(self):
+			...
+
+4.2 Command stack
+
+All command execution must go through the CommandStack so that history and redo state remain consistent.
+
+5. Event System
+
+5.1 Events
+
+Events are namespaced strings and must describe concrete actions. 
+
+The namespaces include:
+	1. app.*
+	2. project.*
+	3. selection.*
+	4. edit.*
+	5. widget.*
+	6. grid.*
+	7. debug.*
+
+Examples:
+	1. app.exit
+	2. project.new, project.open, project.save
+	3. selection.handle_press, selection.handle_drag
+	4. edit.copy, edit.paste, edit.undo
+	5. widget.move, widget.delete, widget.align.left
+	6. grid.toggle, grid.change_size, grid.change_color
+	7. debug.set_dirty, debug.print_clipboard, debug.print_command_stack
+
+5.2 Event Routing
+
+Controllers and views must emit events exclusively through EventRouter.
+
+6 Private Members
+
+Any private method or attribute must be prefixed with an underscore.
+Private members must not be accessed across architectural layers.
