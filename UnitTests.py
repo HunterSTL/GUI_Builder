@@ -177,7 +177,7 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         command_stack = CommandStack()
 
         #move by dx/dy
-        command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, widget_controller))
+        command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, app_state))
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
@@ -220,7 +220,7 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         widget_controller.render_soft(model.id)
 
         command_stack = CommandStack()
-        command = MoveWidgetsTo(frozenset({model.id}), widget_controller)
+        command = MoveWidgetsTo(frozenset({model.id}), app_state)
 
         #simulate drag preview
         command.preview_move(50, 50)

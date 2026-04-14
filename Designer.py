@@ -557,7 +557,7 @@ class Designer:
                     model_ids=selected_models,
                     dx=dx,
                     dy=dy,
-                    widget_controller=self.widget_controller
+                    app_state=self.app_state
                 )
             )
 
@@ -582,7 +582,7 @@ class Designer:
         #create the MoveWidgetsTo command to record original widget positions
         self.state.active_widget_drag_command = MoveWidgetsTo(
             model_ids=selected_models,
-            widget_controller=self.widget_controller
+            app_state=self.app_state
         )
 
     def _end_drag(self):
