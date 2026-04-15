@@ -66,12 +66,6 @@ Each layer has a clearly defined responsibility and allowed dependencies.
 *Must communicate exclusively via events or AppState
 *Must not perform rendering
 
-2.4 Commands
-
-*Represent undoable operations
-*Must mutate the model state through AppState
-*Must be deterministic
-
 3. Model Mutation
 
 3.1 Single Source of Truth
@@ -104,9 +98,14 @@ Example:
 
 4.1 Commands
 
-Commands represent domain level, undoable operations.
-Commands must only receive the required input data (model IDs, movement deltas, clipboard data etc.) and AppState (model mutator).
-All command attributes must be private (prefixed with underscore).
+*Represent domain level, undoable operations.
+*Must only receive the required input data (model IDs, movement deltas, clipboard data etc.) and AppState (model mutator).
+*All command attributes must be private (prefixed with underscore).
+*All state required for undo/redo must be snapshotted in __init__()
+*execute() must only apply changes based on the stored snapshot
+*undo() must restore state exclusively from the snapshot captured in __init__()
+*A commands snapshot data must be treated as immutable
+*Affected model IDs are stored as a list created at construction to freeze iteration order for deterministic undo/redo behaviour
 
 The public API of a command must only consists of:
 	1. execute()

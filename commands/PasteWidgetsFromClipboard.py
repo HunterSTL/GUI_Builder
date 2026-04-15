@@ -1,5 +1,5 @@
 import copy
-from model import LabelWidgetData, EntryWidgetData, ButtonWidgetData
+from model import BaseWidgetData
 from commands import Command
 from AppState import AppState
 
@@ -17,16 +17,7 @@ class PasteWidgetsFromClipboard(Command):
         """create new widget models from serialized clipboard model_data and add them to the ProjectDocument via AppState"""
         with self._app_state.batch():
             for model_data in self._clipboard:
-                widget_type = model_data.get("type")
-
-                if widget_type == "Label":
-                    model = LabelWidgetData(**model_data)
-                elif widget_type == "Entry":
-                    model = EntryWidgetData(**model_data)
-                elif widget_type == "Button":
-                    model = ButtonWidgetData(**model_data)
-                else:
-                    continue
+                model = BaseWidgetData.from_dict(model_data)
 
                 #only create an ID during the first execution (subsequent redos then reuse the same ID)
                 if "id" not in model_data:
