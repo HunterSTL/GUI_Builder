@@ -4,7 +4,7 @@ from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetDa
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
-from commands import CommandStack, MoveWidgets, MoveWidgetsTo, PasteWidgetsFromClipboard
+from commands import CommandStack, DeleteWidgets, MoveWidgets, MoveWidgetsTo, PasteWidgetsFromClipboard
 from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, nearest_in_bounds_grid_step, CustomTitlebar
 from AppState import AppState
 
@@ -848,15 +848,20 @@ class Designer:
         self._set_dirty()
 
     def _delete_selected_models(self):
-        with self.app_state.batch():
-            for model_id in self.app_state.selection_currently_selected():
-                self.widget_controller.delete_widget(model_id)  #deletes widget model from ProjectDocument, tk widget from canvas and removes widget from mappings
-
-        #clear selection
-        self.app_state.selection_clear()
+        """delete selected widgets from the ProjectDocument without confirmation"""
+        #delete model from ProjectDocument using DeleteWidgets command
+        self.command_stack.execute(
+            DeleteWidgets(
+                model_ids=self.app_state.selection_currently_selected(),
+                app_state=self.app_state
+            )
+        )
 
         #clear deleting flag
         self.state.is_deleting = False
+
+        #clear selection
+        self.app_state.selection_clear()
 
         #set AppState to dirty
         self._set_dirty()

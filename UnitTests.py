@@ -144,35 +144,45 @@ class TestMoveWidget(unittest.TestCase):
         self.assertEqual(x, 150)
         self.assertEqual(y, 150)
 
-class TestUndoRedoMoveWidget(unittest.TestCase):
-    def test_undo_redo_move_widget(self):
-        import tkinter as tk
+class TestUndoRedoDeleteWidget(unittest.TestCase):
+    def test_undo_redo_delete_widget(self):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
-        from view import WidgetView
-        from controller import WidgetController
-        from commands import CommandStack, MoveWidgets
+        from commands import CommandStack, DeleteWidgets
 
-        root = tk.Tk()
-        root.withdraw()
-        canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
 
-        widget_view = WidgetView(
-            canvas=canvas
-        )
+        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Delete Widget Test")
+        model.create_id(project_document.id_counters)
+        app_state.add_widget(model)
 
-        widget_controller = WidgetController(
-            app_state=app_state,
-            widget_view=widget_view
-        )
+        command_stack = CommandStack()
+
+        #delete model
+        command_stack.execute(DeleteWidgets(frozenset({model.id}), app_state))
+        self.assertEqual(len(project_document.widget_models), 0)
+
+        #undo
+        command_stack.undo()
+        self.assertEqual(len(project_document.widget_models), 1)
+
+        #redo
+        command_stack.redo()
+        self.assertEqual(len(project_document.widget_models), 0)
+
+class TestUndoRedoMoveWidget(unittest.TestCase):
+    def test_undo_redo_move_widget(self):
+        from AppState import AppState
+        from model import ProjectDocument, LabelWidgetData
+        from commands import CommandStack, MoveWidgets
+
+        project_document = ProjectDocument(width=300, height=200, theme={})
+        app_state = AppState(project_document)
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id(project_document.id_counters)
         app_state.add_widget(model)
-
-        widget_controller.render_soft(model.id)
 
         command_stack = CommandStack()
 
@@ -191,33 +201,16 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
 
 class TestUndoRedoMoveWidgetTo(unittest.TestCase):
     def test_undo_redo_move_widget_to(self):
-        import tkinter as tk
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
-        from view import WidgetView
-        from controller import WidgetController
         from commands import CommandStack, MoveWidgetsTo
 
-        root = tk.Tk()
-        root.withdraw()
-        canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
-
-        widget_view = WidgetView(
-            canvas=canvas
-        )
-
-        widget_controller = WidgetController(
-            app_state=app_state,
-            widget_view=widget_view
-        )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id(project_document.id_counters)
         app_state.add_widget(model)
-
-        widget_controller.render_soft(model.id)
 
         command_stack = CommandStack()
         command = MoveWidgetsTo(frozenset({model.id}), app_state)
@@ -240,6 +233,39 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         command_stack.redo()
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
+
+class TestUndoRedoPasteWidget(unittest.TestCase):
+    def test_undo_redo_paste_widget(self):
+        from AppState import AppState
+        from model import ProjectDocument, LabelWidgetData
+        from commands import CommandStack, PasteWidgetsFromClipboard
+
+        project_document = ProjectDocument(width=300, height=200, theme={})
+        app_state = AppState(project_document)
+
+        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Paste Widget Test")
+        model.create_id(project_document.id_counters)
+        app_state.add_widget(model)
+
+        #copy model to clipboard
+        clipboard = []
+        model_data = model.to_dict(include_id=False)    #exclude ID because pasting creates new IDs, except on redo
+        clipboard.append(model_data)
+
+        command_stack = CommandStack()
+
+        #paste model from clipboard
+        command_stack.execute(PasteWidgetsFromClipboard(clipboard, app_state))
+        self.assertEqual(len(project_document.widget_models), 2)
+        self.assertNotEqual(project_document.widget_models[0], project_document.widget_models[1])   #pasted widget has different ID
+
+        #undo
+        command_stack.undo()
+        self.assertEqual(len(project_document.widget_models), 1)
+
+        #redo
+        command_stack.redo()
+        self.assertEqual(len(project_document.widget_models), 2)
 
 if __name__ == '__main__':
     unittest.main()

@@ -81,26 +81,6 @@ class WidgetView:
 
         return widget, widget_id
 
-    def delete_widget(self, model_id: str):
-        """delete a widget from the canvas and remove it from all mappings"""
-        #delete widget_id from model_id <> widget_id mapping
-        widget_id = self.model_id_to_widget_id.pop(model_id, None)
-
-        if widget_id:
-            #delete model_id from widget_id <> model_id mapping
-            self.widget_id_to_model_id.pop(widget_id, None)
-
-            #delete widget_id from widget_map
-            widget_map_entry = self.widget_map.pop(widget_id, None)
-
-            #delete the widget from canvas
-            self.canvas.delete(widget_id)
-
-            #delete the tk widget instance
-            if widget_map_entry:
-                widget = widget_map_entry["widget"]
-                widget.destroy()
-
     #Internals----------------------------------------------------------------------------------------------------------
     def _create_widget_from_model(self, model):
         """create a tk widget based on the model.type"""

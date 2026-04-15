@@ -28,16 +28,6 @@ class WidgetController:
         self.widget_view.render_full(models)
 
     #Domain logic-------------------------------------------------------------------------------------------------------
-    def delete_widget(self, model_id: str):
-        """delete widget model from ProjectDocument, tk widget from canvas and remove widget from mappings"""
-        model = self.app_state.get_model_from_model_id(model_id)
-
-        #remove widget model from the ProjectDocument
-        self.app_state.remove_widget(model)
-
-        #delete tk widget from canvas and remove from mappings
-        self.widget_view.delete_widget(model_id)
-
     def update_widget_attribute(self, model_id: str, attribute: str, value):
         """apply an attribute change from the AttributesPanel to the widget and model"""
         widget = self.widget_view.get_widget_from_model_id(model_id)
