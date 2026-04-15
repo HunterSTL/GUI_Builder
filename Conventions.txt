@@ -63,7 +63,7 @@ Each layer has a clearly defined responsibility and allowed dependencies.
 2.3 Controller
 
 *Translates user input (mouse, keyboard, menu actions) into domain intent
-*Must communicate exclusively cia events or AppState
+*Must communicate exclusively via events or AppState
 *Must not perform rendering
 
 2.4 Commands

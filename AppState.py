@@ -1,4 +1,4 @@
-from model import ProjectDocument, SelectionState
+from model import ProjectDocument, SelectionState, BaseWidgetData
 from utility import call_tracer
 
 class AppState:
@@ -212,14 +212,14 @@ class AppState:
         self._notify()
 
     #Model helpers------------------------------------------------------------------------------------------------------
-    def get_model_from_model_id(self, model_id: str):
+    def get_model_from_model_id(self, model_id: str) -> BaseWidgetData:
         """return the model assosciated with the given model_id"""
         try:
             return self._model_by_id[model_id]
         except KeyError:
             raise KeyError(f"Unknown model_id: {model_id}")
 
-    def get_model_coordinates_from_model_id(self, model_id: str):
+    def get_model_coordinates_from_model_id(self, model_id: str) -> tuple[int, int]:
         """return the x,y coordinates of the model"""
         model = self.get_model_from_model_id(model_id)
         return model.x, model.y

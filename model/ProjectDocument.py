@@ -25,7 +25,7 @@ class ProjectDocument:
 
     @classmethod
     def from_json(cls, data: dict) -> "ProjectDocument":
-        from model import LabelWidgetData, EntryWidgetData, ButtonWidgetData
+        from model import BaseWidgetData
 
         grid_data = data.get("grid", {})
         grid = GridConfig(
@@ -34,7 +34,7 @@ class ProjectDocument:
             visible=bool(grid_data.get("visible", False))
         )
 
-        project_doc = ProjectDocument(
+        project_document = ProjectDocument(
             version=data.get("version", 1),     #default to 1 if missing from data
             title=data.get("title", "Untitled Project"),
             width=int(data["width"]),
@@ -48,20 +48,23 @@ class ProjectDocument:
         max_entry_id = 0
         max_button_id = 0
 
-        for widget_model in data.get("widget_models", []):
-            widget_id = widget_model["id"]
-            if widget_model["type"] == "Label":
-                project_doc.widget_models.append(LabelWidgetData(**widget_model))
+        for model_data in data.get("widget_models", []):
+            #create model from the model_data and add to the ProjectDocument
+            project_document.widget_models.append(BaseWidgetData.from_dict(model_data))
+
+            #record highest widget ID to update the IdCounters
+            widget_id = model_data["id"]
+            widget_type = model_data["type"]
+
+            if widget_type == "Label":
                 max_label_id = max(max_label_id, int(widget_id[5:]))
-            elif widget_model["type"] == "Entry":
-                project_doc.widget_models.append(EntryWidgetData(**widget_model))
+            elif widget_type == "Entry":
                 max_entry_id = max(max_entry_id, int(widget_id[5:]))
-            elif widget_model["type"] == "Button":
-                project_doc.widget_models.append(ButtonWidgetData(**widget_model))
+            elif widget_type == "Button":
                 max_button_id = max(max_button_id, int(widget_id[6:]))
 
-        project_doc.id_counters.set_next_label_id(max_label_id + 1)
-        project_doc.id_counters.set_next_entry_id(max_entry_id + 1)
-        project_doc.id_counters.set_next_button_id(max_button_id + 1)
+        project_document.id_counters.set_next_label_id(max_label_id + 1)    #prevents ID collisions
+        project_document.id_counters.set_next_entry_id(max_entry_id + 1)
+        project_document.id_counters.set_next_button_id(max_button_id + 1)
 
-        return project_doc
+        return project_document

@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
-import copy
 from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetData, ButtonWidgetData
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
@@ -495,7 +494,7 @@ class Designer:
             if model is None:
                 continue
 
-            model_data = self._serialize_model(model)
+            model_data = model.to_dict(include_id=False)    #exclude ID because pasting creates new IDs, except on redo
             self.clipboard.append(model_data)
 
     def _paste(self):
@@ -932,14 +931,3 @@ class Designer:
         print("#"*150)
         print(f"Command stack:")
         print(self.command_stack)
-
-    #Helpers------------------------------------------------------------------------------------------------------------
-    @staticmethod
-    def _serialize_model(model) -> dict:
-        """return a deep-copied dictionary of a model's attributes except the ID, suitable for clipboard use"""
-        #deepcopy the dictionary of attributes from this model
-        model_data = copy.deepcopy(model.__dict__)
-
-        #strip the ID attribute
-        model_data.pop("id", None)
-        return model_data

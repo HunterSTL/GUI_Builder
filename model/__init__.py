@@ -4,7 +4,7 @@ from .ProjectDocument import ProjectDocument, GridConfig
 from .RectangleSelectionState import RectangleSelectionState
 from .SelectionState import SelectionState
 from .WidgetDragState import WidgetDragState
-from .WidgetModels import LabelWidgetData, EntryWidgetData, ButtonWidgetData
+from .WidgetModels import BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData
 
 __all__ = [
     "DesignerState",
@@ -14,6 +14,7 @@ __all__ = [
     "RectangleSelectionState",
     "SelectionState",
     "WidgetDragState",
+    "BaseWidgetData",
     "LabelWidgetData",
     "EntryWidgetData",
     "ButtonWidgetData"
