@@ -1,13 +1,14 @@
 from commands import Command
+from utility import allowed_x_range, allowed_y_range, nearest_in_bounds_grid_step
 from AppState import AppState
 
-class MoveWidgetsTo(Command):
+class SnapWidgetsToGrid(Command):
     def __init__(
         self,
         model_ids: frozenset,
         app_state: AppState
     ):
-        """store affected model IDs and snapshot original widget positions; final positions are snapshotted at the end of a drag gesture"""
+        """store affected model IDs, snapshot original widget positions and compute and snapshot final widget positions"""
         self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._app_state = app_state
 
@@ -16,35 +17,34 @@ class MoveWidgetsTo(Command):
             model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
             for model_id in self._model_ids
         }
+
+        #compute and store final positions
         self._final_positions = {}
+        self.compute_final_positions()
 
     def has_effect(self):
-        """return True if widget positions changed since initialization"""
+        """return True if executing this command would cuase the model to change"""
         return any(
-            self._original_positions[model_id] != self._app_state.get_model_coordinates_from_model_id(model_id)
+            self._original_positions[model_id] != self._final_positions[model_id]
             for model_id in self._model_ids
         )
 
-    def preview_move(self, dx: int, dy: int):
-        """apply incremental movement during live dragging"""
-        #dx and dy are incremental deltas since last drag event
-        if dx == 0 and dy == 0:
-            return
+    def compute_final_positions(self):
+        for model_id in self._model_ids:
+            #compute allowed x and y range for the model
+            model = self._app_state.get_model_from_model_id(model_id)
+            min_x, max_x = allowed_x_range(self._app_state.project.width, model.width, model.anchor)
+            min_y, max_y = allowed_y_range(self._app_state.project.height, model.height, model.anchor)
 
-        with self._app_state.batch():   #batching so only one notify happens even if multiple widgets are moved
-            for model_id in self._model_ids:
-                model = self._app_state.get_model_from_model_id(model_id)
-                self._app_state.move_widget_by(model, dx, dy)
+            #find nearest grid step that is still inside the allowed range
+            new_x = nearest_in_bounds_grid_step(model.x, self._app_state.project.grid.size, min_x, max_x)
+            new_y = nearest_in_bounds_grid_step(model.y, self._app_state.project.grid.size, min_y, max_y)
 
-    def freeze_final_positions(self):
-        """record final positions at the end of a drag gesture"""
-        self._final_positions = {       #record final positions for selected widgets at drag end
-            model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
-            for model_id in self._model_ids
-        }
+            #record final positions
+            self._final_positions[model_id] = (new_x, new_y)
 
     def execute(self):
-        """apply the snapshotted final widget positions to AppState"""
+        """apply the snapshotted grid-aligned widget positions to AppState"""
         with self._app_state.batch():
             for model_id, (x, y) in self._final_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)
@@ -63,7 +63,7 @@ class MoveWidgetsTo(Command):
 
     def __repr__(self):
         """called automatically when printing this object"""
-        s = "[MoveWidgetsTo]"
+        s = "[SnapWidgetsToGrid]"
         s += f"\n\tmodel IDs:\t\t\t{self._model_ids}"
         s += f"\n\toriginal positions:\t{self._original_positions}"
         s += f"\n\tfinal positions:\t{self._final_positions}"

@@ -9,20 +9,20 @@ class MoveWidgets(Command):
         dy: int,
         app_state: AppState
     ):
-        """store affected model IDs, deltas and keep a reference of AppState (model mutator)"""
+        """store affected model IDs, store movement deltas and snapshot original widget positions for undo"""
         self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._dx = dx
         self._dy = dy
         self._app_state = app_state
 
-        #record original positions
+        #snapshot original positions
         self._original_positions = {
             model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
             for model_id in self._model_ids
         }
 
     def execute(self):
-        """apply movement deltas to all referenced widgets using AppState batching"""
+        """apply the stored movement deltas to the widgets"""
         with self._app_state.batch():  #batching so only one notify happens even if multiple widgets are moved
             for model_id in self._model_ids:
                 model = self._app_state.get_model_from_model_id(model_id)
@@ -31,7 +31,7 @@ class MoveWidgets(Command):
                 self._app_state.move_widget_by(model, self._dx, self._dy)
 
     def undo(self):
-        """undo the widget movement by restoring original positions using AppState batching"""
+        """restore original widget positions from the snapshot"""
         with self._app_state.batch():
             for model_id, (x, y) in self._original_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)

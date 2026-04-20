@@ -9,12 +9,12 @@ class PasteWidgetsFromClipboard(Command):
         clipboard: list[dict],
         app_state: AppState
     ):
-        """store the current clipboard and keep a reference of AppState (model mutator)"""
+        """snapshot the current clipboard data"""
         self._clipboard = copy.deepcopy(clipboard)
         self._app_state = app_state
 
     def execute(self):
-        """create new widget models from serialized clipboard model_data and add them to the ProjectDocument via AppState"""
+        """create new widget models from the snapshotted clipboard data and add them to AppState"""
         with self._app_state.batch():
             for model_data in self._clipboard:
                 model = BaseWidgetData.from_dict(model_data)
@@ -31,7 +31,7 @@ class PasteWidgetsFromClipboard(Command):
                 self._app_state.add_widget(model)
 
     def undo(self):
-        """remove all widget models created during execute() from the ProjectDocument via AppState"""
+        """remove all widget models created from the snapshot"""
         with self._app_state.batch():
             for model_data in self._clipboard:
                 #get model from AppState using the ID created during execute()

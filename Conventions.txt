@@ -98,13 +98,21 @@ Example:
 
 4.1 Commands
 
-*Represent domain level, undoable operations.
-*Must only receive the required input data (model IDs, movement deltas, clipboard data etc.) and AppState (model mutator).
-*All command attributes must be private (prefixed with underscore).
-*All state required for undo/redo must be snapshotted in __init__()
-*execute() must only apply changes based on the stored snapshot
-*undo() must restore state exclusively from the snapshot captured in __init__()
-*A commands snapshot data must be treated as immutable
+Commands represent domain level, undoable operations.
+
+A command encapsulates:
+	1. stored operation parameters (IDs, movement deltas, configuration): describe what operation should be performed
+	2. snapshotted model state (original/final positions, serialized models, clipboard data): captures what the model state was or will be before/after the execution of the commans
+
+The following rules apply:
+*Commands must only receive the required input data (operation parameters) and an AppState reference (model mutator)
+*All command attributes must be private (prefixed with underscore)
+*Commands must snapshot all model state required for deterministic undo/redo:
+	1. Original state is snapshotted during construction
+	2. Final state may be snapshotted either during construction (deterministic commands) or during explicit finalization (interactive commands)
+*execute() must only apply stored operation parameters or snapshotted final model state
+*undo() must restore state exclusively from the snapshotted original state
+*Snapshotted data must be treated as immutable
 *Affected model IDs are stored as a list created at construction to freeze iteration order for deterministic undo/redo behaviour
 
 The public API of a command must only consists of:

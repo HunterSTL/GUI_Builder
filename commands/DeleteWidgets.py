@@ -8,7 +8,7 @@ class DeleteWidgets(Command):
         model_ids: frozenset,
         app_state: AppState
     ):
-        """store affected model IDs and keep a reference of AppState (model mutator)"""
+        """store affected model IDs and snapshot model data required to restore deleted widgets during undo"""
         self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._app_state = app_state
 
@@ -28,7 +28,7 @@ class DeleteWidgets(Command):
                 self._app_state.remove_widget(model)
 
     def undo(self):
-        """add models back to AppState from the stored snapshot (model data)"""
+        """restore previously deleted widgets from the snapshotted model data"""
         with self._app_state.batch():
             for model_data in self._snapshot:
                 model = BaseWidgetData.from_dict(model_data)

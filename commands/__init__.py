@@ -4,6 +4,7 @@ from .DeleteWidgets import DeleteWidgets
 from .MoveWidgets import MoveWidgets
 from .MoveWidgetsTo import MoveWidgetsTo
 from .PasteWidgetsFromClipboard import PasteWidgetsFromClipboard
+from .SnapWidgetsToGrid import SnapWidgetsToGrid
 
 __all__ = [
     "Command",
@@ -11,5 +12,6 @@ __all__ = [
     "DeleteWidgets",
     "MoveWidgets",
     "MoveWidgetsTo",
-    "PasteWidgetsFromClipboard"
+    "PasteWidgetsFromClipboard",
+    "SnapWidgetsToGrid"
 ]

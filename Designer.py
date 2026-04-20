@@ -4,7 +4,7 @@ from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetDa
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
-from commands import CommandStack, DeleteWidgets, MoveWidgets, MoveWidgetsTo, PasteWidgetsFromClipboard
+from commands import CommandStack, DeleteWidgets, MoveWidgets, MoveWidgetsTo, PasteWidgetsFromClipboard, SnapWidgetsToGrid
 from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, nearest_in_bounds_grid_step, CustomTitlebar
 from AppState import AppState
 
@@ -631,11 +631,11 @@ class Designer:
             #execute the actual command
             self.command_stack.execute(cmd)
 
+            #set AppState to dirty
+            self._set_dirty()
+
         #reset active_widget_drag_command
         self.state.active_widget_drag_command = None
-
-        #set AppState to dirty
-        self._set_dirty()
 
     def _snap_to_grid(self):
         """align selected widgets to nearest grid positions"""
@@ -644,28 +644,22 @@ class Designer:
         if not selected_models:
             return
 
-        with self.app_state.batch():
-            for model_id in selected_models:
-                #compute allowed x and y range for the model
-                model = self.app_state.get_model_from_model_id(model_id)
-                min_x, max_x = allowed_x_range(self.app_state.project.width, model.width, model.anchor)
-                min_y, max_y = allowed_y_range(self.app_state.project.height, model.height, model.anchor)
+        cmd = SnapWidgetsToGrid(
+            model_ids=selected_models,
+            app_state=self.app_state
+        )
 
-                #find nearest grid step that is still inside the allowed range
-                new_x = nearest_in_bounds_grid_step(model.x, self.app_state.project.grid.size, min_x, max_x)
-                new_y = nearest_in_bounds_grid_step(model.y, self.app_state.project.grid.size, min_y, max_y)
+        if cmd.has_effect():
+            #snap widgets to grid
+            self.command_stack.execute(cmd)
 
-                #set absolute position via AppState
-                self.app_state.move_widget_to(model, new_x, new_y)
+            #refresh attributes panel if only one widget is selected
+            if len(selected_models) == 1:
+                model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
+                self.attributes_panel_view.update_variables_from_model(model)
 
-
-        #refresh attributes panel if only one widget is selected
-        if len(selected_models) == 1:
-            model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
-            self.attributes_panel_view.update_variables_from_model(model)
-
-        #set AppState to dirty
-        self._set_dirty()
+            #set AppState to dirty
+            self._set_dirty()
 
     def _align(self, direction):
         """align selected widgets relative to the last selected widget"""
