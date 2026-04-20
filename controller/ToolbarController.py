@@ -191,3 +191,9 @@ class ToolbarController:
             command=lambda: self.event_router.emit("debug.print_command_stack"),
             accelerator="[F2]"
         )
+        self.toolbar_view.add_menu_item(
+            menu_name="Debug",
+            label="Print selection",
+            command=lambda: self.event_router.emit("debug.print_selection"),
+            accelerator="[F3]"
+        )

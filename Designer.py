@@ -462,25 +462,38 @@ class Designer:
     #Event handling (edit actions)--------------------------------------------------------------------------------------
     def _delete(self):
         """delete selected widgets after user confirmation"""
-        if self.state.is_deleting:  #prevents concurrent delete calls
+        selected_models = self.app_state.selection_currently_selected()
+
+        if not selected_models:
             return
 
-        count = len(self.app_state.selection_currently_selected())
-
-        if count == 0:
-            return
-        elif count == 1:
+        count = len(selected_models)
+        if count == 1:
             messagebox_text = "Delete selected widget?"
         else:
             messagebox_text = f"Delete {str(count)} selected widgets?"
 
-        self.state.is_deleting = True
-
-        if not messagebox.askyesno("Delete", messagebox_text):
-            self.state.is_deleting = False
+        #ask for confirmation
+        if not messagebox.askyesno(
+            "Delete",
+            messagebox_text,
+            parent=self.top     #disables interaction with the parent (Designer)
+        ):
             return
 
-        self._delete_selected_models()
+        #delete models from ProjectDocument
+        self.command_stack.execute(
+            DeleteWidgets(
+                model_ids=selected_models,
+                app_state=self.app_state
+            )
+        )
+
+        #clear selection
+        self.app_state.selection_clear()
+
+        #set AppState to dirty
+        self._set_dirty()
 
     def _copy(self):
         """copy selected widgets to clipboard"""
@@ -514,8 +527,27 @@ class Designer:
 
     def _cut(self):
         """copy selected widgets to clipboard then delete them"""
+        selected_models = self.app_state.selection_currently_selected()
+
+        if not selected_models:
+            return
+
+        #copy models to clipboard
         self._copy()
-        self._delete_selected_models()
+
+        #delete models from ProjectDocument
+        self.command_stack.execute(
+            DeleteWidgets(
+                model_ids=selected_models,
+                app_state=self.app_state
+            )
+        )
+
+        #clear selection
+        self.app_state.selection_clear()
+
+        #set AppState to dirty
+        self._set_dirty()
 
     def _undo(self):
         """undo last command"""
@@ -608,6 +640,7 @@ class Designer:
     def _snap_to_grid(self):
         """align selected widgets to nearest grid positions"""
         selected_models = self.app_state.selection_currently_selected()
+
         if not selected_models:
             return
 
@@ -638,6 +671,7 @@ class Designer:
         """align selected widgets relative to the last selected widget"""
         selected_models = self.app_state.selection_currently_selected()
         last_selected_model = self.app_state.selection.last_selected_model
+
         if not selected_models or not last_selected_model:
             return
 
@@ -774,6 +808,7 @@ class Designer:
         self.designer_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
         self.designer_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
         self.designer_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
+        self.designer_event_bus.subscribe("debug.print_selection", self._print_selection)
 
         #attribute events
         self.designer_event_bus.subscribe("attribute.changed", self._on_attribute_changed)
@@ -840,28 +875,6 @@ class Designer:
 
             #add new model to AppState
             self.app_state.add_widget(model)
-
-        #clear selection
-        self.app_state.selection_clear()
-
-        #set AppState to dirty
-        self._set_dirty()
-
-    def _delete_selected_models(self):
-        """delete selected widgets from the ProjectDocument without confirmation"""
-        #delete model from ProjectDocument using DeleteWidgets command
-        self.command_stack.execute(
-            DeleteWidgets(
-                model_ids=self.app_state.selection_currently_selected(),
-                app_state=self.app_state
-            )
-        )
-
-        #clear deleting flag
-        self.state.is_deleting = False
-
-        #clear selection
-        self.app_state.selection_clear()
 
         #set AppState to dirty
         self._set_dirty()
@@ -936,3 +949,8 @@ class Designer:
         print("#"*150)
         print(f"Command stack:")
         print(self.command_stack)
+
+    def _print_selection(self):
+        print("#"*150)
+        print(f"Selection:")
+        print(self.app_state.selection)

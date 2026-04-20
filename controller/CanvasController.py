@@ -91,3 +91,4 @@ class CanvasController:
         canvas.bind("<numbersign>", lambda e: self.event_router.emit("debug.print_widget_count"))
         canvas.bind("<F1>", lambda e: self.event_router.emit("debug.print_clipboard"))
         canvas.bind("<F2>", lambda e: self.event_router.emit("debug.print_command_stack"))
+        canvas.bind("<F3>", lambda e: self.event_router.emit("debug.print_selection"))
