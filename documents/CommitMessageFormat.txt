@@ -1,0 +1,168 @@
+Commit Message Format
+
+1. Title
+
+*Single line
+*Concise overview of what changed
+*Past tense
+*Capitalized
+*No trailing punctuation.
+
+Examples:
+
+	1.	Added coding and architecture conventions
+	2.	Simplified drag logic
+	3.	Formalized deterministic vs interactive command conventions
+	4.	Renamed ui_event_bus to designer_event_bus
+
+2. Description
+
+*A few full sentences
+*Explains the why or what the change achieves
+*No indentation
+*Present tense
+*Typically starts with "This commit [...]"
+
+Examples:
+
+	1.	Designer events are scoped to the Designer instance and discarded when the Designer window is destroyed.
+		The new name reflects this lifetime coupling more accurately.
+	2.	This commit addresses memory leaks caused by Tk widget instances not being destroyed when removed from the canvas.
+	3.	This commit removes the callback dictionary system and implements an event-driven architecture centered around EventBus.
+		All UI input, menu commands, keyboard shortcuts and controller interactions now emit named events that Designer/AppController functions subscribe to.
+
+3. Body
+
+*Hierarchical
+*Indented:
+	*3 spaces per indentation level
+	*bullet point symbols encode hierarchy (*, -, >)
+*Describing concrete changes from coarse to fine granularity
+*Any level can be a single descriptive statement or a list header ending with :
+*Every file section must be separated from the previous file section by one empty line
+
+The Hierarchy can be thought of as:
+
+File:
+   *Why / What:
+      -How:
+         >Details
+
+Example:
+
+Added view/ToolbarView.py:
+   *Replaces all view side responsibilities of the former Toolbar Manager:
+      -Constructs and packs the toolbar frame
+      -Provides an API for adding menus, menu items, checkbox menu items and separators
+      -Accepts styling parameters:
+         >height
+         >toolbar_color
+         >button_color and button_text_color
+         >menu_color and menu_text_color
+
+3.1 File level
+
+*Describes what happened to a file
+*Full relative file path including file extension
+*Past tense
+*Capitalized
+*Ending with :
+*Indentation level 0 (no spaces, no bullet point)
+*Allowed verbs:
+	*Added
+	*Removed
+	*Updated
+	*Renamed
+	*Moved
+
+Examples:
+
+	1.	Added commands/SnapWidgetsToGrid.py:
+	2.	Updated Designer.py:
+	3.	Removed ObsoleteFile.py:
+	4.	Renamed State.py to DesignerState.py:
+
+3.2 Action level
+
+*Describes a concrete action that happened within the file
+*Can be a single statement or a list
+*Past tense
+*Indentation level 1 (3 spaces, * bullet point)
+
+Examples:
+
+	1.	Updated Designer.py:
+		   *Fixed typo (boundry → boundary)
+		   *Minor comment improvements
+		   *Fixed indentation level in _delete_selected_model()
+		   *Added docstring to _serialize_model()
+	2.	Updated model/__init__.py:
+		   *Exported BaseWidgetData
+	3.	Added commands/DeleteWidgets.py:
+		   *Implemented snapshot based delete command with deterministic undo/redo behaviour
+
+3.3 Behaviour level
+
+*Describes behaviour, responsibilities or semantics of code
+*Typically describes how an implementation works after the commit, not what changed
+*Uses present tense
+*Can describe:
+   -Concrete behaviour of a method or function
+   -Concrete methods of a class
+   -A group of related changes
+   -Why a change was made
+*Can be a single statement or a list
+*Indentation level 2 (6 spaces, - bullet point)
+
+Examples:
+
+	1.	Updated commands/CommandStack.py:
+		   *Implemented __repr__():
+		      -Returns the undo and redo stack as a string representation
+		      -Displays newest commands first
+		      -Uses the __repr__() implementation of the contained commands
+	2.	Added commands/PasteWidgetsFromClipboard.py:
+		   *Implemented pasting widgets from the Designer clipboard:
+		      -__init__(): accepts the clipboard and AppState (for mutating the ProjectDocument)
+		      -execute(): creates widget models for each clipboard entry and adds them to the ProjectDocument
+		      -undo(): removes all widget models created during execute()
+	3.	Updated model/ProjectDocument.py:
+		   *Renamed variables for consistency:
+		      -project_doc → project_document
+		      -widget_model → model_data
+	4.	Updated AppState.py:
+		   *Added explicit return types:
+		      -get_model_from_model_id() → BaseWidgetData
+		      -get_model_coordinates_from_model_id() → tuple[int, int]
+	5.	Updated model/WidgetModels.py:
+		   *Updated create_id() in each widget model class to return the generated ID:
+		      -This allows PasteWidgetsFromClipboard to store created IDs for undo/redo
+
+3.4 Detail level
+
+*Used for providing additional detail about a behaviour
+*Indentation level 3 (9 spaces, > bullet point)
+
+Examples:
+
+	1.	Added events/EventRouter.py:
+		   *Introduced EventRouter as a dedicated interface that routes emitted events to the correct EventBus based on event scope
+		   *Distinguished between:
+		      -Application events:
+		         >app.*, project.*
+		         >Forwarded to the application EventBus owned by AppController
+		      -UI events:
+		         >selection.*, widget.*, grid.*, edit.*, debug.*
+		         >Forwarded to the UI EventBus owned by the Designer instance
+	2.	Added model/IdCounters.py:
+		   *Introduced IdCounters as a dedicated dataclass responsible for widget ID generation
+		   *Provides:
+		      -set_next_label_id(), set_next_entry_id(), set_next_button_id():
+		         >sets the next ID to be used for a specific widget type
+		      -next_label_id(), next_entry_id(), next_button_id():
+		         >generates the next ID for the given widget type and advances the counter
+
+3.5 Sub-detail level
+
+*Used for providing even more fine grained detail
+*Indentation level 4+ (3 additional spaces per level, alternating - and > bullet points)
