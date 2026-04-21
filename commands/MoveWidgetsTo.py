@@ -11,7 +11,7 @@ class MoveWidgetsTo(Command):
         self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._app_state = app_state
 
-        #record original positions
+        #snapshot original positions
         self._original_positions = {
             model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
             for model_id in self._model_ids

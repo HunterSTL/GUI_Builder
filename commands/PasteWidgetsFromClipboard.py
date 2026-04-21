@@ -13,29 +13,33 @@ class PasteWidgetsFromClipboard(Command):
         self._clipboard = copy.deepcopy(clipboard)
         self._app_state = app_state
 
+        self._executed = False
+        self._pasted_ids = []   #populated on first execute(), reused on redo
+
     def execute(self):
         """create new widget models from the snapshotted clipboard data and add them to AppState"""
         with self._app_state.batch():
-            for model_data in self._clipboard:
+            for i, model_data in enumerate(self._clipboard):
                 model = BaseWidgetData.from_dict(model_data)
 
                 #only create an ID during the first execution (subsequent redos then reuse the same ID)
-                if "id" not in model_data:
+                if not self._executed:
                     #create model ID
                     model_id = model.create_id(self._app_state.project.id_counters)
-
-                    #add ID to model_data
-                    model_data["id"] = model_id
+                    self._pasted_ids.append(model_id)
+                else:
+                    model.id = self._pasted_ids[i]
 
                 #add the model to the ProjectDocument via AppState
                 self._app_state.add_widget(model)
+        self._executed = True
 
     def undo(self):
         """remove all widget models created from the snapshot"""
         with self._app_state.batch():
-            for model_data in self._clipboard:
+            for i, model_data in enumerate(self._clipboard):
                 #get model from AppState using the ID created during execute()
-                model = self._app_state.get_model_from_model_id(model_data.get("id"))
+                model = self._app_state.get_model_from_model_id(self._pasted_ids[i])
 
                 #remove the model from the ProjectDocument via AppState
                 self._app_state.remove_widget(model)

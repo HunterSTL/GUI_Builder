@@ -101,45 +101,34 @@ Example:
 Commands represent domain level, undoable operations.
 
 A command encapsulates:
-	1. stored operation parameters (IDs, movement deltas, configuration): describe what operation should be performed
-	2. snapshotted model state (original/final positions, serialized models, clipboard data): captures what the model state was or will be before/after the execution of the commans
+	1. Stored operation parameters (IDs, movement deltas): describe what operation should be performed
+	2. Snapshotted model state (original/final positions, clipboard data): captures what the model state was or will be before/after the execution
 
-The following rules apply:
-*Commands must only receive the required input data (operation parameters) and an AppState reference (model mutator)
-*All command attributes must be private (prefixed with underscore)
-*Commands must snapshot all model state required for deterministic undo/redo:
-	1. Original state is snapshotted during construction
-	2. Final state may be snapshotted either during construction (deterministic commands) or during explicit finalization (interactive commands)
-*execute() must only apply stored operation parameters or snapshotted final model state
-*undo() must restore state exclusively from the snapshotted original state
-*Snapshotted data must be treated as immutable
-*Affected model IDs are stored as a list created at construction to freeze iteration order for deterministic undo/redo behaviour
+Rules:
+	1. Commands must only receive required operation parameters and an AppState reference to mutate the model.
+	2. All attributes must be private (prefixed with underscore)
+	3. Snapshotted data must be treated as immutable
+	4. execute() must only apply stored parameters or snapshotted final state
+	5. undo() must restore state exclusively from the snapshotted original state
+	6. Affected model IDs must be stored as a list created during construction to freeze iteration order for deterministic undo/redo behaviour
 
-The public API of a command must only consists of:
+Commands fall into two categories: deterministic commands and interactive commands
+
+4.1.1 Deterministic commands
+
+Deterministic commands are fully defined at construction time.
+Both the original and final state (if required) must be snapshotted during construction.
+
+The public API must only consist of:
 	1. execute()
 	2. undo()
 	3. Optional predicate methods (e.g. has_effect())
 
-Example:
+4.1.2 Interactive commands
 
-	class MoveWidgets(Command):
-		def __init__(self, model_ids, dx, dy, app_state):
-			#input date
-			self._model_ids = model_ids
-			self._dx = dx
-			self._dy = dy
-
-			#AppState
-			self._app_state = app_state
-
-			#internal state
-			self._original_positions = {}
-
-		def execute(self):
-			...
-
-		def undo(self):
-			...
+Interactive commands represent operations that are finalized through user interaction. (e.g. dragging)
+The original state must be snapshotted during construction while the final state must be snapshotted explicitly during finalization.
+The public API may expose additional methods required to support the interaction (e.g. live preview, explicit finalization).
 
 4.2 Command stack
 

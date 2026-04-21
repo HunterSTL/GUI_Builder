@@ -12,27 +12,18 @@ class SnapWidgetsToGrid(Command):
         self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._app_state = app_state
 
-        #record original positions
+        #snapshot original positions
         self._original_positions = {
             model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
             for model_id in self._model_ids
         }
 
-        #compute and store final positions
+        #compute and snapshot final positions
         self._final_positions = {}
-        self.compute_final_positions()
-
-    def has_effect(self):
-        """return True if executing this command would cuase the model to change"""
-        return any(
-            self._original_positions[model_id] != self._final_positions[model_id]
-            for model_id in self._model_ids
-        )
-
-    def compute_final_positions(self):
         for model_id in self._model_ids:
-            #compute allowed x and y range for the model
             model = self._app_state.get_model_from_model_id(model_id)
+
+            #compute allowed x and y range for the model
             min_x, max_x = allowed_x_range(self._app_state.project.width, model.width, model.anchor)
             min_y, max_y = allowed_y_range(self._app_state.project.height, model.height, model.anchor)
 
@@ -40,11 +31,18 @@ class SnapWidgetsToGrid(Command):
             new_x = nearest_in_bounds_grid_step(model.x, self._app_state.project.grid.size, min_x, max_x)
             new_y = nearest_in_bounds_grid_step(model.y, self._app_state.project.grid.size, min_y, max_y)
 
-            #record final positions
+            #snapshot final positions
             self._final_positions[model_id] = (new_x, new_y)
 
+    def has_effect(self):
+        """return True if executing this command would cause the model to change"""
+        return any(
+            self._original_positions[model_id] != self._final_positions[model_id]
+            for model_id in self._model_ids
+        )
+
     def execute(self):
-        """apply the snapshotted grid-aligned widget positions to AppState"""
+        """apply the snapshotted widget positions after grid alignment to AppState"""
         with self._app_state.batch():
             for model_id, (x, y) in self._final_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)
