@@ -159,21 +159,3 @@ class WidgetView:
     def get_model_id_from_widget_id(self, widget_id: int):
         """return the model_id mapped to a widget_id"""
         return self.widget_id_to_model_id.get(widget_id)
-
-    def get_bbox_from_model_id(self, model_id: str):
-        """return the bounding box of the widget"""
-        widget_id = self.get_widget_id_from_model_id(model_id)
-        if widget_id is None:
-            return None
-
-        bbox = self.canvas.bbox(widget_id)
-        if bbox is None:
-            return None
-
-        x1, y1, x2, y2 = bbox
-        return {
-            "left": x1,
-            "top": y1,
-            "right": x2,
-            "bottom": y2
-        }

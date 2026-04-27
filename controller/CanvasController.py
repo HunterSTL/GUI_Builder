@@ -92,3 +92,4 @@ class CanvasController:
         canvas.bind("<F1>", lambda e: self.event_router.emit("debug.print_clipboard"))
         canvas.bind("<F2>", lambda e: self.event_router.emit("debug.print_command_stack"))
         canvas.bind("<F3>", lambda e: self.event_router.emit("debug.print_selection"))
+        canvas.bind("<F4>", lambda e: self.event_router.emit("debug.print_bounding_boxes"))

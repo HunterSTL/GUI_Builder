@@ -1,5 +1,6 @@
+from typing import Iterable
 from model import ProjectDocument, SelectionState, BaseWidgetData
-from utility import call_tracer
+from utility import call_tracer, BoundingBox, compute_model_bounding_box
 
 class AppState:
     """AppState is the central place where all model state changes happen"""
@@ -220,9 +221,40 @@ class AppState:
             raise KeyError(f"Unknown model_id: {model_id}")
 
     def get_model_coordinates_from_model_id(self, model_id: str) -> tuple[int, int]:
-        """return the x,y coordinates of the model"""
+        """return the X- and Y-coordinate of the model"""
         model = self.get_model_from_model_id(model_id)
         return model.x, model.y
+
+    def get_model_bounding_box_from_model_id(self, model_id: str) -> BoundingBox:
+        """return the model's bounding box"""
+        model = self.get_model_from_model_id(model_id)
+        return compute_model_bounding_box(model.x, model.y, model.width, model.height, model.anchor)
+
+    def get_model_bounding_box_from_model_ids(self, model_ids: Iterable[str]) -> BoundingBox:
+        """return the collective bounding box of all given models"""
+        first_model_id = next(iter(model_ids))
+        first_model_bounding_box = self.get_model_bounding_box_from_model_id(first_model_id)
+        left = first_model_bounding_box.left
+        top = first_model_bounding_box.top
+        right = first_model_bounding_box.right
+        bottom = first_model_bounding_box.bottom
+
+        for model_id in model_ids:
+            if model_id == first_model_id:
+                continue
+
+            model_bounding_box = self.get_model_bounding_box_from_model_id(model_id)
+            left = min(left, model_bounding_box.left)
+            top = min(top, model_bounding_box.top)
+            right = max(right, model_bounding_box.right)
+            bottom = max(bottom, model_bounding_box.bottom)
+
+        return BoundingBox(
+            left=left,
+            top=top,
+            right=right,
+            bottom=bottom
+        )
 
     #Selection helpers--------------------------------------------------------------------------------------------------
     def selection_currently_selected(self) -> frozenset[str]:

@@ -1,7 +1,15 @@
 from math import floor, ceil
+from dataclasses import dataclass
+
+@dataclass
+class BoundingBox:
+    left: int
+    top: int
+    right: int
+    bottom: int
 
 def allowed_x_range(canvas_width: int, widget_width: int, anchor: str) -> tuple[int, int]:
-    """return the allowed X-coordinate range for a widget based on its anchor and canvas dimensions"""
+    """return the allowed X-coordinate range for a model based on its anchor and canvas dimensions"""
     if anchor in ["sw", "w", "nw"]:
         return 0, canvas_width - widget_width
     elif anchor in ["ne", "e", "se"]:
@@ -11,7 +19,7 @@ def allowed_x_range(canvas_width: int, widget_width: int, anchor: str) -> tuple[
     return 0, canvas_width
 
 def allowed_y_range(canvas_height: int, widget_height: int, anchor: str) -> tuple[int, int]:
-    """return the allowed Y-coordinate range for a widget based on its anchor and canvas dimensions"""
+    """return the allowed Y-coordinate range for a model based on its anchor and canvas dimensions"""
     if anchor in ["sw", "s", "se"]:
         return widget_height, canvas_height
     elif anchor in ["nw", "n", "ne"]:
@@ -24,12 +32,12 @@ def clamp(value: int, minimum: int, maximum: int) -> int:
     """clamp a value into the given minimum - maximum range"""
     return max(minimum, min(maximum, value))
 
-def clamped_delta(canvas_width, canvas_height, bbox: tuple[int, int, int, int], dx: int, dy: int) -> tuple[int, int]:
-    """clamp a movement delta so the given bounding box (of one or more widgets) stays fully within the canvas bounds"""
-    if not bbox:
+def clamped_delta(canvas_width, canvas_height, bounding_box: BoundingBox, dx: int, dy: int) -> tuple[int, int]:
+    """clamp a movement delta so the given bounding box (of one or more models) stays fully within the canvas bounds"""
+    if not bounding_box:
         return 0, 0
 
-    x0, y0, x1, y1 = bbox
+    x0, y0, x1, y1 = bounding_box.left, bounding_box.top, bounding_box.right, bounding_box.bottom
     min_dx, min_dy = -x0, -y0
     max_dx, max_dy = canvas_width - x1, canvas_height - y1
     return clamp(dx, min_dx, max_dx), clamp(dy, min_dy, max_dy)
@@ -64,3 +72,42 @@ def nearest_in_bounds_grid_step(value: int, grid_size: int, min_value: int, max_
 
     #if there are no grid steps inside the allowed range → only clamp to allowed range
     return clamp(value, min_value, max_value)
+
+def compute_model_bounding_box(x: int, y: int, width: int, height: int, anchor: str) -> BoundingBox:
+    """compute the model's bounding box based on position, size and anchor"""
+    if anchor == "sw":
+        left, right = x, x + width
+        top, bottom = y - height, y
+    elif anchor == "w":
+        left, right = x, x + width
+        top, bottom = y - (height // 2), y + (height - (height // 2))
+    elif anchor == "nw":
+        left, right = x, x + width
+        top, bottom = y, y + height
+    elif anchor == "n":
+        left, right = x - (width // 2), x + (width - (width // 2))
+        top, bottom = y, y + height
+    elif anchor == "ne":
+        left, right = x - width, x
+        top, bottom = y, y + height
+    elif anchor == "e":
+        left, right = x - width, x
+        top, bottom = y - (height // 2), y + (height - (height // 2))
+    elif anchor == "se":
+        left, right = x - width, x
+        top, bottom = y - height, y
+    elif anchor == "s":
+        left, right = x - (width // 2), x + (width - (width // 2))
+        top, bottom = y - height, y
+    elif anchor == "center":
+        left, right = x - (width // 2), x + (width - (width // 2))
+        top, bottom = y - (height // 2), y + (height - (height // 2))
+    else:
+        raise ValueError(f"Unsupported anchor: {anchor}")
+
+    return BoundingBox(
+        left=left,
+        top=top,
+        right=right,
+        bottom=bottom
+    )

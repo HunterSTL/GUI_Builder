@@ -4,8 +4,8 @@ from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetDa
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
-from commands import CommandStack, DeleteWidgets, MoveWidgets, MoveWidgetsTo, PasteWidgetsFromClipboard, SnapWidgetsToGrid
-from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, nearest_in_bounds_grid_step, CustomTitlebar
+from commands import AlignWidgets, CommandStack, DeleteWidgets, MoveWidgets, MoveWidgetsTo, PasteWidgetsFromClipboard, SnapWidgetsToGrid
+from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, CustomTitlebar
 from AppState import AppState
 
 class Designer:
@@ -567,12 +567,11 @@ class Designer:
         if not selected_models:
             return
 
-        #calculate clamped delta of all selected widgets so that widgets can't be moved outside the canvas
-        selected_widget_ids = set(self.widget_view.get_widget_id_from_model_id(model_id) for model_id in selected_models)
+        #calculate clamped delta of all selected widgets so they can't be moved outside the canvas
         dx, dy = clamped_delta(
-            self.canvas.winfo_width(),
-            self.canvas.winfo_height(),
-            self.canvas.bbox(*selected_widget_ids),
+            self.app_state.project.width,
+            self.app_state.project.height,
+            self.app_state.get_model_bounding_box_from_model_ids(selected_models),
             dx, dy
         )
 
@@ -664,46 +663,24 @@ class Designer:
     def _align(self, direction):
         """align selected widgets relative to the last selected widget"""
         selected_models = self.app_state.selection_currently_selected()
-        last_selected_model = self.app_state.selection.last_selected_model
+        last_selected_model = self.app_state.selection_last_selected()
 
         if not selected_models or not last_selected_model:
             return
 
-        reference_widget_bbox = self.widget_view.get_bbox_from_model_id(last_selected_model)
+        cmd = AlignWidgets(
+            model_ids=selected_models,
+            last_selected_model_id=last_selected_model,
+            direction=direction,
+            app_state=self.app_state
+        )
 
-        if not reference_widget_bbox:
-            return
+        if cmd.has_effect():
+            #align widgets
+            self.command_stack.execute(cmd)
 
-        with self.app_state.batch():
-            for model_id in selected_models:
-                if not model_id == last_selected_model:
-                    widget_bbox = self.widget_view.get_bbox_from_model_id(model_id)
-
-                    if not widget_bbox:
-                        return
-
-                    #calculate necessary movement delta
-                    if direction == "left":
-                        dx, dy = reference_widget_bbox["left"] - widget_bbox["left"], 0
-                    elif direction == "right":
-                        dx, dy = reference_widget_bbox["right"] - widget_bbox["right"], 0
-                    elif direction == "top":
-                        dx, dy = 0, reference_widget_bbox["top"] - widget_bbox["top"]
-                    elif direction == "bottom":
-                        dx, dy = 0, reference_widget_bbox["bottom"] - widget_bbox["bottom"]
-                    else:
-                        dx, dy = 0, 0
-
-                    #calculate clamped delta so that widget can't be moved outside the canvas
-                    widget_id = self.widget_view.get_widget_id_from_model_id(model_id)
-                    dx, dy = clamped_delta(self.canvas.winfo_width(), self.canvas.winfo_height(), self.canvas.bbox(widget_id), dx, dy)
-
-                    #move widget via AppState
-                    model = self.app_state.get_model_from_model_id(model_id)
-                    self.app_state.move_widget_by(model, dx, dy)
-
-        #set AppState to dirty
-        self._set_dirty()
+            #set AppState to dirty
+            self._set_dirty()
 
     #Event handling (grid actions)--------------------------------------------------------------------------------------
     def _toggle_grid(self):
@@ -803,6 +780,7 @@ class Designer:
         self.designer_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
         self.designer_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
         self.designer_event_bus.subscribe("debug.print_selection", self._print_selection)
+        self.designer_event_bus.subscribe("debug.print_bounding_boxes", self._print_bounding_boxes)
 
         #attribute events
         self.designer_event_bus.subscribe("attribute.changed", self._on_attribute_changed)
@@ -948,3 +926,11 @@ class Designer:
         print("#"*150)
         print(f"Selection:")
         print(self.app_state.selection)
+
+    def _print_bounding_boxes(self):
+        print("#"*150)
+        print(f"Model bounding boxes:")
+        for model in self.app_state.project.widget_models:
+            model_id = model.id
+            bbox = self.app_state.get_model_bounding_box_from_model_id(model_id)
+            print(f"{model_id}:\t{bbox}")

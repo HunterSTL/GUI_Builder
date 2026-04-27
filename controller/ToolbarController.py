@@ -197,3 +197,9 @@ class ToolbarController:
             command=lambda: self.event_router.emit("debug.print_selection"),
             accelerator="[F3]"
         )
+        self.toolbar_view.add_menu_item(
+            menu_name="Debug",
+            label="Print bounding boxes",
+            command=lambda: self.event_router.emit("debug.print_bounding_boxes"),
+            accelerator="[F4]"
+        )

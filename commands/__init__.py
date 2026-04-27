@@ -1,5 +1,6 @@
 from .BaseCommand import Command
 from .CommandStack import CommandStack
+from .AlignWidgets import AlignWidgets
 from .DeleteWidgets import DeleteWidgets
 from .MoveWidgets import MoveWidgets
 from .MoveWidgetsTo import MoveWidgetsTo
@@ -9,6 +10,7 @@ from .SnapWidgetsToGrid import SnapWidgetsToGrid
 __all__ = [
     "Command",
     "CommandStack",
+    "AlignWidgets",
     "DeleteWidgets",
     "MoveWidgets",
     "MoveWidgetsTo",
