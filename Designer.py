@@ -4,7 +4,8 @@ from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetDa
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
-from commands import AlignWidgets, CommandStack, DeleteWidgets, MoveWidgets, MoveWidgetsTo, PasteWidgetsFromClipboard, SnapWidgetsToGrid
+from actions import Actions, EditActions
+from commands import AlignWidgets, CommandStack, MoveWidgets, MoveWidgetsTo, SnapWidgetsToGrid
 from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, CustomTitlebar
 from AppState import AppState
 
@@ -19,7 +20,7 @@ class Designer:
     *Creating and connecting all major views (attributes panel, canvas, selection, toolbar, widget)
     *Routing user input via the EventBus into edit, widget, grid and UI actions
     *Managing rendering in response to AppState mutations (full and soft renders)
-    *Executing domain-specific editor logic (widget creation, alignment, snapping)
+    *Executing domain specific editor logic (widget creation, alignment, snapping)
     *Tracking dirty state and updating the window title accordingly
     """
     #Construction-------------------------------------------------------------------------------------------------------
@@ -160,10 +161,24 @@ class Designer:
             grid_visible_variable=self.grid_visible_variable
         )
 
-        #create ToolbarController to build the toolbar and wire the events
+        #create ToolbarController to build the toolbar and wire the events----------------------------------------------
         self.toolbar_controller = ToolbarController(
             toolbar_view=self.toolbar_view,
             event_router=self.event_router
+        )
+
+        #create EditActions to provide edit semantics (delete, copy, paste, cut, undo and redo)-------------------------
+        edit_actions = EditActions(
+            app_state=self.app_state,
+            command_stack=self.command_stack,
+            clipboard=self.clipboard,
+            confirm_delete_callback=self._confirm_delete,
+            set_dirty_callback=self.set_dirty
+        )
+
+        #create Actions to provide a single access point for all actions------------------------------------------------
+        self.actions = Actions(
+            edit_actions=edit_actions
         )
 
         self._subscribe_functions_to_events()
@@ -455,109 +470,32 @@ class Designer:
         """return True if the project has unsaved changes"""
         return self.state.is_dirty
 
+    def set_dirty(self):
+        """mark project state as dirty (unsaved changes exist)"""
+        self._set_dirty()
+
     def set_clean(self):
         """mark project state as clean (no unsaved changes)"""
         self._set_clean()
 
     #Event handling (edit actions)--------------------------------------------------------------------------------------
     def _delete(self):
-        """delete selected widgets after user confirmation"""
-        selected_models = self.app_state.selection_currently_selected()
-
-        if not selected_models:
-            return
-
-        count = len(selected_models)
-        if count == 1:
-            messagebox_text = "Delete selected widget?"
-        else:
-            messagebox_text = f"Delete {str(count)} selected widgets?"
-
-        #ask for confirmation
-        if not messagebox.askyesno(
-            "Delete",
-            messagebox_text,
-            parent=self.top     #disables interaction with the parent (Designer)
-        ):
-            return
-
-        #delete models from ProjectDocument
-        self.command_stack.execute(
-            DeleteWidgets(
-                model_ids=selected_models,
-                app_state=self.app_state
-            )
-        )
-
-        #clear selection
-        self.app_state.selection_clear()
-
-        #set AppState to dirty
-        self._set_dirty()
+        self.actions.edit.delete()
 
     def _copy(self):
-        """copy selected widgets to clipboard"""
-        #clear clipboard
-        self.clipboard = []
-
-        #serialize the model of selected widgets into model_data and append it to the clipboard
-        selected_models = self.app_state.selection_currently_selected()
-        for model_id in selected_models:
-            model = self.app_state.get_model_from_model_id(model_id)
-            if model is None:
-                continue
-
-            model_data = model.to_dict(include_id=False)    #exclude ID because pasting creates new IDs, except on redo
-            self.clipboard.append(model_data)
+        self.actions.edit.copy()
 
     def _paste(self):
-        """paste widgets from clipboard"""
-        if not self.clipboard:
-            return
-
-        self.command_stack.execute(
-            PasteWidgetsFromClipboard(
-                clipboard=self.clipboard,
-                app_state=self.app_state
-            )
-        )
-
-        #set AppState to dirty
-        self._set_dirty()
+        self.actions.edit.paste()
 
     def _cut(self):
-        """copy selected widgets to clipboard then delete them"""
-        selected_models = self.app_state.selection_currently_selected()
-
-        if not selected_models:
-            return
-
-        #copy models to clipboard
-        self._copy()
-
-        #delete models from ProjectDocument
-        self.command_stack.execute(
-            DeleteWidgets(
-                model_ids=selected_models,
-                app_state=self.app_state
-            )
-        )
-
-        #clear selection
-        self.app_state.selection_clear()
-
-        #set AppState to dirty
-        self._set_dirty()
+        self.actions.edit.cut()
 
     def _undo(self):
-        """undo last command"""
-        if self.command_stack.undo():   #only set AppState to dirty if something was undone
-            self._set_dirty()
+        self.actions.edit.undo()
 
     def _redo(self):
-        """redo last undone command"""
-        if self.command_stack.redo():   #only set AppState to dirty if something was redone
-            self._set_dirty()
+        self.actions.edit.redo()
 
     #Event handling (widget actions)------------------------------------------------------------------------------------
     def _move(self, dx: int, dy: int):
@@ -603,9 +541,8 @@ class Designer:
     def _start_drag(self):
         """initialize a MoveWidgetsTo command when dragging begins"""
         selected_models = self.app_state.selection_currently_selected()
-
-        #reset active_widget_drag_command if no widgets selected
         if not selected_models:
+            #reset active_widget_drag_command
             self.state.active_widget_drag_command = None
             return
 
@@ -619,7 +556,6 @@ class Designer:
         """finalize drag movement, executing stored MoveWidgetsTo command"""
         #get active widget drag command
         cmd = self.state.active_widget_drag_command
-
         if not cmd:
             return
 
@@ -894,6 +830,19 @@ class Designer:
         self.menu.add_command(
             label="Add Button",
             command=lambda: self._add_widget("Button", *_pos())
+        )
+
+    def _confirm_delete(self, count: int) -> bool:
+        """prompt user to confirm the deletion"""
+        if count == 1:
+            messagebox_text = "Delete selected widget?"
+        else:
+            messagebox_text = f"Delete {str(count)} selected widgets?"
+
+        return messagebox.askyesno(
+            "Delete",
+            messagebox_text,
+            parent=self.top     #disables interaction with the parent (Designer) while the messagebox is shown
         )
 
     def _set_dirty(self):
