@@ -60,11 +60,6 @@ class SelectionController:
             resolve_model_to_widget=self.resolve_model_to_widget
         )
 
-    #External API-------------------------------------------------------------------------------------------------------
-    def is_dragging(self):
-        """return whether a widget drag gesture is active"""
-        return self._widget_drag_state.is_dragging
-
     #Event handling-----------------------------------------------------------------------------------------------------
     def handle_canvas_press(self, event):
         """handle mouse press, deciding between selection or dragging mode"""
@@ -126,7 +121,7 @@ class SelectionController:
             pass
 
         #notify Designer that drag gesture starts (initializes MoveWidgetsTo command to store original widget positions)
-        self.event_router.emit("widget.start_drag")
+        self.event_router.emit("widget.drag.start")
 
     def handle_widget_drag(self, event):
         """handle widget drag movement, applying deltas after threshold"""
@@ -161,7 +156,7 @@ class SelectionController:
             wds.last_total_dx = 0
             wds.last_total_dy = 0
 
-        self.event_router.emit("widget.move", dx=incremental_dx, dy=incremental_dy)
+        self.event_router.emit("widget.drag.preview", dx=incremental_dx, dy=incremental_dy)
 
     def end_widget_drag(self):
         """end a widget drag by resetting widget drag state and notifying the Designer (to execute the MoveWidgetsTo command)"""
@@ -176,7 +171,7 @@ class SelectionController:
             pass
 
         #notify Designer that drag gesture ends (executes the MoveWidgetsTo command)
-        self.event_router.emit("widget.end_drag")
+        self.event_router.emit("widget.drag.commit")
 
     def start_rectangle_selection(self, event):
         """begin a rectangle selection gesture"""

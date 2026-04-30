@@ -1,4 +1,5 @@
 from commands import Command
+from utility import Edge
 from AppState import AppState
 
 class AlignWidgets(Command):
@@ -6,13 +7,13 @@ class AlignWidgets(Command):
         self,
         model_ids: frozenset,
         last_selected_model_id: str,
-        direction: str,
+        edge: Edge,
         app_state: AppState
     ):
         """store affected model IDs, snapshot original widget positions and compute and snapshot final widget positions"""
         self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._last_selected_model_id = last_selected_model_id
-        self._direction = direction
+        self._edge = edge
         self._app_state = app_state
 
         #determine the bbox of the reference model (last selected)
@@ -31,13 +32,13 @@ class AlignWidgets(Command):
                 model_bbox = self._app_state.get_model_bounding_box_from_model_id(model_id)
 
                 #calculate necessary movement delta
-                if direction == "left":
+                if self._edge == Edge.LEFT:
                     dx, dy = self._reference_model_bbox.left - model_bbox.left, 0
-                elif direction == "right":
+                elif self._edge == Edge.RIGHT:
                     dx, dy = self._reference_model_bbox.right - model_bbox.right, 0
-                elif direction == "top":
+                elif self._edge == Edge.TOP:
                     dx, dy = 0, self._reference_model_bbox.top - model_bbox.top
-                elif direction == "bottom":
+                elif self._edge == Edge.BOTTOM:
                     dx, dy = 0, self._reference_model_bbox.bottom - model_bbox.bottom
                 else:
                     dx, dy = 0, 0
@@ -77,6 +78,8 @@ class AlignWidgets(Command):
         """called automatically when printing this object"""
         s = "[AlignWidgets]"
         s += f"\n\tmodel IDs:\t\t\t{self._model_ids}"
+        s += f"\n\treference model ID:\t{self._last_selected_model_id}"
+        s += f"\n\tedge:\t\t\t{self._edge}"
         s += f"\n\toriginal positions:\t{self._original_positions}"
         s += f"\n\tfinal positions:\t{self._final_positions}"
         return s

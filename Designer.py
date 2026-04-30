@@ -4,9 +4,9 @@ from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetDa
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
-from actions import Actions, EditActions
-from commands import AlignWidgets, CommandStack, MoveWidgets, MoveWidgetsTo, SnapWidgetsToGrid
-from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, clamped_delta, screen_offset_to_center_window, CustomTitlebar
+from actions import Actions, EditActions, WidgetActions
+from commands import CommandStack
+from utility import call_tracer, Direction, Edge, allowed_x_range, allowed_y_range, clamp, screen_offset_to_center_window, CustomTitlebar
 from AppState import AppState
 
 class Designer:
@@ -176,9 +176,17 @@ class Designer:
             set_dirty_callback=self.set_dirty
         )
 
+        #create WidgetActions to provide widget semantics (nudge, drag, snap to grid, align)---------------------------
+        widget_actions = WidgetActions(
+            app_state=self.app_state,
+            command_stack=self.command_stack,
+            set_dirty_callback=self.set_dirty
+        )
+
         #create Actions to provide a single access point for all actions------------------------------------------------
         self.actions = Actions(
-            edit_actions=edit_actions
+            edit_actions=edit_actions,
+            widget_actions=widget_actions
         )
 
         self._subscribe_functions_to_events()
@@ -498,125 +506,37 @@ class Designer:
         self.actions.edit.redo()
 
     #Event handling (widget actions)------------------------------------------------------------------------------------
-    def _move(self, dx: int, dy: int):
-        """move selected widgets by a delta or preview drag movement"""
-        selected_models = self.app_state.selection_currently_selected()
-
-        if not selected_models:
-            return
-
-        #calculate clamped delta of all selected widgets so they can't be moved outside the canvas
-        dx, dy = clamped_delta(
-            self.app_state.project.width,
-            self.app_state.project.height,
-            self.app_state.get_model_bounding_box_from_model_ids(selected_models),
-            dx, dy
-        )
-
-        is_dragging = self.selection_controller.is_dragging()
-
-        if is_dragging and self.state.active_widget_drag_command:
-            #moving widgets by dragging
-            self.state.active_widget_drag_command.preview_move(dx, dy)
-        else:
-            #moving widgets with keyboard shortcuts (nudge)
-            self.command_stack.execute(
-                MoveWidgets(
-                    model_ids=selected_models,
-                    dx=dx,
-                    dy=dy,
-                    app_state=self.app_state
-                )
-            )
-
-        #refresh attributes panel if only one widget is selected
-        if len(selected_models) == 1:
-            model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
-            self.attributes_panel_view.update_variables_from_model(model)
-
-        #set AppState to dirty
-        if not is_dragging:
-            self._set_dirty()
+    def _nudge(self, direction: Direction, amount: int):
+        self.actions.widget.nudge(direction, amount)
 
     def _start_drag(self):
-        """initialize a MoveWidgetsTo command when dragging begins"""
-        selected_models = self.app_state.selection_currently_selected()
-        if not selected_models:
-            #reset active_widget_drag_command
-            self.state.active_widget_drag_command = None
-            return
+        self.actions.widget.start_drag()
 
-        #create the MoveWidgetsTo command to record original widget positions
-        self.state.active_widget_drag_command = MoveWidgetsTo(
-            model_ids=selected_models,
-            app_state=self.app_state
-        )
+    def _preview_drag(self, dx: int, dy: int):
+        affected_models = self.actions.widget.preview_drag(dx, dy)
 
-    def _end_drag(self):
-        """finalize drag movement, executing stored MoveWidgetsTo command"""
-        #get active widget drag command
-        cmd = self.state.active_widget_drag_command
-        if not cmd:
-            return
+        #refresh attributes panel if only one widget is selected
+        if len(affected_models) == 1:
+            model = self.app_state.get_model_from_model_id(
+                self.app_state.selection_last_selected()
+            )
+            self.attributes_panel_view.update_variables_from_model(model)
 
-        if cmd and cmd.has_effect():
-            #record final widget positions
-            cmd.freeze_final_positions()
-
-            #execute the actual command
-            self.command_stack.execute(cmd)
-
-            #set AppState to dirty
-            self._set_dirty()
-
-        #reset active_widget_drag_command
-        self.state.active_widget_drag_command = None
+    def _commit_drag(self):
+        self.actions.widget.commit_drag()
 
     def _snap_to_grid(self):
-        """align selected widgets to nearest grid positions"""
-        selected_models = self.app_state.selection_currently_selected()
+        affected_models = self.actions.widget.snap_to_grid()
 
-        if not selected_models:
-            return
+        #refresh attributes panel if only one widget is selected
+        if len(affected_models) == 1:
+            model = self.app_state.get_model_from_model_id(
+                self.app_state.selection_last_selected()
+            )
+            self.attributes_panel_view.update_variables_from_model(model)
 
-        cmd = SnapWidgetsToGrid(
-            model_ids=selected_models,
-            app_state=self.app_state
-        )
-
-        if cmd.has_effect():
-            #snap widgets to grid
-            self.command_stack.execute(cmd)
-
-            #refresh attributes panel if only one widget is selected
-            if len(selected_models) == 1:
-                model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
-                self.attributes_panel_view.update_variables_from_model(model)
-
-            #set AppState to dirty
-            self._set_dirty()
-
-    def _align(self, direction):
-        """align selected widgets relative to the last selected widget"""
-        selected_models = self.app_state.selection_currently_selected()
-        last_selected_model = self.app_state.selection_last_selected()
-
-        if not selected_models or not last_selected_model:
-            return
-
-        cmd = AlignWidgets(
-            model_ids=selected_models,
-            last_selected_model_id=last_selected_model,
-            direction=direction,
-            app_state=self.app_state
-        )
-
-        if cmd.has_effect():
-            #align widgets
-            self.command_stack.execute(cmd)
-
-            #set AppState to dirty
-            self._set_dirty()
+    def _align(self, edge: Edge):
+        self.actions.widget.align(edge)
 
     #Event handling (grid actions)--------------------------------------------------------------------------------------
     def _toggle_grid(self):
@@ -691,15 +611,16 @@ class Designer:
         self.designer_event_bus.subscribe("edit.redo", self._redo)
 
         #widget events
-        self.designer_event_bus.subscribe("widget.move", self._move)
-        self.designer_event_bus.subscribe("widget.start_drag", self._start_drag)
-        self.designer_event_bus.subscribe("widget.end_drag", self._end_drag)
+        self.designer_event_bus.subscribe("widget.nudge", self._nudge)
+        self.designer_event_bus.subscribe("widget.drag.start", self._start_drag)
+        self.designer_event_bus.subscribe("widget.drag.preview", self._preview_drag)
+        self.designer_event_bus.subscribe("widget.drag.commit", self._commit_drag)
         self.designer_event_bus.subscribe("widget.snap_to_grid", self._snap_to_grid)
         self.designer_event_bus.subscribe("widget.delete", self._delete)
-        self.designer_event_bus.subscribe("widget.align.left", lambda: self._align("left"))
-        self.designer_event_bus.subscribe("widget.align.right", lambda: self._align("right"))
-        self.designer_event_bus.subscribe("widget.align.top", lambda: self._align("top"))
-        self.designer_event_bus.subscribe("widget.align.bottom", lambda: self._align("bottom"))
+        self.designer_event_bus.subscribe("widget.align.left", lambda: self._align(Edge.LEFT))
+        self.designer_event_bus.subscribe("widget.align.right", lambda: self._align(Edge.RIGHT))
+        self.designer_event_bus.subscribe("widget.align.top", lambda: self._align(Edge.TOP))
+        self.designer_event_bus.subscribe("widget.align.bottom", lambda: self._align(Edge.BOTTOM))
         self.designer_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
 
         #grid events

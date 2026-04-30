@@ -66,7 +66,7 @@ class AppState:
                 if state._batch_depth == 0 and state._pending_notify:
                     state._pending_notify = False
                     state._notify()
-                return False #propagate exceptions so notify → re-render doen't happen on exceptions
+                return False #propagate exceptions so notify → re-render doesn't happen on exceptions
 
         return _Batch(self)
     #Widgets------------------------------------------------------------------------------------------------------------
@@ -214,7 +214,7 @@ class AppState:
 
     #Model helpers------------------------------------------------------------------------------------------------------
     def get_model_from_model_id(self, model_id: str) -> BaseWidgetData:
-        """return the model assosciated with the given model_id"""
+        """return the model associated with the given model_id"""
         try:
             return self._model_by_id[model_id]
         except KeyError:

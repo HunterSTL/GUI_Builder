@@ -2,7 +2,7 @@ from view import AttributesPanelView
 from utility import allowed_x_range, allowed_y_range
 
 #attributes that can be shown in the attributes panel including the type of widget
-#to display the value with (text field, numeric input, color picker, dropwodn etc.)
+#to display the value with (text field, numeric input, color picker, dropdown etc.)
 ATTRIBUTE_CONFIG = {
     "Label": {
         "type": "label",

@@ -55,7 +55,7 @@ def nearest_in_bounds_grid_step(value: int, grid_size: int, min_value: int, max_
     #nearest grid step to the actual value
     nearest_grid_step = round(value / grid_size) * grid_size
 
-    #return the the nearest grid step if it is within bounds
+    #return the nearest grid step if it is within bounds
     if min_value <= nearest_grid_step <= max_value:
         return nearest_grid_step
 
