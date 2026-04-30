@@ -235,7 +235,8 @@ class AppController:
             return
 
         #write project_document json to .tkui file
-        json.dump(self.designer.app_state.project.to_json(), file, ensure_ascii=False, indent=2)
+        with file:  #ensure the file is closed even if writing fails
+            json.dump(self.designer.app_state.project.to_json(), file, ensure_ascii=False, indent=2)
 
         #let AppController keep track of save path and last directory
         self._save_path = file.name
