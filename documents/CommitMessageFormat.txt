@@ -1,168 +1,214 @@
+================================================================================================================================
 Commit Message Format
-
+================================================================================================================================
 1. Title
-
+--------------------------------------------------------------------------------------------------------------------------------
+*Concise summary of what changed
 *Single line
-*Concise overview of what changed
 *Past tense
 *Capitalized
-*No trailing punctuation.
-
-Examples:
-
-	1.	Added coding and architecture conventions
-	2.	Simplified drag logic
-	3.	Formalized deterministic vs interactive command conventions
-	4.	Renamed ui_event_bus to designer_event_bus
-
+*No trailing punctuation
+--------------------------------------------------------------------------------------------------------------------------------
 2. Description
-
-*A few full sentences
-*Explains the why or what the change achieves
-*No indentation
+--------------------------------------------------------------------------------------------------------------------------------
+*Explains what the commit achieves
+*One or more full sentences
 *Present tense
+*No indentation
 *Typically starts with "This commit [...]"
-
-Examples:
-
-	1.	Designer events are scoped to the Designer instance and discarded when the Designer window is destroyed.
-		The new name reflects this lifetime coupling more accurately.
-	2.	This commit addresses memory leaks caused by Tk widget instances not being destroyed when removed from the canvas.
-	3.	This commit removes the callback dictionary system and implements an event-driven architecture centered around EventBus.
-		All UI input, menu commands, keyboard shortcuts and controller interactions now emit named events that Designer/AppController functions subscribe to.
-
+*May include an enumeration when the commit introduces or formalizes a convention or structure
+--------------------------------------------------------------------------------------------------------------------------------
 3. Body
-
+--------------------------------------------------------------------------------------------------------------------------------
 *Hierarchical
-*Indented:
-	*3 spaces per indentation level
-	*bullet point symbols encode hierarchy (*, -, >)
-*Describing concrete changes from coarse to fine granularity
-*Any level can be a single descriptive statement or a list header ending with :
+*Indented using 3 spaces per level
+*Bullet point symbols encode the question being answered
+	1.	* → What changed?
+	2.	- → What does the code now do because of that change?
+	3.	> → What additional clarification is useful?
+*Any bullet point that has child bullet points must end with :
+*Any level may terminate the hierarchy if additional detail is not necessary
 *Every file section must be separated from the previous file section by one empty line
 
-The Hierarchy can be thought of as:
+Hierarchy overview:
 
-File:
-   *Why / What:
-      -How:
-         >Details
-
-Example:
-
-Added view/ToolbarView.py:
-   *Replaces all view side responsibilities of the former Toolbar Manager:
-      -Constructs and packs the toolbar frame
-      -Provides an API for adding menus, menu items, checkbox menu items and separators
-      -Accepts styling parameters:
-         >height
-         >toolbar_color
-         >button_color and button_text_color
-         >menu_color and menu_text_color
-
+File:				Where did something change?
+   *Change:			What changed?
+      -Behaviour:	What does the code now do because of that change?
+         >Details	What additional clarification is useful?
+--------------------------------------------------------------------------------------------------------------------------------
 3.1 File level
-
-*Describes what happened to a file
+--------------------------------------------------------------------------------------------------------------------------------
+*Describes which file was affected and how
 *Full relative file path including file extension
 *Past tense
+*No indentation
 *Capitalized
-*Ending with :
-*Indentation level 0 (no spaces, no bullet point)
 *Allowed verbs:
-	*Added
-	*Removed
-	*Updated
-	*Renamed
-	*Moved
-
-Examples:
-
-	1.	Added commands/SnapWidgetsToGrid.py:
-	2.	Updated Designer.py:
-	3.	Removed ObsoleteFile.py:
-	4.	Renamed State.py to DesignerState.py:
-
+	1.	Added
+	2.	Removed
+	3.	Updated
+	4.	Renamed
+	5.	Moved
+--------------------------------------------------------------------------------------------------------------------------------
 3.2 Action level
-
-*Describes a concrete action that happened within the file
-*Can be a single statement or a list
+--------------------------------------------------------------------------------------------------------------------------------
+*Describes what changed within the file
+*Must name the affected code unit (method, function, class, flag, dictionary etc.) when this adds clarity
+*Must also include the class name of the affected code unit if the file contains multiple classes or the class name differs from the file name
 *Past tense
-*Indentation level 1 (3 spaces, * bullet point)
-
-Examples:
-
-	1.	Updated Designer.py:
-		   *Fixed typo (boundry → boundary)
-		   *Minor comment improvements
-		   *Fixed indentation level in _delete_selected_model()
-		   *Added docstring to _serialize_model()
-	2.	Updated model/__init__.py:
-		   *Exported BaseWidgetData
-	3.	Added commands/DeleteWidgets.py:
-		   *Implemented snapshot based delete command with deterministic undo/redo behaviour
-
-3.3 Behaviour level
-
-*Describes behaviour, responsibilities or semantics of code
-*Typically describes how an implementation works after the commit, not what changed
-*Uses present tense
-*Can describe:
-   -Concrete behaviour of a method or function
-   -Concrete methods of a class
-   -A group of related changes
-   -Why a change was made
-*Can be a single statement or a list
-*Indentation level 2 (6 spaces, - bullet point)
-
-Examples:
-
-	1.	Updated commands/CommandStack.py:
-		   *Implemented __repr__():
-		      -Returns the undo and redo stack as a string representation
-		      -Displays newest commands first
-		      -Uses the __repr__() implementation of the contained commands
-	2.	Added commands/PasteWidgetsFromClipboard.py:
-		   *Implemented pasting widgets from the Designer clipboard:
-		      -__init__(): accepts the clipboard and AppState (for mutating the ProjectDocument)
-		      -execute(): creates widget models for each clipboard entry and adds them to the ProjectDocument
-		      -undo(): removes all widget models created during execute()
-	3.	Updated model/ProjectDocument.py:
-		   *Renamed variables for consistency:
-		      -project_doc → project_document
-		      -widget_model → model_data
-	4.	Updated AppState.py:
-		   *Added explicit return types:
-		      -get_model_from_model_id() → BaseWidgetData
-		      -get_model_coordinates_from_model_id() → tuple[int, int]
-	5.	Updated model/WidgetModels.py:
-		   *Updated create_id() in each widget model class to return the generated ID:
-		      -This allows PasteWidgetsFromClipboard to store created IDs for undo/redo
-
+*Bullet point symbol: *
+*Indentation: 3 spaces
+*May include brief context in parenthesis if required to understand the change
+	e.g. "Removed _move() (obsolete, as nudge and drag preview are now handled separately)"
+*May be decomposed into more specific actions, that each:
+	1.	Represent a concrete part of the action
+	2.	Inherit the verb of the parent unless overridden
+	3.	Use the * bullet point
+	4.	Are indented one level deeper than the parent bullet point (3 additional spaces)
+--------------------------------------------------------------------------------------------------------------------------------
+3.3 Behaviour level:
+--------------------------------------------------------------------------------------------------------------------------------
+*Describes behaviour that is true after the change
+*Present tense
+*Bullet point symbol: -
+*Indented one level deeper than the parent bullet point (3 additional spaces)
+*May act as an introducer for multiple detail bullets points
+	e.g. "Uses:", "Accepts:", "Exposes:", "Defines:" etc.
+*May be omitted if the action level already expresses behaviour clearly, allowing the hierarchy to continue with the detail level
+--------------------------------------------------------------------------------------------------------------------------------
 3.4 Detail level
-
+--------------------------------------------------------------------------------------------------------------------------------
 *Used for providing additional detail about a behaviour
-*Indentation level 3 (9 spaces, > bullet point)
-
-Examples:
-
-	1.	Added events/EventRouter.py:
-		   *Introduced EventRouter as a dedicated interface that routes emitted events to the correct EventBus based on event scope
-		   *Distinguished between:
-		      -Application events:
-		         >app.*, project.*
-		         >Forwarded to the application EventBus owned by AppController
-		      -UI events:
-		         >selection.*, widget.*, grid.*, edit.*, debug.*
-		         >Forwarded to the UI EventBus owned by the Designer instance
-	2.	Added model/IdCounters.py:
-		   *Introduced IdCounters as a dedicated dataclass responsible for widget ID generation
-		   *Provides:
-		      -set_next_label_id(), set_next_entry_id(), set_next_button_id():
-		         >sets the next ID to be used for a specific widget type
-		      -next_label_id(), next_entry_id(), next_button_id():
-		         >generates the next ID for the given widget type and advances the counter
-
+*Bullet point symbol: >
+*Indented one level deeper than the parent bullet point (3 additional spaces)
+*May represent:
+	1.	Additional clarification of behaviour (present tense)
+	2.	An enumeration of elements involved in the behaviour (tense neutral)
+			e.g. methods, variables, parameters etc.
+	3.	An enumeration of elements forming the resulting structure (tense neutral)
+--------------------------------------------------------------------------------------------------------------------------------
 3.5 Sub-detail level
-
+--------------------------------------------------------------------------------------------------------------------------------
 *Used for providing even more fine grained detail
-*Indentation level 4+ (3 additional spaces per level, alternating - and > bullet points)
+*Recursively nestable
+*Bullet point symbol: >
+*Indented one level deeper than the parent bullet point (3 additional spaces)
+================================================================================================================================
+Examples
+================================================================================================================================
+1. File structure
+
+Added folder example/
+
+Moved file.txt to archive/
+
+Renamed old_name.py to new_name.py
+--------------------------------------------------------------------------------------------------------------------------------
+2. Action structure
+
+Updated file.py:
+   *Refactored data processing logic
+
+Updated configuration.py:
+   *Renamed variable endpoint to base_url
+   *Removed unused constant DEFAULT_TIMEOUT
+
+Updated renderer.py:
+   *Replaced legacy drawing logic with canvas renderer
+   *Adjusted import paths for utility functions
+--------------------------------------------------------------------------------------------------------------------------------
+3. Subaction structure
+
+Updated parser.py:
+   *Added supported formats:
+      *json
+      *xml
+      *yaml
+
+Updated math.py:
+   *Added algebra API:
+      *add(a, b)
+      *subtract(a, b)
+      *multiply(a, b)
+      *divide(a, b)
+
+Updated file_processor.py:
+   *Implemented file processing pipeline:
+      *Added file reading using buffered streams
+      *Added parsing step for structured input
+      *Added transformation logic for normalized output
+      *Added writing step for processed files
+   *Updated process_file() to use the new pipeline
+   *Removed inline processing logic
+--------------------------------------------------------------------------------------------------------------------------------
+4. Behaviour structure
+
+Updated service.py:
+   *Added caching layer:
+      -Stores results to prevent repeated computation
+      -Invalidates cache on update
+
+Updated cache.py:
+   *Added in-memory cache:
+      -Stores results keyed by request parameters
+      -Expires entries after configured timeout
+
+Updated authenticator.py:
+   *Added token validation:
+      -Checks signature agains secret key
+      -Rejects expired tokens
+--------------------------------------------------------------------------------------------------------------------------------
+4. Detail structure
+
+Additional clarification of behaviour (present tense):
+
+Updated validator.py:
+   *Added validation system:
+      -Validates user input:
+         >Rejects empty values
+         >Validates numeric range
+         >Ensures string length limits
+
+Enumeration of elements involved in the behaviour (tense neutral):
+
+Updated network.py:
+   *Added request handling:
+      -Builds and sends HTTP request:
+         >Authentication headers
+         >Serialized request body
+      -Processes responses:
+         >Retry mechanism
+         >Error logging
+
+Updated session.py:
+   *Added session management:
+      -Manages user sessions:
+         >Session creation on login
+         >Session termination on logout
+      -Maintains session state:
+         >User ID
+         >Timestamp
+--------------------------------------------------------------------------------------------------------------------------------
+5. Detail structure without behaviour
+
+Enumeration of elements forming the resulting structure (tense neutral):
+
+Updated config.py:
+   *Updated configuration structures:
+      >Connection:
+         >timeout
+         >retry_count
+      >Authentication:
+         >username
+         >password
+
+Updated layout.py:
+   *Defined layout sections:
+      >Header:
+         >title
+         >navigation
+      >Content:
+         >main_area
+         >sidebar
+--------------------------------------------------------------------------------------------------------------------------------
