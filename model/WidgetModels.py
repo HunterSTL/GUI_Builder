@@ -6,12 +6,12 @@ from model import IdCounters
 @dataclass
 class BaseWidgetData:
     id: Optional[str] = None
-    x: int = None
-    y: int = None
-    bg: str = None
-    fg: str = None
-    width: int = None
-    height: int = None
+    x: Optional[int] = None
+    y: Optional[int] = None
+    bg: Optional[str] = None
+    fg: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
     anchor: str = "sw"
 
     def to_dict(self, include_id: bool) -> dict:
@@ -27,13 +27,15 @@ class BaseWidgetData:
 
     @classmethod
     def from_dict(cls, model_data: dict) -> "BaseWidgetData":
+        if "type" not in model_data:
+            raise ValueError("Missing required attribute \"type\" in model data")
+
         widget_type = model_data["type"]
-        if widget_type == "Label":
-            return LabelWidgetData(**model_data)
-        elif widget_type == "Entry":
-            return EntryWidgetData(**model_data)
-        elif widget_type == "Button":
-            return ButtonWidgetData(**model_data)
+
+        if not widget_type in _WIDGET_CLASSES:
+            raise ValueError(f"Unknown widget type \"{widget_type}\"")
+
+        return _WIDGET_CLASSES[widget_type](**model_data)
 
 @dataclass
 class LabelWidgetData(BaseWidgetData):
@@ -60,3 +62,9 @@ class ButtonWidgetData(BaseWidgetData):
     def create_id(self, id_counters: IdCounters) -> str:
         self.id = id_counters.next_button_id()
         return self.id
+
+_WIDGET_CLASSES = {
+    "Label": LabelWidgetData,
+    "Entry": EntryWidgetData,
+    "Button": ButtonWidgetData
+}
