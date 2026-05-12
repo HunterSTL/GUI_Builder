@@ -4,6 +4,7 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
     def test_project_document_roundtrip(self):
         import json
         from model import ProjectDocument, GridConfig, LabelWidgetData, EntryWidgetData, ButtonWidgetData
+        from utility import WidgetType
 
         #build project document
         project_document = ProjectDocument(
@@ -48,7 +49,7 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
         #check widgets restored
         self.assertEqual(len(new_project_document.widget_models), 3)
         types = [model.type for model in new_project_document.widget_models]
-        self.assertEqual(types, ["Label", "Entry", "Button"])
+        self.assertEqual(types, [WidgetType.LABEL, WidgetType.ENTRY, WidgetType.BUTTON])
 
         #check id counters advanced
         self.assertGreaterEqual(project_document.id_counters.label, 2)
@@ -93,7 +94,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
         widget_id = widget_view.get_widget_id_from_model_id(model.id)
 
         self.assertIn(widget_id, widget_view.widget_map)
-        self.assertEqual(widget_view.widget_map[widget_id]["model"].id, "label1")
+        self.assertEqual(widget_view.widget_map[widget_id]["model"].id, "label_1")
         self.assertIsNotNone(model.width)
         self.assertIsNotNone(model.height)
 

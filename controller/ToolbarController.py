@@ -203,3 +203,9 @@ class ToolbarController:
             command=lambda: self.event_router.emit("debug.print_bounding_boxes"),
             accelerator="[F4]"
         )
+        self.toolbar_view.add_menu_item(
+            menu_name="Debug",
+            label="Print ID counters",
+            command=lambda: self.event_router.emit("debug.print_id_counters"),
+            accelerator="[F5]"
+        )

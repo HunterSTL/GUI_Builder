@@ -5,3 +5,7 @@
 #---Python Cache---
 __pycache__/
 *.pyc
+
+#---Development---
+documents/ToDo.txt
+documents/CommitMessage.txt

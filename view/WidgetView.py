@@ -1,4 +1,5 @@
 import tkinter as tk
+from utility import WidgetType
 
 class WidgetView:
     """
@@ -39,7 +40,7 @@ class WidgetView:
         )
 
         #update widget's text
-        if model.type in ("Label", "Button"):
+        if model.type in (WidgetType.LABEL, WidgetType.BUTTON):
             widget.config(text=model.text)
 
         #update canvas owned attributes (anchor, dimensions)
@@ -84,13 +85,13 @@ class WidgetView:
     #Internals----------------------------------------------------------------------------------------------------------
     def _create_widget_from_model(self, model):
         """create a tk widget based on the model.type"""
-        if model.type == "Label":
+        if model.type == WidgetType.LABEL:
             return tk.Label(self.canvas)
-        elif model.type == "Entry":
+        elif model.type == WidgetType.ENTRY:
             return tk.Entry(self.canvas)
-        elif model.type == "Button":
+        elif model.type == WidgetType.BUTTON:
             return tk.Button(self.canvas)
-        return None
+        raise ValueError(f"Invalid widget type \"{model.type}\"")
 
     def _insert_widget_into_canvas(self, widget, x, y, anchor):
         """place widget on canvas and return resulting widget_id"""

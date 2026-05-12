@@ -6,7 +6,7 @@ from controller import AttributesPanelController, CanvasController, SelectionCon
 from events import EventBus, EventRouter
 from actions import Actions, EditActions, WidgetActions
 from commands import CommandStack
-from utility import call_tracer, Direction, Edge, allowed_x_range, allowed_y_range, clamp, screen_offset_to_center_window, CustomTitlebar
+from utility import call_tracer, Direction, Edge, allowed_x_range, allowed_y_range, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType
 from AppState import AppState
 
 class Designer:
@@ -638,14 +638,15 @@ class Designer:
         self.designer_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
         self.designer_event_bus.subscribe("debug.print_selection", self._print_selection)
         self.designer_event_bus.subscribe("debug.print_bounding_boxes", self._print_bounding_boxes)
+        self.designer_event_bus.subscribe("debug.print_id_counters", self._print_id_counters)
 
         #attribute events
         self.designer_event_bus.subscribe("attribute.changed", self._on_attribute_changed)
 
     #Domain logic-------------------------------------------------------------------------------------------------------
-    def _add_widget(self, widget_type: str, desired_x: int, desired_y: int):
+    def _add_widget(self, widget_type: WidgetType, desired_x: int, desired_y: int):
         """create a new widget of the given type at the given coordinates (with clamping)"""
-        if widget_type == "Label":
+        if widget_type == WidgetType.LABEL:
             text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
             if text is None:
                 return
@@ -653,11 +654,11 @@ class Designer:
             bg = self.app_state.project.theme["label"]["bg"]
             fg = self.app_state.project.theme["label"]["fg"]
             model = LabelWidgetData(x=desired_x, y=desired_y, bg=bg, fg=fg, text=text)
-        elif widget_type == "Entry":
+        elif widget_type == WidgetType.ENTRY:
             bg = self.app_state.project.theme["entry"]["bg"]
             fg = self.app_state.project.theme["entry"]["fg"]
             model = EntryWidgetData(x=desired_x, y=desired_y, bg=bg, fg=fg)
-        elif widget_type == "Button":
+        elif widget_type == WidgetType.BUTTON:
             text = simpledialog.askstring("Button text", "Enter button text:", parent=self.top)
             if text is None:
                 return
@@ -666,7 +667,7 @@ class Designer:
             fg = self.app_state.project.theme["button"]["fg"]
             model = ButtonWidgetData(x=desired_x, y=desired_y, bg=bg, fg=fg, text=text)
         else:
-            return
+            raise ValueError(f"Unsupported widget type \"{widget_type}\"")
 
         model.create_id(self.app_state.project.id_counters)
 
@@ -674,7 +675,7 @@ class Designer:
         preview_widget, preview_widget_id = self.widget_view.create_preview_widget(model)
 
         #update widget's text and colors (can influence dimensions)
-        if widget_type in ("Label", "Button"):
+        if widget_type in (WidgetType.LABEL, WidgetType.BUTTON):
             preview_widget.config(text=model.text)
         preview_widget.config(bg=model.bg, fg=model.fg)
 
@@ -742,15 +743,15 @@ class Designer:
 
         self.menu.add_command(
             label="Add Label",
-            command=lambda: self._add_widget("Label", *_pos())
+            command=lambda: self._add_widget(WidgetType.LABEL, *_pos())
         )
         self.menu.add_command(
             label="Add Entry",
-            command=lambda: self._add_widget("Entry", *_pos())
+            command=lambda: self._add_widget(WidgetType.ENTRY, *_pos())
         )
         self.menu.add_command(
             label="Add Button",
-            command=lambda: self._add_widget("Button", *_pos())
+            command=lambda: self._add_widget(WidgetType.BUTTON, *_pos())
         )
 
     def _confirm_delete(self, count: int) -> bool:
@@ -804,3 +805,8 @@ class Designer:
             model_id = model.id
             bbox = self.app_state.get_model_bounding_box_from_model_id(model_id)
             print(f"{model_id}:\t{bbox}")
+
+    def _print_id_counters(self):
+        print("#"*150)
+        print(f"ID counters:")
+        print(self.app_state.project.id_counters)

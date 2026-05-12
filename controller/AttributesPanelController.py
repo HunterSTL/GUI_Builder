@@ -1,11 +1,10 @@
 from view import AttributesPanelView
-from utility import allowed_x_range, allowed_y_range
+from utility import allowed_x_range, allowed_y_range, WidgetType
 
 #attributes that can be shown in the attributes panel including the type of widget
 #to display the value with (text field, numeric input, color picker, dropdown etc.)
 ATTRIBUTE_CONFIG = {
-    "Label": {
-        "type": "label",
+    WidgetType.LABEL: {
         "id": "label",
         "x": "spinbox",
         "y": "spinbox",
@@ -16,8 +15,7 @@ ATTRIBUTE_CONFIG = {
         "fg": "colorpicker",
         "anchor": "combobox"
     },
-    "Entry": {
-        "type": "label",
+    WidgetType.ENTRY: {
         "id": "label",
         "x": "spinbox",
         "y": "spinbox",
@@ -27,8 +25,7 @@ ATTRIBUTE_CONFIG = {
         "fg": "colorpicker",
         "anchor": "combobox"
     },
-    "Button": {
-        "type": "label",
+    WidgetType.BUTTON: {
         "id": "label",
         "x": "spinbox",
         "y": "spinbox",

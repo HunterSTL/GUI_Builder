@@ -1,12 +1,6 @@
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import List, Dict, Any
-from model import IdCounters
-
-@dataclass
-class GridConfig:
-    size: int = 10
-    color: str = "#888888"
-    visible: bool = False
+from model import GridConfig, IdCounters
 
 @dataclass
 class ProjectDocument:
@@ -21,50 +15,36 @@ class ProjectDocument:
     id_counters: IdCounters = field(default_factory=IdCounters)
 
     def to_json(self) -> dict:
-        return asdict(self)
+        return {
+            "version": self.version,
+            "title": self.title,
+            "width": self.width,
+            "height": self.height,
+            "icon_path": self.icon_path,
+            "grid": self.grid.to_dict(),
+            "theme": self.theme,
+            "widget_models": [
+                model.to_dict(include_id=True)  #used to replace WidgetType enum with string for serialization
+                for model in self.widget_models
+            ],
+            "id_counters": self.id_counters.to_dict()
+        }
 
     @classmethod
-    def from_json(cls, data: dict) -> "ProjectDocument":
+    def from_json(cls, project_data: dict) -> "ProjectDocument":
         from model import BaseWidgetData
 
-        grid_data = data.get("grid", {})
-        grid = GridConfig(
-            size=int(grid_data.get("size", 10)),
-            color=grid_data.get("color", "#888888"),
-            visible=bool(grid_data.get("visible", False))
+        return ProjectDocument(
+            version=project_data.get("version", 1), #default to 1 if missing from data
+            title=project_data.get("title", "Untitled Project"),
+            width=int(project_data.get("width", 800)),
+            height=int(project_data.get("height", 600)),
+            icon_path=project_data.get("icon_path"),
+            grid=GridConfig.from_dict(project_data.get("grid")),
+            theme=project_data.get("theme", {}),
+            widget_models=[
+                BaseWidgetData.from_dict(model_data)
+                for model_data in project_data.get("widget_models", [])
+            ],
+            id_counters=IdCounters.from_dict(project_data.get("id_counters"))
         )
-
-        project_document = ProjectDocument(
-            version=data.get("version", 1),     #default to 1 if missing from data
-            title=data.get("title", "Untitled Project"),
-            width=int(data["width"]),
-            height=int(data["height"]),
-            icon_path=data.get("icon_path"),
-            grid=grid,
-            theme=data.get("theme", {})
-        )
-
-        max_label_id = 0
-        max_entry_id = 0
-        max_button_id = 0
-
-        for model_data in data.get("widget_models", []):
-            #create model from the model_data and add to the ProjectDocument
-            project_document.widget_models.append(BaseWidgetData.from_dict(model_data))
-
-            #record highest widget ID to update the IdCounters
-            widget_id = model_data["id"]
-            widget_type = model_data["type"]
-
-            if widget_type == "Label":
-                max_label_id = max(max_label_id, int(widget_id[5:]))
-            elif widget_type == "Entry":
-                max_entry_id = max(max_entry_id, int(widget_id[5:]))
-            elif widget_type == "Button":
-                max_button_id = max(max_button_id, int(widget_id[6:]))
-
-        project_document.id_counters.set_next_label_id(max_label_id + 1)    #prevents ID collisions
-        project_document.id_counters.set_next_entry_id(max_entry_id + 1)
-        project_document.id_counters.set_next_button_id(max_button_id + 1)
-
-        return project_document

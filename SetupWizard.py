@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import colorchooser, messagebox, filedialog
-from model import ProjectDocument, GridConfig
+from model import ProjectDocument, GridConfig, IdCounters
 from utility import screen_offset_to_center_window, load_icon, CustomTitlebar
 
 class SetupWizard:
@@ -207,7 +207,8 @@ class SetupWizard:
                 visible=False
             ),
             theme=self.user_theme,
-            widget_models=[]
+            widget_models=[],
+            id_counters=IdCounters()
         )
 
         #hand the project_document back to the AppController
