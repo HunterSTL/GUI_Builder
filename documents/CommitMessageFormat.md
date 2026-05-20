@@ -1,4 +1,8 @@
 # Commit Message Format
+This document defines the structure and conventions used for commit messages throughout the GUI_Builder codebase.  
+The goal of these conventions is to make commit history clear and consistent.  
+They allow an arbitrarily deep understanding of changes, from a high level overview to a complete description.
+
 ## 1 Title
 * Concise summary of what changed
 * Single line
@@ -27,10 +31,10 @@
 
 ### Hierarchy overview:
 ```
-File:                       Where did something change?
-   *Change:                 What changed?
-      -Behaviour:           What does the code now do because of that change?
-         >Details           What additional clarification is useful?
+File:                   Where did something change?
+   *Change:             What changed?
+      -Behaviour:       What does the code now do because of that change?
+         >Details:      What additional clarification is useful?
 ```
 
 ## 3.1 File level
@@ -69,6 +73,7 @@ File:                       Where did something change?
 * May act as an introducer for multiple detail bullets points
 >e.g. "Uses:", "Accepts:", "Exposes:", "Defines:" etc.
 * May be omitted if the action level already expresses behaviour clearly, allowing the hierarchy to continue with the detail level
+* Independent changes must be expressed as nested action bullets (*) rather than behaviour bullets (-)
 
 ## 3.4 Detail level
 * Used for providing additional detail about a behaviour
@@ -164,7 +169,7 @@ Updated cache.py:
 ```
 Updated authenticator.py:
    *Added token validation:
-      -Checks signature agains secret key
+      -Checks signature against secret key
       -Rejects expired tokens
 ```
 

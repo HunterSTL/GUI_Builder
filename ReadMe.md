@@ -2,7 +2,7 @@
 A desktop application for visually designing Tkinter user interfaces using a canvas based editor.  
 The tool allows creating, positioning and configuring Tkinter widgets, then saving the layout into a structured project file.
 
-## Overview
+## 1 Overview
 This project implements a GUI builder for Tkinter using a structured architecture composed of:
 
 * A central application controller
@@ -14,14 +14,14 @@ This project implements a GUI builder for Tkinter using a structured architectur
 
 The application stores layouts in a custom JSON based ```.tkui``` file format.
 
-## Features
-### Project Management
+## 2 Features
+### 2.1 Project Management
 * Create new projects via a setup wizard
 * Open existing ```.tkui``` project files
 * Save and Save As functionality
 * Unsaved changes prompt on destructive actions (new, open, exit)
 
-### Widget Editing
+### 2.2 Widget Editing
 Supports the following widget types:
 * Label
 * Entry
@@ -36,12 +36,12 @@ Supports the following widget types:
 * Align widgets (left, right, top, bottom)
 * Multi select (Ctrl click or rectangle selection)
 
-### Editing Operations
+### 2.3 Editing Operations
 * Delete
 * Cut, copy and paste
 * Undo and redo
 
-### Attributes Panel
+### 2.4 Attributes Panel
 * Edit widget properties live:
     * Position (x, y)
     * Size (width, height)
@@ -49,12 +49,12 @@ Supports the following widget types:
     * Colors (bg, fg)
     * Anchor
 
-### Grid System
+### 2.5 Grid System
 * Toggle grid visibility
 * Change grid size
 * Change grid color
 
-## Architecture
+## 3 Architecture
 ```
 Application Root
 └── AppController
@@ -173,18 +173,18 @@ Application Root
 
 ```
 
-## Running the Application
-### Requirements
+## 4 Running the Application
+### 4.1 Requirements
 * Python 3
 * Tkinter
 * Pillow
 
-### Run
+### 4.2 Run
 ```
 python App.py
 ```
 
-## File Format (.tkui)
+## 5 File Format (.tkui)
 Projects are saved as JSON containing:
 * Project metadata (title, size, icon)
 * Grid configuration
@@ -192,45 +192,45 @@ Projects are saved as JSON containing:
 * Widget models
 * ID counters
 
-## Controls
-### Mouse
+## 6 Controls
+### 6.1 Mouse
 * Left click → Select widget
 * [Ctrl] + click → Add to selection
 * Drag → Move widgets
 * Drag empty area → Rectangle select
 * Right click → Add widget menu
 
-### Keyboard
+### 6.2 Keyboard
 
-#### Project
+#### 6.2.1 Project
 * [Ctrl] + [N] → New project
 * [Ctrl] + [O] → Open project
 * [Ctrl] + [S] → Save
 * [Ctrl] + [Shift] + [S] → Save As
 
-#### App
+#### 6.2.2 App
 * [Alt] + [F4] → Exit
 
-#### Edit
+#### 6.2.3 Edit
 * [Ctrl] + [C] → Copy
 * [Ctrl] + [V] → Paste
 * [Ctrl] + [X] → Cut
 * [Ctrl] + [Z] → Undo
 * [Ctrl] + [Y] → Redo
 
-#### Widget 
+#### 6.2.4 Widget 
 * Arrow keys → Nudge
 * [Shift] + Arrow keys → Big nudge
 * [Ctrl] + Arrow keys → Align with last selected
 * [S] → Snap to grid
 * [Delete] → Delete selected widgets
 
-#### Grid
+#### 6.2.5 Grid
 * [G] → Toggle grid
 * [Ctrl] + [G] → Change grid size
 * [Shift] + [G] → Change grid color
 
-#### Debug
+#### 6.2.6 Debug
 * [Ctrl] + [Shift] + [T] → Toggle call tracing
 * [Ctrl] + [D] → Set dirty
 * [Ctrl] + [Shift] + [D] → Set clean
@@ -241,13 +241,13 @@ Projects are saved as JSON containing:
 * [F4] → Print bounding boxes
 * [F5] → Print id counters
 
-## Testing
+## 7 Testing
 Run unit tests:
 ```
 python UnitTests.py
 ```
 
-## Summary
+## 8 Summary
 
 This project is a structured Tkinter GUI editor with:
 
