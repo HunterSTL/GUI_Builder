@@ -230,10 +230,10 @@ def _delete(self):
 self.structural_change = False	#signals whether a full re-render is necessary
 ```
 ```
-self._batch_depth = 0		    #tracks batch depth so only the outermost batch notifies (batches can be nested)
+self._batch_depth = 0			#tracks batch depth so only the outermost batch notifies (batches can be nested)
 ```
 ```
-self._model_by_id = {}		    #{model.id: model} for O(1) lookup; maintained in add_/remove_widget()
+self._model_by_id = {}			#{model.id: model} for O(1) lookup; maintained in add_/remove_widget()
 ```
 
 ## 4 Model Mutation
@@ -269,18 +269,19 @@ with self.app_state.batch():
 
 ## 6 Raising Errors
 * Invalid or inconsistent state must raise errors instead of failing silently
-* Must use domain concepts (e.g. Model, Widget, Project)
-* Must avoid implementation details (class or method names)
+* Must list the responsible system (e.g. Model, AppState, Designer, WidgetView)
+* Must uniquely identify the source of failure within the system
+* Must avoid low level implementation details (e.g. Python internals, method names)
 * Must be short and specific
 * Must not use trailing punctuation
-* Must follow the format: \<Domain> - \<operation> failed: \<reason> [\<key values>]
+* Must follow the format: \<System> - \<operation> failed: \<reason> [\<key values>]
 
 **Incorrect:**
 ```
 AppState: unknown id
 ```
 ```
-get_model(): invalid value
+get_model_from_model_id(): invalid value
 ```
 ```
 Unknown type
@@ -288,13 +289,13 @@ Unknown type
 
 **Correct:**
 ```
-Model - lookup failed: unknown ID "label_1"
+AppState - subscription failed: subscriber must be callable
 ```
 ```
-Widget - creation failed: invalid type "slider"
+Model - creation failed: duplicate ID "label_1"
 ```
 ```
-Project - creation failed: invalid width "abd"
+Designer - widget creation failed: unsupported type "slider"
 ```
 
 ## 7 Dirty State

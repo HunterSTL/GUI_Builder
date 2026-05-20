@@ -667,7 +667,7 @@ class Designer:
             fg = self.app_state.project.theme["button"]["fg"]
             model = ButtonWidgetData(x=desired_x, y=desired_y, bg=bg, fg=fg, text=text)
         else:
-            raise ValueError(f"Unsupported widget type \"{widget_type}\"")
+            raise ValueError(f"Designer - widget creation failed: unsupported type \"{widget_type}\"")
 
         model.create_id(self.app_state.project.id_counters)
 

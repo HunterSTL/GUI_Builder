@@ -2,13 +2,13 @@ from events import EventBus
 
 class EventRouter:
     """
-    Routes emitted events to the appropriate EventBus based on the event name:
+    Routes emitted events to the appropriate EventBus based on the event namespace:
 
     1. App events (e.g. "project.open", "project.save", "app.exit"):
         *Owned by the AppController
         *Persist for the entire application lifetime
         *App events must start with "app." or "project."
-    2. UI events (e.g. "selection.handle_press", "widget.move"):
+    2. Designer events (e.g. "selection.handle_press", "widget.nudge"):
         *Owned by a single Designer instance
         *Must be discarded when the Designer window is destroyed
 

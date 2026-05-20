@@ -32,7 +32,7 @@ class AppState:
     def subscribe(self, function):
         """register a function to be called when the state changes"""
         if not callable(function):
-            raise TypeError("Subscriber must be callable")
+            raise ValueError("AppState - subscription failed: subscriber must be callable")
         self._subscribers.append(function)
 
     def _notify(self):
@@ -72,6 +72,12 @@ class AppState:
     #Widgets------------------------------------------------------------------------------------------------------------
     def add_widget(self, model):
         """append a new widget model to the ProjectDocument"""
+        if not model.id:
+            raise ValueError("Model - creation failed: missing ID")
+
+        if model.id in self._model_by_id:
+            raise ValueError(f"Model - creation failed: duplicate ID \"{model.id}\"")
+
         self._model_by_id[model.id] = model
         self.project.widget_models.append(model)
         self.structural_change = True
@@ -79,19 +85,19 @@ class AppState:
 
     def remove_widget(self, model):
         """remove an existing widget model from the ProjectDocument"""
+        if model.id not in self._model_by_id:
+            raise ValueError(f"Model - deletion failed: unknown ID \"{model.id}\"")
+
         self._model_by_id.pop(model.id, None)
-
-        try:
-            self.project.widget_models.remove(model)
-        except ValueError:
-            return
-
+        self.project.widget_models.remove(model)
         self.structural_change = True
         self._notify()
 
     def move_widget_to(self, model, x: int, y: int):
         """set absolute model coordinates"""
-        call_tracer.log_event(f"move widget {model.id} to {x}|{y}")
+        if model.id not in self._model_by_id:
+            raise ValueError(f"Model - movement failed: unknown ID \"{model.id}\"")
+
         model.x = x
         model.y = y
         self.dirty_model_ids.add(model.id)
@@ -99,7 +105,9 @@ class AppState:
 
     def move_widget_by(self, model, dx: int, dy: int):
         """update model coordinates by a delta"""
-        call_tracer.log_event(f"move widget {model.id} by {dx}|{dy}")
+        if model.id not in self._model_by_id:
+            raise ValueError(f"Model - movement failed: unknown ID \"{model.id}\"")
+
         model.x += dx
         model.y += dy
         self.dirty_model_ids.add(model.id)
@@ -107,13 +115,12 @@ class AppState:
 
     def set_widget_attribute(self, model, attribute, value):
         """set a model attribute to value if present"""
-        call_tracer.log_event(f"set {model.id} attribute {attribute} to value {value}")
-        if hasattr(model, attribute):
-            setattr(model, attribute, value)
-            self.dirty_model_ids.add(model.id)
-            self._notify()
-        else:
-            raise AttributeError(f"Model \"{model.id}\" has no attribute {attribute}")
+        if not hasattr(model, attribute):
+            raise ValueError(f"Model - attribute update failed: unknown attribute \"{attribute}\" [{model.id}]")
+
+        setattr(model, attribute, value)
+        self.dirty_model_ids.add(model.id)
+        self._notify()
 
     #Grid/Project-------------------------------------------------------------------------------------------------------
     def set_grid_visible(self, visible: bool):
@@ -145,9 +152,6 @@ class AppState:
 
     def selection_select_only(self, model_id: str):
         """replace the current selection with the given model and notify subscribers"""
-        if model_id is None:
-            return
-
         self.selection.selected_models = {model_id}
         self.selection.last_selected_model = model_id
         self.selection_change = True
@@ -155,9 +159,6 @@ class AppState:
 
     def selection_toggle(self, model_id: str):
         """add the given model to the selection or remove it if it's already selected and notify subscribers"""
-        if model_id is None:
-            return
-
         if self.selection_contains(model_id):   #already selected → remove from selection
             self.selection.selected_models.remove(model_id)
             if self.selection.last_selected_model == model_id:
@@ -171,6 +172,9 @@ class AppState:
 
     def selection_handle_click(self, model_id: str, is_additive: bool):
         """toggle the model if selection is additive, otherwise replace selection with the given model"""
+        if model_id not in self._model_by_id:
+            raise ValueError(f"Selection - update failed: unknown ID \"{model_id}\"")
+
         if is_additive:
             self.selection_toggle(model_id)
         else:
@@ -218,7 +222,7 @@ class AppState:
         try:
             return self._model_by_id[model_id]
         except KeyError:
-            raise KeyError(f"Unknown model_id: {model_id}")
+            raise ValueError(f"Model - lookup failed: unknown ID \"{model_id}\"")
 
     def get_model_coordinates_from_model_id(self, model_id: str) -> tuple[int, int]:
         """return the X- and Y-coordinate of the model"""

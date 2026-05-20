@@ -103,7 +103,7 @@ def compute_model_bounding_box(x: int, y: int, width: int, height: int, anchor: 
         left, right = x - (width // 2), x + (width - (width // 2))
         top, bottom = y - (height // 2), y + (height - (height // 2))
     else:
-        raise ValueError(f"Unsupported anchor: {anchor}")
+        raise ValueError(f"Geometry - computation failed: invalid anchor \"{anchor}\"")
 
     return BoundingBox(
         left=left,

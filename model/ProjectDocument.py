@@ -34,11 +34,25 @@ class ProjectDocument:
     def from_json(cls, project_data: dict) -> "ProjectDocument":
         from model import BaseWidgetData
 
+        #validate width and height
+        raw_width = project_data.get("width", 800)
+        raw_height = project_data.get("height", 600)
+
+        try:
+            width = int(raw_width)
+        except (TypeError, ValueError):
+            raise ValueError(f"Project - deserialization failed: invalid width \"{raw_width}\"")
+
+        try:
+            height = int(raw_height)
+        except (TypeError, ValueError):
+            raise ValueError(f"Project - deserialization failed: invalid height \"{raw_height}\"")
+
         return ProjectDocument(
             version=project_data.get("version", 1), #default to 1 if missing from data
             title=project_data.get("title", "Untitled Project"),
-            width=int(project_data.get("width", 800)),
-            height=int(project_data.get("height", 600)),
+            width=width,
+            height=height,
             icon_path=project_data.get("icon_path"),
             grid=GridConfig.from_dict(project_data.get("grid")),
             theme=project_data.get("theme", {}),

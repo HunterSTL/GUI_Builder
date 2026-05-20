@@ -77,7 +77,11 @@ class AttributesPanelController:
 
         row_index = 0
 
-        for attribute, widget_type in ATTRIBUTE_CONFIG[model.type].items():
+        config = ATTRIBUTE_CONFIG.get(model.type)
+        if not config:
+            raise ValueError(f"AttributesPanel - rendering failed: unsupported type \"{model.type}\"")
+
+        for attribute, widget_type in config.items():
             #create displayname for each attribute
             self.attribute_panel_view.create_display_name_label(attribute, row_index)
 

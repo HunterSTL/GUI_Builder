@@ -16,7 +16,7 @@ class BaseWidgetData:
 
     def __post_init__(self):
         if type(self) is BaseWidgetData:
-            raise TypeError("BaseWidgetData cannot be instantiated directly")
+            raise ValueError("Model - creation failed: base type cannot be instantiated directly")
 
     def to_dict(self, include_id: bool) -> dict:
         """return a copied dictionary of the model's attributes, optionally without the ID (suitable for clipboard use)"""
@@ -36,7 +36,7 @@ class BaseWidgetData:
     def from_dict(cls, model_data: dict) -> "BaseWidgetData":
         #ensure type attribute is present
         if "type" not in model_data:
-            raise ValueError("Missing required attribute \"type\" in model data")
+            raise ValueError("Model - deserialization failed: missing required attribute \"type\"")
 
         raw_type = model_data["type"]
 
@@ -44,17 +44,20 @@ class BaseWidgetData:
         try:
             widget_type = WidgetType(raw_type)
         except ValueError:
-            raise ValueError(f"Invalid widget type \"{raw_type}\"")                 #raw type doesn't map to any WidgetType → invalid
+            raise ValueError(f"Model - deserialization failed: invalid type \"{raw_type}\"")                #raw type doesn't map to any WidgetType → invalid
 
         #validate that a model class exists for this widget type
         if widget_type not in _WIDGET_CLASSES:
-            raise ValueError(f"Unsupported widget type \"{widget_type.value}\"")    #WidgetType doesn't map to any WidgetData class → unsupported
+            raise ValueError(f"Model - deserialization failed: unsupported type \"{widget_type.value}\"")   #WidgetType doesn't map to any WidgetData class → unsupported
 
         #replace string type with WidgetType
         model_data = model_data.copy() #copy to prevent mutating input data
         model_data["type"] = widget_type
 
-        return _WIDGET_CLASSES[widget_type](**model_data)
+        try:
+            return _WIDGET_CLASSES[widget_type](**model_data)
+        except TypeError as e:
+            raise ValueError(f"Model - deserialization failed: invalid attribute set for type \"{widget_type.value}\" [{e}]")
 
 @dataclass
 class LabelWidgetData(BaseWidgetData):

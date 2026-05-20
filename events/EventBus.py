@@ -1,9 +1,9 @@
 class EventBus:
     """
-    Maps events (e.g. widget.move) to a list of subscribers.
+    Maps events (e.g. widget.nudge) to subscribers.
 
     self._subscribers = {
-        "widget.move":      [function1, function2],
+        "widget.nudge":     [function1, function2],
         "widget.delete":    [function3],
         "project.save":     [function4]
     }
@@ -13,6 +13,9 @@ class EventBus:
 
     def subscribe(self, event_name, function):
         """register a function to be called when the given event is emitted"""
+        if not callable(function):
+            raise ValueError(f"EventBus - subscription failed: subscriber must be callable [{event_name}]")
+
         #create list of subscribers if key doesn't exist yet
         if event_name not in self._subscribers:
             self._subscribers[event_name] = []
@@ -40,4 +43,4 @@ class EventBus:
             try:
                 function(**kwargs)
             except Exception as e:
-                print(f"[EventBus] Error in handler for \"{event_name}\": {e}")
+                raise ValueError(f"EventBus - handler execution failed: \"{event_name}\"") from e   #"from e" preserves the original exception

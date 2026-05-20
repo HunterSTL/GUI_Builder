@@ -32,17 +32,12 @@ class WidgetController:
         """apply an attribute change from the AttributesPanel to the widget and model"""
         widget = self.widget_view.get_widget_from_model_id(model_id)
         if not widget:
-            return
-
-        #validate attribute name
-        attribute = attribute.strip().lower()
-        allowed_attributes = {"x", "y", "width", "height", "text", "bg", "fg", "anchor"}
-        if attribute not in allowed_attributes:
-            return
+            raise ValueError(f"WidgetController - update failed: missing widget for model \"{model_id}\"")
 
         model = self.app_state.get_model_from_model_id(model_id)
+        attribute = attribute.strip().lower()
 
-        #changing text should resize the widget
+        #resize the widget on text changes
         if attribute == "text":
             #apply new text to the actual widget so tk recomputes geometry
             widget.config(text=value)

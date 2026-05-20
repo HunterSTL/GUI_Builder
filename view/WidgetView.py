@@ -28,7 +28,15 @@ class WidgetView:
             self._render_widget(model)
             return
 
-        widget = self.widget_map[widget_id]["widget"]
+        #validate widget with the given widget_id exists
+        entry = self.widget_map.get(widget_id)
+        if not entry:
+            raise ValueError(f"WidgetView - rendering failed: unknown widget ID \"{widget_id}\"")
+        widget = entry["widget"]
+
+        #validate model position
+        if model.x is None or model.y is None:
+            raise ValueError(f"WidgetView - rendering failed: missing position for model \"{model.id}\"")
 
         #update widget's position
         self.canvas.coords(widget_id, model.x, model.y)
@@ -91,7 +99,7 @@ class WidgetView:
             return tk.Entry(self.canvas)
         elif model.type == WidgetType.BUTTON:
             return tk.Button(self.canvas)
-        raise ValueError(f"Invalid widget type \"{model.type}\"")
+        raise ValueError(f"WidgetView - creation failed: unsupported type \"{model.type}\"")
 
     def _insert_widget_into_canvas(self, widget, x, y, anchor):
         """place widget on canvas and return resulting widget_id"""
@@ -154,8 +162,12 @@ class WidgetView:
         """return the widget associated with a given model_id"""
         widget_id = self.get_widget_id_from_model_id(model_id)
         if widget_id is None:
-            return None
-        return self.widget_map.get(widget_id)["widget"]
+            return None #widget not created yet (valid state)
+
+        entry = self.widget_map.get(widget_id)
+        if not entry:
+            raise ValueError(f"WidgetView - lookup failed: unknown widget ID \"{widget_id}\"")
+        return entry["widget"]
 
     def get_model_id_from_widget_id(self, widget_id: int):
         """return the model_id mapped to a widget_id"""
