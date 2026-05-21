@@ -710,12 +710,12 @@ class Designer:
         self._set_dirty()
 
     def _on_attribute_changed(self, model_id: str, attribute: str, value):
-        """apply attribute changes coming from the attributes panel to the model"""
+        """apply attribute changes coming from the AttributesPanel to the model"""
         if model_id is None:
             return
 
         #apply change to the model through WidgetController
-        self.widget_controller.update_widget_attribute(model_id, attribute, value)
+        self.widget_controller.update_widget_attribute(model_id, attribute, value)  #handles special cases requiring measurement from the rendered widget (text updates → dimension recomputation)
 
         #recompute spinbox limits
         model = self.app_state.get_model_from_model_id(model_id)
