@@ -14,7 +14,7 @@ class EventBus:
     def subscribe(self, event_name, function):
         """register a function to be called when the given event is emitted"""
         if not callable(function):
-            raise ValueError(f"EventBus - subscription failed: subscriber must be callable [{event_name}]")
+            raise ValueError(f"EventBus - subscription failed: subscriber must be callable [event: {event_name}]")
 
         #create list of subscribers if key doesn't exist yet
         if event_name not in self._subscribers:
@@ -43,4 +43,4 @@ class EventBus:
             try:
                 function(**kwargs)
             except Exception as e:
-                raise ValueError(f"EventBus - handler execution failed: \"{event_name}\"") from e   #"from e" preserves the original exception
+                raise ValueError(f"EventBus - handler execution failed [event: {event_name}]") from e   #"from e" preserves the original exception

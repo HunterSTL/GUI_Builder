@@ -1,10 +1,8 @@
 from view import AttributesPanelView
 from utility import allowed_x_range, allowed_y_range, WidgetType
 
-#attributes that can be shown in the attributes panel including the type of widget
-#to display the value with (text field, numeric input, color picker, dropdown etc.)
-ATTRIBUTE_CONFIG = {
-    WidgetType.LABEL: {
+ATTRIBUTE_CONFIG = {    #maps widget types to their respective attribute config
+    WidgetType.LABEL: { #defines which model attributes to show in the panel including the widget to display the value with
         "id": "label",
         "x": "spinbox",
         "y": "spinbox",
@@ -59,7 +57,7 @@ class AttributesPanelController:
     #Rendering API------------------------------------------------------------------------------------------------------
     def refresh(self, model):
         """rebuild the panel for the given model"""
-        #set active model id so view knows which widget is selected (to propagate changes from the panel to the model)
+        #set active model ID so view knows which widget is selected (to propagate changes from the panel to the model)
         self.attribute_panel_view.set_active_model_id(model.id)
 
         #render the panel
@@ -79,7 +77,7 @@ class AttributesPanelController:
 
         config = ATTRIBUTE_CONFIG.get(model.type)
         if not config:
-            raise ValueError(f"AttributesPanel - rendering failed: unsupported type \"{model.type}\"")
+            raise ValueError(f"AttributesPanelController - attributes panel rendering failed: unsupported type \"{model.type}\"")
 
         for attribute, widget_type in config.items():
             #create displayname for each attribute

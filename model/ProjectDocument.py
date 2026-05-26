@@ -41,12 +41,12 @@ class ProjectDocument:
         try:
             width = int(raw_width)
         except (TypeError, ValueError):
-            raise ValueError(f"Project - deserialization failed: invalid width \"{raw_width}\"")
+            raise ValueError(f"ProjectDocument - project deserialization failed: invalid width \"{raw_width}\"")
 
         try:
             height = int(raw_height)
         except (TypeError, ValueError):
-            raise ValueError(f"Project - deserialization failed: invalid height \"{raw_height}\"")
+            raise ValueError(f"ProjectDocument - project deserialization failed: invalid height \"{raw_height}\"")
 
         return ProjectDocument(
             version=project_data.get("version", 1), #default to 1 if missing from data

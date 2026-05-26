@@ -20,7 +20,11 @@ class WidgetView:
     #Rendering API------------------------------------------------------------------------------------------------------
     def render_soft(self, model):
         """update an existing widget’s attributes to match the model"""
-        #get the widget_id and widget of this model
+        #validate model position
+        if model.x is None or model.y is None:
+            raise ValueError(f"WidgetView - widget rendering failed: missing position for model \"{model.id}\"")
+
+        #get the widget_id of this model
         widget_id = self.get_widget_id_from_model_id(model.id)
 
         if widget_id is None:
@@ -31,12 +35,8 @@ class WidgetView:
         #validate widget with the given widget_id exists
         entry = self.widget_map.get(widget_id)
         if not entry:
-            raise ValueError(f"WidgetView - rendering failed: unknown widget ID \"{widget_id}\"")
+            raise ValueError(f"WidgetView - widget rendering failed: unknown widget ID \"{widget_id}\"")
         widget = entry["widget"]
-
-        #validate model position
-        if model.x is None or model.y is None:
-            raise ValueError(f"WidgetView - rendering failed: missing position for model \"{model.id}\"")
 
         #update widget's position
         self.canvas.coords(widget_id, model.x, model.y)
@@ -99,7 +99,7 @@ class WidgetView:
             return tk.Entry(self.canvas)
         elif model.type == WidgetType.BUTTON:
             return tk.Button(self.canvas)
-        raise ValueError(f"WidgetView - creation failed: unsupported type \"{model.type}\"")
+        raise ValueError(f"WidgetView - widget creation failed: unsupported type \"{model.type}\"")
 
     def _insert_widget_into_canvas(self, widget, x, y, anchor):
         """place widget on canvas and return resulting widget_id"""
@@ -166,7 +166,7 @@ class WidgetView:
 
         entry = self.widget_map.get(widget_id)
         if not entry:
-            raise ValueError(f"WidgetView - lookup failed: unknown widget ID \"{widget_id}\"")
+            raise ValueError(f"WidgetView - widget lookup failed: unknown widget ID \"{widget_id}\"")
         return entry["widget"]
 
     def get_model_id_from_widget_id(self, widget_id: int):

@@ -269,12 +269,13 @@ with self.app_state.batch():
 
 ## 6 Raising Errors
 * Invalid or inconsistent state must raise errors instead of failing silently
-* Must list the responsible system (e.g. Model, AppState, Designer, WidgetView)
-* Must uniquely identify the source of failure within the system
-* Must avoid low level implementation details (e.g. Python internals, method names)
+* Must list the module (i.e. file name) that raises the error
+* Must list the operation that failed (e.g. model creation, selection update, widget lookup)
+* Must list the reason for the failure
+* Must avoid low level implementation details  (e.g. Python internals, method names)
 * Must be short and specific
 * Must not use trailing punctuation
-* Must follow the format: \<System> - \<operation> failed: \<reason> [\<key values>]
+* Must follow the format: \<Module> - \<operation> failed: \<reason> [\<key values>]
 
 **Incorrect:**
 ```
@@ -292,7 +293,7 @@ Unknown type
 AppState - subscription failed: subscriber must be callable
 ```
 ```
-Model - creation failed: duplicate ID "label_1"
+WidgetController - widget update failed: missing widget for model "label_1"
 ```
 ```
 Designer - widget creation failed: unsupported type "slider"

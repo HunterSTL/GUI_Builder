@@ -73,10 +73,10 @@ class AppState:
     def add_widget(self, model):
         """append a new widget model to the ProjectDocument"""
         if not model.id:
-            raise ValueError("Model - creation failed: missing ID")
+            raise ValueError("AppState - model addition failed: missing ID")
 
         if model.id in self._model_by_id:
-            raise ValueError(f"Model - creation failed: duplicate ID \"{model.id}\"")
+            raise ValueError(f"AppState - model addition failed: duplicate ID \"{model.id}\"")
 
         self._model_by_id[model.id] = model
         self.project.widget_models.append(model)
@@ -86,7 +86,7 @@ class AppState:
     def remove_widget(self, model):
         """remove an existing widget model from the ProjectDocument"""
         if model.id not in self._model_by_id:
-            raise ValueError(f"Model - deletion failed: unknown ID \"{model.id}\"")
+            raise ValueError(f"AppState - model removal failed: unknown ID \"{model.id}\"")
 
         self._model_by_id.pop(model.id, None)
         self.project.widget_models.remove(model)
@@ -96,7 +96,7 @@ class AppState:
     def move_widget_to(self, model, x: int, y: int):
         """set absolute model coordinates"""
         if model.id not in self._model_by_id:
-            raise ValueError(f"Model - movement failed: unknown ID \"{model.id}\"")
+            raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
 
         model.x = x
         model.y = y
@@ -106,7 +106,7 @@ class AppState:
     def move_widget_by(self, model, dx: int, dy: int):
         """update model coordinates by a delta"""
         if model.id not in self._model_by_id:
-            raise ValueError(f"Model - movement failed: unknown ID \"{model.id}\"")
+            raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
 
         model.x += dx
         model.y += dy
@@ -116,7 +116,7 @@ class AppState:
     def set_widget_attribute(self, model, attribute, value):
         """set a model attribute to value if present"""
         if not hasattr(model, attribute):
-            raise ValueError(f"Model - attribute update failed: unknown attribute \"{attribute}\" [{model.id}]")
+            raise ValueError(f"AppState - model attribute update failed: unknown attribute \"{attribute}\" [{model.id}]")
 
         setattr(model, attribute, value)
         self.dirty_model_ids.add(model.id)
@@ -173,7 +173,7 @@ class AppState:
     def selection_handle_click(self, model_id: str, is_additive: bool):
         """toggle the model if selection is additive, otherwise replace selection with the given model"""
         if model_id not in self._model_by_id:
-            raise ValueError(f"Selection - update failed: unknown ID \"{model_id}\"")
+            raise ValueError(f"AppState - selection update failed: unknown ID \"{model_id}\"")
 
         if is_additive:
             self.selection_toggle(model_id)
@@ -222,7 +222,7 @@ class AppState:
         try:
             return self._model_by_id[model_id]
         except KeyError:
-            raise ValueError(f"Model - lookup failed: unknown ID \"{model_id}\"")
+            raise ValueError(f"AppState - model lookup failed: unknown ID \"{model_id}\"")
 
     def get_model_coordinates_from_model_id(self, model_id: str) -> tuple[int, int]:
         """return the X- and Y-coordinate of the model"""
