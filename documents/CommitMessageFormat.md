@@ -3,14 +3,15 @@ This document defines the structure and conventions used for commit messages thr
 The goal of these conventions is to make commit history clear and consistent.  
 They allow an arbitrarily deep understanding of changes, from a high level overview to a complete description.
 
-## 1 Title
+## 1 Structure
+### 1.1 Title
 * Concise summary of what changed
 * Single line
 * Past tense
 * Capitalized
 * No trailing punctuation
 
-## 2 Description
+### 1.2 Description
 * Explains what the commit achieves
 * One or more full sentences
 * Present tense
@@ -18,7 +19,7 @@ They allow an arbitrarily deep understanding of changes, from a high level overv
 * Typically starts with "This commit [...]"
 * May include an enumeration when the commit introduces or formalizes a convention or structure
 
-## 3 Body
+### 1.3 Body
 * Hierarchical
 * Indented using 3 spaces per level
 * Bullet point symbols encode the question being answered
@@ -29,7 +30,7 @@ They allow an arbitrarily deep understanding of changes, from a high level overv
 * Any level may terminate the hierarchy if additional detail is not necessary
 * Every file section must be separated from the previous file section by one empty line
 
-### Hierarchy overview:
+#### Hierarchy overview:
 ```
 File:                   Where did something change?
    *Change:             What changed?
@@ -37,7 +38,7 @@ File:                   Where did something change?
          >Details:      What additional clarification is useful?
 ```
 
-## 3.1 File level
+#### 1.3.1 File level
 * Describes which file was affected and how
 * Full relative file path including file extension
 * Past tense
@@ -50,7 +51,7 @@ File:                   Where did something change?
 	* Renamed
 	* Moved
 
-## 3.2 Action level
+#### 1.3.2 Action level
 * Describes what changed within the file
 * Must name the affected code unit (method, function, class, flag, dictionary etc.) when this adds clarity
 * Must also include the class name if the file contains multiple classes or the class name differs from the file name
@@ -59,23 +60,17 @@ File:                   Where did something change?
 * Indentation: 3 spaces
 * May include brief context in parenthesis if required to understand the change
 >e.g. "Removed _move() (obsolete, as nudge and drag preview are now handled separately)"
-* May be decomposed into more specific actions, that each:
-   * Represent a concrete part of the action
-	* Inherit the verb of the parent unless overridden
-	* Use the \* bullet point
-	* Are indented one level deeper than the parent bullet point (3 additional spaces)
 
-## 3.3 Behaviour level:
-* Describes behaviour that is true after the change
+#### 1.3.3 Behaviour level:
+* Describes behaviour that results from the change
 * Present tense
 * Bullet point symbol: \-
 * Indented one level deeper than the parent bullet point (3 additional spaces)
-* May act as an introducer for multiple detail bullets points
+* May act as an introducer for multiple detail bullet points
 >e.g. "Uses:", "Accepts:", "Exposes:", "Defines:" etc.
 * May be omitted if the action level already expresses behaviour clearly, allowing the hierarchy to continue with the detail level
-* Independent changes must be expressed as nested action bullets (*) rather than behaviour bullets (-)
 
-## 3.4 Detail level
+#### 1.3.4 Detail level
 * Used for providing additional detail about a behaviour
 * Bullet point symbol: \>
 * Indented one level deeper than the parent bullet point (3 additional spaces)
@@ -85,14 +80,100 @@ File:                   Where did something change?
    >e.g. methods, variables, parameters etc.
 	* An enumeration of elements forming the resulting structure (tense neutral)
 
-## 3.5 Sub-detail level
+#### 1.3.5 Sub-detail level
 * Used for providing even more fine grained detail
 * Recursively nestable
 * Bullet point symbol: \>
 * Indented one level deeper than the parent bullet point (3 additional spaces)
 
-# Examples
-## 1 File structure
+## 2 General rules
+
+### 2.1 Express intent in action level
+* The action level must include both the change and its intent whenever possible
+* The behaviour level should only be used if the intent cannot be expressed clearly in the action
+
+#### Avoid:
+```
+*Updated method():
+   -Handles edge cases in selection logic
+```
+
+#### Prefer:
+```
+*Updated method() to handle edge cases in selection logic
+```
+
+### 2.2 One logical change per action
+* Each action should represent a single coherent change
+* Independent changes must be expressed as separate actions even if they affect the same code unit
+
+### 2.3 Behaviour describes the change
+* Behaviour must always belong to a specific action or sub-action
+* Behaviour must describe the result of the exact change it is nested under and must not apply to multiple actions
+
+### 2.4 One bullet type per indentation level
+* Different bullet types must not be mixed at the same indentation level
+* If both actions and behaviour are needed, split them into separate actions
+
+#### Incorrect:
+```
+*Updated method():
+   *Updated logic:
+      -Now validates input before processing
+      *Refined logic
+      *Simplified control flow
+```
+
+#### Correct:
+```
+*Updated method() to handle edge cases:
+   -Now validates input before processing
+*Updated method() implementation:
+   *Refined logic
+   *Simplified control flow
+```
+
+### 2.5 Action decomposition
+* Actions may be decomposed into more specific sub-actions that represent a concrete part of the action
+* Sub-actions inherit the intent (verb) of the parent unless overridden
+* Sub-actions must use the \* bullet point and be indented one level deeper than the parent (3 additional spaces)
+
+### 2.6 Grouping identical changes
+* Identical changes to multiple code units of the same file must be grouped into a single action
+* The correct grouping style must be chosen based on the number of elements
+* Structured grouping is preferred as it scales and preserves readability
+* Grouping identical changes is a specific form of action decomposition
+
+#### Inline grouping:
+* Used when grouping a small number of elements
+```
+*Updated execute() and undo() to replace usage of AppState mutation API
+```
+
+#### Structured grouping:
+* Used when grouping more than 3 elements or when readability would suffer
+* Code units must be represented as sub-actions
+```
+*Updated tests to replace usage of AppState mutation API:
+   *TestAddWidgetFromModel
+   *TestMoveWidget
+   *TestUndoRedoDeleteWidget
+```
+
+## 3 Structure templates
+A structure template defines a valid pattern for commit message blocks that fully conforms to the convention.  
+They act as building blocks for constructing complete commit messages.  
+The acronym next to each structure template indicates the hierarchy levels used by the structure.
+
+Each letter represents one level:  
+F = File  
+A = Action  
+S = Sub-action  
+B = Behaviour  
+D = Detail
+
+The full structure, for example, has the acronym FASBD, meaning it includes file, action, sub-action, behaviour and detail levels.
+### 3.1 File structure (F)
 ```
 Added folder example/
 ```
@@ -105,7 +186,7 @@ Moved file.txt to archive/
 Renamed old_name.py to new_name.py
 ```
 
-## 2 Action structure
+### 3.2 Action structure (FA)
 ```
 Updated file.py:
    *Refactored data processing logic
@@ -122,7 +203,7 @@ Updated renderer.py:
    *Adjusted import paths for utility functions
 ```
 
-## 3 Subaction structure
+### 3.3 Sub-action structure (FAS)
 ```
 Updated parser.py:
    *Added supported formats:
@@ -151,7 +232,7 @@ Updated file_processor.py:
    *Removed inline processing logic
 ```
 
-## 4 Behaviour structure
+### 3.4 Behaviour structure (FAB)
 ```
 Updated service.py:
    *Added caching layer:
@@ -173,8 +254,27 @@ Updated authenticator.py:
       -Rejects expired tokens
 ```
 
-## 5 Detail structure
-### Additional clarification of behaviour (present tense):
+### 3.5 Behaviour structure with sub-actions (FASB)
+```
+Updated parser.py:
+   *Improved error handling:
+      *Added validation for input format:
+         -Prevents invalid data from being processed
+      *Aligned error messages with output schema
+      *Renamed exception types for consistency
+```
+
+```
+Updated authenticator.py:
+   *Extended authentication flow:
+      *Added token validation step:
+         -Rejects expired or malformed tokens
+      *Aligned error responses with API format
+      *Removed deprecated session check
+```
+
+### 3.6 Detail structure (FABD)
+#### Additional clarification of behaviour (present tense):
 ```
 Updated validator.py:
    *Added validation system:
@@ -183,7 +283,7 @@ Updated validator.py:
          >Validates numeric range
          >Ensures string length limits
 ```
-### Enumeration of elements involved in the behaviour (tense neutral):
+#### Enumeration of elements involved in the behaviour (tense neutral):
 ```
 Updated network.py:
    *Added request handling:
@@ -206,8 +306,8 @@ Updated session.py:
          >Timestamp
 ```
 
-## 6 Detail structure without behaviour
-### Enumeration of elements forming the resulting structure (tense neutral):
+### 3.7 Detail structure without behaviour (FAD)
+#### Enumeration of elements forming the resulting structure (tense neutral):
 ```
 Updated config.py:
    *Updated configuration structures:
@@ -228,4 +328,19 @@ Updated layout.py:
       >Content:
          >main_area
          >sidebar
+```
+
+### 3.8 Full structure (FASBD)
+```
+Updated renderer.py:
+   *Refactored layout pipeline:
+      *Extracted layout calculation into calculate_layout()
+      *Added validation for layout constraints:
+         -Ensures elements remain within bounds:
+            >Clamps positions to container size
+            >Prevents negative dimensions
+   *Updated layout update logic:
+      -Applies layout changes consistently:
+         >Ensures deterministic rendering order
+         >Prevents intermediate invalid states
 ```
