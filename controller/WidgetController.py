@@ -37,7 +37,7 @@ class WidgetController:
         if attribute == "text":
             self._update_widget_text_with_measurement(model, value) #text updates require measurement to update model dimensions
         else:
-            self.app_state.set_widget_attribute(model, attribute, value)
+            self.app_state.set_model_attribute(model, attribute, value)
 
     #Internals----------------------------------------------------------------------------------------------------------
     def _update_widget_text_with_measurement(self, model: BaseWidgetData, text: str):
@@ -57,6 +57,6 @@ class WidgetController:
 
         #update the model using batching (so only one notify happens)
         with self.app_state.batch():
-            self.app_state.set_widget_attribute(model, "text", text)
-            self.app_state.set_widget_attribute(model, "width", new_width)
-            self.app_state.set_widget_attribute(model, "height", new_height)
+            self.app_state.set_model_attribute(model, "text", text)
+            self.app_state.set_model_attribute(model, "width", new_width)
+            self.app_state.set_model_attribute(model, "height", new_height)

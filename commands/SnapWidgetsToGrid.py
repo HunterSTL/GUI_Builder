@@ -47,8 +47,8 @@ class SnapWidgetsToGrid(Command):
             for model_id, (x, y) in self._final_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)
 
-                #move the widget to the final position
-                self._app_state.move_widget_to(model, x, y)
+                #set the model position to the snapshotted final position
+                self._app_state.set_model_position(model, x, y)
 
     def undo(self):
         """restore original widget positions from the snapshot"""
@@ -56,8 +56,8 @@ class SnapWidgetsToGrid(Command):
             for model_id, (x, y) in self._original_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)
 
-                #move the widget to the original position
-                self._app_state.move_widget_to(model, x, y)
+                #set the model position to the original position
+                self._app_state.set_model_position(model, x, y)
 
     def __repr__(self):
         """called automatically when printing this object"""

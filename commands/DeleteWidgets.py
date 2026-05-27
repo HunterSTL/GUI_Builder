@@ -25,7 +25,7 @@ class DeleteWidgets(Command):
                 model = self._app_state.get_model_from_model_id(model_id)
 
                 #delete the model from the ProjectDocument via AppState
-                self._app_state.remove_widget(model)
+                self._app_state.remove_model(model)
 
     def undo(self):
         """restore previously deleted widgets from the snapshotted model data"""
@@ -34,7 +34,7 @@ class DeleteWidgets(Command):
                 model = BaseWidgetData.from_dict(model_data)
 
                 #add the model to the ProjectDocument via AppState
-                self._app_state.add_widget(model)
+                self._app_state.add_model(model)
 
     def __repr__(self):
         """called automatically when printing this object"""

@@ -22,7 +22,7 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
             widget_models=[]
         )
 
-        #add 3 widgets to project document
+        #add 3 models to project document
         widget_1 = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Roundtrip Test")
         widget_1.create_id(project_document.id_counters)
         widget_2 = EntryWidgetData(x=50, y=100, bg="#222222", fg="#bbbbbb")
@@ -46,12 +46,12 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
         self.assertEqual(new_project_document.grid.color, "#888888")
         self.assertEqual(new_project_document.grid.visible, True)
 
-        #check widgets restored
+        #check restoration of models
         self.assertEqual(len(new_project_document.widget_models), 3)
         types = [model.type for model in new_project_document.widget_models]
         self.assertEqual(types, [WidgetType.LABEL, WidgetType.ENTRY, WidgetType.BUTTON])
 
-        #check id counters advanced
+        #check advancement of ID counters
         self.assertGreaterEqual(project_document.id_counters.label, 2)
         self.assertGreaterEqual(project_document.id_counters.entry, 2)
         self.assertGreaterEqual(project_document.id_counters.button, 2)
@@ -81,7 +81,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
         model.create_id(project_document.id_counters)
-        app_state.add_widget(model)
+        app_state.add_model(model)
 
         preview_widget, preview_widget_id = widget_view.create_preview_widget(model)
         preview_widget.config(text=model.text, bg=model.bg, fg=model.fg)
@@ -123,19 +123,19 @@ class TestMoveWidget(unittest.TestCase):
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id(project_document.id_counters)
-        app_state.add_widget(model)
+        app_state.add_model(model)
 
         widget_controller.render_soft(model.id)
         widget_id = widget_view.get_widget_id_from_model_id(model.id)
 
-        #move by dx/dy
-        app_state.move_widget_by(model, 50, 50)
+        #offset position by a delta
+        app_state.offset_model_position(model, 50, 50)
         widget_controller.render_soft(model.id)
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
-        #move to
-        app_state.move_widget_to(model, 150, 150)
+        #set absolute position
+        app_state.set_model_position(model, 150, 150)
         widget_controller.render_soft(model.id)
         self.assertEqual(model.x, 150)
         self.assertEqual(model.y, 150)
@@ -156,7 +156,7 @@ class TestUndoRedoDeleteWidget(unittest.TestCase):
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Delete Widget Test")
         model.create_id(project_document.id_counters)
-        app_state.add_widget(model)
+        app_state.add_model(model)
 
         command_stack = CommandStack()
 
@@ -183,11 +183,11 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id(project_document.id_counters)
-        app_state.add_widget(model)
+        app_state.add_model(model)
 
         command_stack = CommandStack()
 
-        #move by dx/dy
+        #move by a delta
         command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, app_state))
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
@@ -211,7 +211,7 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id(project_document.id_counters)
-        app_state.add_widget(model)
+        app_state.add_model(model)
 
         command_stack = CommandStack()
         command = MoveWidgetsTo(frozenset({model.id}), app_state)
@@ -246,7 +246,7 @@ class TestUndoRedoPasteWidget(unittest.TestCase):
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Paste Widget Test")
         model.create_id(project_document.id_counters)
-        app_state.add_widget(model)
+        app_state.add_model(model)
 
         #copy model to clipboard
         clipboard = []

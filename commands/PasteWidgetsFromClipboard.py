@@ -31,18 +31,18 @@ class PasteWidgetsFromClipboard(Command):
                     model.id = self._pasted_ids[i]
 
                 #add the model to the ProjectDocument via AppState
-                self._app_state.add_widget(model)
+                self._app_state.add_model(model)
         self._executed = True
 
     def undo(self):
         """remove all widget models created from the snapshot"""
         with self._app_state.batch():
             for i, model_data in enumerate(self._clipboard):
-                #get model from AppState using the ID created during execute()
+                #get the model from AppState using the ID created during execute()
                 model = self._app_state.get_model_from_model_id(self._pasted_ids[i])
 
                 #remove the model from the ProjectDocument via AppState
-                self._app_state.remove_widget(model)
+                self._app_state.remove_model(model)
 
     def __repr__(self):
         """called automatically when printing this object"""

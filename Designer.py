@@ -696,15 +696,15 @@ class Designer:
         #update model
         with self.app_state.batch():
             #update model position
-            self.app_state.set_widget_attribute(model, "x", clamped_x)
-            self.app_state.set_widget_attribute(model, "y", clamped_y)
+            self.app_state.set_model_attribute(model, "x", clamped_x)
+            self.app_state.set_model_attribute(model, "y", clamped_y)
 
             #populate model with dimensions
-            self.app_state.set_widget_attribute(model, "width", widget_width)
-            self.app_state.set_widget_attribute(model, "height", widget_height)
+            self.app_state.set_model_attribute(model, "width", widget_width)
+            self.app_state.set_model_attribute(model, "height", widget_height)
 
             #add new model to AppState
-            self.app_state.add_widget(model)
+            self.app_state.add_model(model)
 
         #set AppState to dirty
         self._set_dirty()

@@ -8,7 +8,7 @@ class AppState:
         self,
         project_document: ProjectDocument
     ):
-        self.project = project_document         #must only be mutated using AppState API (add_widget, set_grid_visible, set_title...)
+        self.project = project_document         #must only be mutated using AppState API (add_model, set_grid_visible, set_title...)
         self.selection = SelectionState()
 
         #State change notifications-------------------------------------------------------------------------------------
@@ -22,7 +22,7 @@ class AppState:
         self._pending_notify = False            #signals whether _notify will be called at the end of the batch
 
         #Model dictionary-----------------------------------------------------------------------------------------------
-        self._model_by_id = {}                  #{model.id: model} for O(1) lookup; maintained in add_/remove_widget()
+        self._model_by_id = {}                  #{model.id: model} for O(1) lookup; maintained in add_/remove_model()
 
         #add existing models in ProjectDocument to the dictionary
         for model in self.project.widget_models:
@@ -69,9 +69,10 @@ class AppState:
                 return False #propagate exceptions so notify → re-render doesn't happen on exceptions
 
         return _Batch(self)
-    #Widgets------------------------------------------------------------------------------------------------------------
-    def add_widget(self, model):
-        """append a new widget model to the ProjectDocument"""
+
+    #Model API----------------------------------------------------------------------------------------------------------
+    def add_model(self, model):
+        """append a new model to the ProjectDocument"""
         if not model.id:
             raise ValueError("AppState - model addition failed: missing ID")
 
@@ -83,8 +84,8 @@ class AppState:
         self.structural_change = True
         self._notify()
 
-    def remove_widget(self, model):
-        """remove an existing widget model from the ProjectDocument"""
+    def remove_model(self, model):
+        """remove an existing model from the ProjectDocument"""
         if model.id not in self._model_by_id:
             raise ValueError(f"AppState - model removal failed: unknown ID \"{model.id}\"")
 
@@ -93,8 +94,8 @@ class AppState:
         self.structural_change = True
         self._notify()
 
-    def move_widget_to(self, model, x: int, y: int):
-        """set absolute model coordinates"""
+    def set_model_position(self, model, x: int, y: int):
+        """set absolute model position"""
         if model.id not in self._model_by_id:
             raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
 
@@ -103,8 +104,8 @@ class AppState:
         self.dirty_model_ids.add(model.id)
         self._notify()
 
-    def move_widget_by(self, model, dx: int, dy: int):
-        """update model coordinates by a delta"""
+    def offset_model_position(self, model, dx: int, dy: int):
+        """offset model position by a delta"""
         if model.id not in self._model_by_id:
             raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
 
@@ -113,7 +114,7 @@ class AppState:
         self.dirty_model_ids.add(model.id)
         self._notify()
 
-    def set_widget_attribute(self, model, attribute, value):
+    def set_model_attribute(self, model, attribute, value):
         """set a model attribute to value if present"""
         if not hasattr(model, attribute):
             raise ValueError(f"AppState - model attribute update failed: unknown attribute \"{attribute}\" [{model.id}]")
@@ -122,7 +123,7 @@ class AppState:
         self.dirty_model_ids.add(model.id)
         self._notify()
 
-    #Grid/Project-------------------------------------------------------------------------------------------------------
+    #Grid API-----------------------------------------------------------------------------------------------------------
     def set_grid_visible(self, visible: bool):
         self.project.grid.visible = visible
         self.structural_change = True
@@ -138,11 +139,12 @@ class AppState:
         self.structural_change = True
         self._notify()
 
+    #Project API--------------------------------------------------------------------------------------------------------
     def set_title(self, title: str):
         self.project.title = title
         self._notify()
 
-    #Selection----------------------------------------------------------------------------------------------------------
+    #Selection API------------------------------------------------------------------------------------------------------
     def selection_clear(self):
         """clear all selected models and notify subscribers"""
         if not self.selection_is_empty():
@@ -182,7 +184,7 @@ class AppState:
                 self.selection_select_only(model_id)
 
     def selection_select_all(self):
-        """select all widget models in the project_document"""
+        """select all models in the ProjectDocument"""
         self.selection.selected_models = {model.id for model in self.project.widget_models}
 
         if not self.selection_is_empty():
@@ -197,7 +199,6 @@ class AppState:
         self.selection.selected_models.clear()
         self.selection.last_selected_model = None
 
-    #Rectangle selection------------------------------------------------------------------------------------------------
     def apply_rectangle_selection(self, enclosed_model_ids: set[str], is_additive):
         """
         finalize a rectangle selection gesture and notify subscribers
@@ -218,14 +219,14 @@ class AppState:
 
     #Model helpers------------------------------------------------------------------------------------------------------
     def get_model_from_model_id(self, model_id: str) -> BaseWidgetData:
-        """return the model associated with the given model_id"""
+        """return the model associated with the given model ID"""
         try:
             return self._model_by_id[model_id]
         except KeyError:
             raise ValueError(f"AppState - model lookup failed: unknown ID \"{model_id}\"")
 
     def get_model_coordinates_from_model_id(self, model_id: str) -> tuple[int, int]:
-        """return the X- and Y-coordinate of the model"""
+        """return the model's position (x and y)"""
         model = self.get_model_from_model_id(model_id)
         return model.x, model.y
 

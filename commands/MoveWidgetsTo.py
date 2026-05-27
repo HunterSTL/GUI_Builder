@@ -34,7 +34,7 @@ class MoveWidgetsTo(Command):
         with self._app_state.batch():   #batching so only one notify happens even if multiple widgets are moved
             for model_id in self._model_ids:
                 model = self._app_state.get_model_from_model_id(model_id)
-                self._app_state.move_widget_by(model, dx, dy)
+                self._app_state.offset_model_position(model, dx, dy)
 
     def freeze_final_positions(self):
         """record final positions at the end of a drag gesture"""
@@ -49,8 +49,8 @@ class MoveWidgetsTo(Command):
             for model_id, (x, y) in self._final_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)
 
-                #move the widget to the final position
-                self._app_state.move_widget_to(model, x, y)
+                #set the model position to the snapshotted final position
+                self._app_state.set_model_position(model, x, y)
 
     def undo(self):
         """restore original widget positions from the snapshot"""
@@ -58,8 +58,8 @@ class MoveWidgetsTo(Command):
             for model_id, (x, y) in self._original_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)
 
-                #move the widget to the original position
-                self._app_state.move_widget_to(model, x, y)
+                #set the model position to the original position
+                self._app_state.set_model_position(model, x, y)
 
     def __repr__(self):
         """called automatically when printing this object"""
