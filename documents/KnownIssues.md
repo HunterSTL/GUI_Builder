@@ -1,4 +1,4 @@
-## 1. No error handling on file I/O in `open_project` (data loss / crash risk)
+## 1. [Done] No error handling on file I/O in `open_project` (data loss / crash risk)
 
 In `AppController.open_project`, the file is read with a bare `open` / `json.load` and no try/except. If the file is malformed JSON, or `ProjectDocument.from_json` raises a `ValueError` (which it explicitly does for bad width/height), the exception bubbles up uncaught and crashes the app with a traceback instead of showing a user-facing dialog. The same applies to `save_project` and `save_project_as` — an `OSError` (permissions, disk full) is completely silent to the user.
 
@@ -11,7 +11,7 @@ Every file I/O path needs a `try/except` with a `messagebox.showerror`.
 
 ---
 
-## 2. `save_project` can silently corrupt or lose work when `self.designer` is `None`
+## 2. [Done] `save_project` can silently corrupt or lose work when `self.designer` is `None`
 
 In `AppController.save_project`, there is no guard for `self.designer` being `None`. If somehow `save_project` is called (e.g. via the event bus) when no designer is open, `self.designer.app_state.project.to_json()` raises an `AttributeError`. The unsaved changes prompt in `new_project` / `open_project` calls `save_project` if the user answers "Save", and `save_project_as` does the same. If that path is hit while `self.designer` is being torn down (race or re-entrancy), the save silently fails and returns without saving.
 

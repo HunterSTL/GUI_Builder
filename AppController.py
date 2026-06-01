@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 from model import ProjectDocument
 from events import EventBus
-from utility import screen_offset_to_center_window, CustomTitlebar
+from utility import screen_offset_to_center_window, CustomTitlebar, atomic_write_json
 from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
 from SetupWizard import SetupWizard
 from Designer import Designer
@@ -20,9 +20,8 @@ class AppController:
         self.constants = CONSTANTS
         self.designer = None
 
-        #App EventBus: owns project and application events and persists across multiple Designer instances during the lifetime of the application
-        self.app_event_bus = EventBus()
-        self._subscribe_functions_to_events()
+        self.app_event_bus = EventBus() #owns project and application events and persists across multiple Designer instances during the lifetime of the application
+        self._register_event_handlers()
 
         #copy user theme from Theme.py to prevent mutation
         self._user_theme = {key: value.copy() for key, value in USER_THEME.items()}
@@ -44,7 +43,7 @@ class AppController:
         self.root.geometry(f"+{x_offset}+{y_offset}")
 
     def _build_startup_ui(self):
-        """build the startup UI with New/Open/Exit actions"""
+        """build the startup UI with [New], [Open] and [Exit] buttons"""
         #set bg color and enforce minimum window size
         self.root.config(bg=self.program_theme["background"]["color"])
         self.root.wm_minsize(200, 100)
@@ -96,8 +95,8 @@ class AppController:
 
         self._center_window()
 
-    def _fresh_user_theme(self):
-        """return a shallow copy of the user theme"""
+    def _copy_user_theme(self):
+        """return a copy of the user theme"""
         return {key: value.copy() for key, value in self._user_theme.items()}
 
     def _launch_designer_from_project_document(self, project_document):
@@ -116,8 +115,8 @@ class AppController:
             app_event_bus=self.app_event_bus
         )
 
-    def _subscribe_functions_to_events(self):
-        """subscribe all functions, that should be called when an event is emitted, to the corresponding event"""
+    def _register_event_handlers(self):
+        """subscribe handlers to project and app events"""
         #project events
         self.app_event_bus.subscribe("project.new", self.new_project)
         self.app_event_bus.subscribe("project.open", self.open_project)
@@ -127,30 +126,28 @@ class AppController:
         #app events
         self.app_event_bus.subscribe("app.exit", self.exit_app)
 
-    def prompt_unsaved_changes(self):
-        """prompt the user when unsaved changes exist and return SAVE / DISCARD / CANCEL"""
+    def _handle_unsaved_changes(self) -> str:
+        """prompt the user to save, discard or cancel if unsaved changes exist, returning PROCEED or CANCEL"""
         if not self.designer or not self.designer.is_dirty():
-            return "DISCARD"
+            return "PROCEED"    #no unsaved changes exist
 
         choice = messagebox.askyesnocancel("Unsaved changes", "There are still unsaved changes.\nDo you want to save them?")
-        if choice is None:
-            return "CANCEL"
 
-        if choice:
-            return "SAVE"
-        else:
-            return "DISCARD"
+        if choice is None:          #user pressed cancel
+            return "CANCEL"
+        elif choice:                #user pressed save
+            if self.save_project(): #save successful
+                return "PROCEED"
+            else:                   #save failed or aborted
+                return "CANCEL"
+        else:                       #user pressed discard
+            return "PROCEED"
 
     def new_project(self):
-        """start a new project using the SetupWizard, prompting for unsaved changes if needed"""
-        #prompt user intent
-        user_intent = self.prompt_unsaved_changes()
-
-        if user_intent == "CANCEL":
+        """start a new project using the SetupWizard, prompting for intent when unsaved changes exist"""
+        #prompt the user to save, discard or cancel if unsaved changes exist
+        if self._handle_unsaved_changes() == "CANCEL":
             return
-
-        if user_intent == "SAVE":
-            self.save_project()
 
         #destroy existing designer window
         if self.designer:
@@ -160,11 +157,11 @@ class AppController:
         #hide startup window
         self.root.withdraw()
 
-        #create the setup wizard as a child
-        setup_window = tk.Toplevel(self.root)
+        #create SetupWizard as a child
+        setup_wizard_window = tk.Toplevel(self.root)
         SetupWizard(
-            root=setup_window,
-            user_theme=self._fresh_user_theme(),
+            root=setup_wizard_window,
+            user_theme=self._copy_user_theme(),
             program_theme=self.program_theme,
             constants=self.constants,
             on_done_callback=self._launch_designer_from_project_document,
@@ -172,89 +169,104 @@ class AppController:
         )
 
     def open_project(self):
-        """open an existing .tkui project file and launch the Designer, prompting for unsaved changes if needed"""
-        #prompt user intent
-        user_intent = self.prompt_unsaved_changes()
-
-        if user_intent == "CANCEL":
+        """open an existing .tkui file and launch the Designer, prompting for intent when unsaved changes exist"""
+        #prompt the user to save, discard or cancel if unsaved changes exist
+        if self._handle_unsaved_changes() == "CANCEL":
             return
 
-        if user_intent == "SAVE":
-            self.save_project()
-
-        #let user choose .tkui file
+        #prompt for file path
         file_path = filedialog.askopenfilename(filetypes=[("Tk user interface file", "*.tkui")])
 
         if not file_path:
             return
 
-        #read file contents
-        with open(file_path, "r", encoding="utf-8") as file:
-            file_contents = json.load(file)
+        try:
+            #read file contents
+            with open(file_path, "r", encoding="utf-8") as file:
+                file_contents = json.load(file)
 
-        #build a ProjectDocument from file_contents
-        project_document = ProjectDocument.from_json(file_contents)
+            #build a ProjectDocument from the file contents
+            project_document = ProjectDocument.from_json(file_contents)
 
-        #hide startup window
-        self.root.withdraw()
+            #hide startup window
+            self.root.withdraw()
 
-        #let AppController keep track of save path and last directory
-        self._save_path = file_path
-        self._last_directory = os.path.dirname(self._save_path)
+            #keep track of save path and last directory
+            self._save_path = file_path
+            self._last_directory = os.path.dirname(file_path)
 
-        #launch designer
-        self._launch_designer_from_project_document(project_document)
+            #launch designer
+            self._launch_designer_from_project_document(project_document)
+        except (ValueError, json.JSONDecodeError) as e:
+            messagebox.showerror("File error", f"Invalid or corrupted file:\n{e}")
+        except OSError as e:
+            messagebox.showerror("File error", f"Could not read file:\n{e}")
 
-    def save_project(self):
-        """save the current project to the last used file path"""
-        #use save_project_as() if save path is empty
+    def save_project(self) -> bool:
+        """save the project to the last used .tkui file, returning True on success"""
+        if not self.designer:
+            messagebox.showerror("Error", "No project is currently open.")
+            return False
+
+        #use save_project_as() on first save to prompt for save location
         if not self._save_path:
-            self.save_project_as()
-            return
+            return self.save_project_as()
 
-        #open .tkui file in write mode and write project_document json
-        with open(self._save_path, "w", encoding="utf-8") as file:
-            json.dump(self.designer.app_state.project.to_json(), file, ensure_ascii=False, indent=2)
+        try:
+            #export project data
+            project_data = self.designer.app_state.project.to_json()
 
-        #set app state to clean
-        self.designer.set_clean()
+            #overwrite file at save path with project data as formatted JSON
+            atomic_write_json(self._save_path, project_data)    #atomic prevents corruption on error
 
-    def save_project_as(self):
-        """prompt for a save location and save the project as a .tkui file"""
-        #create .tkui file
-        file = filedialog.asksaveasfile(
+            #mark project as clean
+            self.designer.set_clean()
+        except Exception as e:
+            messagebox.showerror("File error", f"Could not save file:\n{self._save_path}\n\n{e}")
+            return False
+        return True
+
+    def save_project_as(self) -> bool:
+        """prompt for a save location and save the project as a .tkui file, returning True on success"""
+        if not self.designer:
+            messagebox.showerror("Error", "No project is currently open.")
+            return False
+
+        #prompt for save location for .tkui file
+        save_path = filedialog.asksaveasfilename(
             title="Save as",
-            mode="w",
             filetypes=[("Tk user interface file", "*.tkui")],
             defaultextension=".tkui",
             initialdir=self._last_directory
         )
 
-        #abort if user pressed cancel
-        if file is None:
-            return
+        #abort if cancel was pressed
+        if not save_path:
+            return False
 
-        #write project_document json to .tkui file
-        with file:  #ensure the file is closed even if writing fails
-            json.dump(self.designer.app_state.project.to_json(), file, ensure_ascii=False, indent=2)
+        try:
+            #export project data
+            project_data = self.designer.app_state.project.to_json()
 
-        #let AppController keep track of save path and last directory
-        self._save_path = file.name
-        self._last_directory = os.path.dirname(self._save_path)
+            #write file at save path with project data as formatted JSON
+            atomic_write_json(save_path, project_data)  #atomic prevents corruption on error
 
-        #set app state to clean
-        self.designer.set_clean()
+            #keep track of save path and last directory
+            self._save_path = save_path                 #only update save path after successful write
+            self._last_directory = os.path.dirname(save_path)
+
+            #mark project as clean
+            self.designer.set_clean()
+        except Exception as e:
+            messagebox.showerror("File error", f"Could not save file:\n{save_path}\n\n{e}")
+            return False
+        return True
 
     def exit_app(self):
-        """exit application, prompting for unsaved changes if needed"""
-        #prompt user intent
-        user_intent = self.prompt_unsaved_changes()
-
-        if user_intent == "CANCEL":
+        """exit application, prompting for intent when unsaved changes exist"""
+        #prompt the user to save, discard or cancel if unsaved changes exist
+        if self._handle_unsaved_changes() == "CANCEL":
             return
-
-        if user_intent == "SAVE":
-            self.save_project()
 
         #destroy startup window
         self.root.destroy()
