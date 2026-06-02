@@ -188,7 +188,7 @@ If a model has `width=None` or `height=None` (which `BaseWidgetData` allows as d
 
 ---
 
-## 23. `ProjectDocument.from_json` does not validate canvas dimensions against the min/max constants
+## 23. [Done] `ProjectDocument.from_json` does not validate canvas dimensions against the min/max constants
 
 The constants define `MINIMUM_CANVAS_WIDTH=200`, `MAXIMUM_CANVAS_WIDTH=5000`. `from_json` validates that width and height are valid integers but does not enforce these bounds. A `.tkui` file with `"width": 1` loads without error and opens a 1-pixel canvas. The SetupWizard validates this, but the open-file path does not.
 

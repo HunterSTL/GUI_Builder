@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Any
 from model import GridConfig, IdCounters
+from Theme import MINIMUM_CANVAS_WIDTH, MAXIMUM_CANVAS_WIDTH, MINIMUM_CANVAS_HEIGHT, MAXIMUM_CANVAS_HEIGHT
 
 @dataclass
 class ProjectDocument:
@@ -34,19 +35,32 @@ class ProjectDocument:
     def from_json(cls, project_data: dict) -> "ProjectDocument":
         from model import BaseWidgetData
 
-        #validate width and height
         raw_width = project_data.get("width", 800)
         raw_height = project_data.get("height", 600)
 
+        #ensure width and height are valid integers
         try:
             width = int(raw_width)
         except (TypeError, ValueError):
-            raise ValueError(f"ProjectDocument - project deserialization failed: invalid width \"{raw_width}\"")
+            raise ValueError(f"ProjectDocument - deserialization failed: width must be an integer [got \"{raw_width}\"]")
 
         try:
             height = int(raw_height)
         except (TypeError, ValueError):
-            raise ValueError(f"ProjectDocument - project deserialization failed: invalid height \"{raw_height}\"")
+            raise ValueError(f"ProjectDocument - deserialization failed: height must be an integer [got \"{raw_height}\"]")
+
+        #ensure width and height are within canvas limits
+        if width < MINIMUM_CANVAS_WIDTH:
+            raise ValueError(f"ProjectDocument - deserialization failed: width below minimum of {MINIMUM_CANVAS_WIDTH} [got {width}]")
+
+        if width > MAXIMUM_CANVAS_WIDTH:
+            raise ValueError(f"ProjectDocument - deserialization failed: width above maximum of {MAXIMUM_CANVAS_WIDTH} [got {width}]")
+
+        if height < MINIMUM_CANVAS_HEIGHT:
+            raise ValueError(f"ProjectDocument - deserialization failed: height below minimum of {MINIMUM_CANVAS_HEIGHT} [got {height}]")
+
+        if height > MAXIMUM_CANVAS_HEIGHT:
+            raise ValueError(f"ProjectDocument - deserialization failed: height above maximum of {MAXIMUM_CANVAS_HEIGHT} [got {height}]")
 
         return ProjectDocument(
             version=project_data.get("version", 1), #default to 1 if missing from data
