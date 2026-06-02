@@ -33,7 +33,7 @@ But `AttributesPanelView` is constructed with `on_attribute_changed_callback=sel
 
 ---
 
-## 5. `EventBus.emit` stops dispatching to remaining subscribers when one raises an error
+## 5. [Done] `EventBus.emit` stops dispatching to remaining subscribers when one raises an error
 
 The conventions document explicitly states: *"Must not stop dispatching if a subscriber raises an error."* But the implementation wraps the loop in try/except and re-raises immediately:
 

@@ -37,10 +37,21 @@ class EventBus:
         if event_name not in self._subscribers:
             return  #key doesn't exist → nothing to call
 
-        subscribers = self._subscribers.get(event_name)
+        subscribers = self._subscribers[event_name]
+        errors = []
 
         for function in subscribers:
             try:
                 function(**kwargs)
             except Exception as e:
-                raise ValueError(f"EventBus - handler execution failed [event: {event_name}]") from e   #"from e" preserves the original exception
+                errors.append(f"\t{function.__name__}: {e}")
+
+        if errors:
+            count_errors = len(errors)
+            if count_errors == 1:
+                reason = "1 handler raised an error:\n"
+            else:
+                reason = f"{count_errors} handlers raised an error:\n"
+            reason += "\n".join(errors)
+
+            raise ValueError(f"EventBus - dispatch failed for event \"{event_name}\": {reason}")
