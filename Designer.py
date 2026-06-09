@@ -139,7 +139,7 @@ class Designer:
             panel_color=self.program_theme["attributes_panel"]["color"],
             widget_color=self.program_theme["attributes_panel"]["widget_color"],
             text_color=self.program_theme["attributes_panel"]["text_color"],
-            on_attribute_changed_callback=self._on_attribute_changed
+            on_attribute_changed_callback=self._emit_attribute_changed_event
         )
 
         #create AttributesPanelController to provide refresh/clear API and to compute spinbox limits--------------------
@@ -641,7 +641,7 @@ class Designer:
         self.designer_event_bus.subscribe("debug.print_id_counters", self._print_id_counters)
 
         #attribute events
-        self.designer_event_bus.subscribe("attribute.changed", self._on_attribute_changed)
+        self.designer_event_bus.subscribe("attribute.changed", self._handle_attribute_panel_change)
 
     #Domain logic-------------------------------------------------------------------------------------------------------
     def _add_widget(self, widget_type: WidgetType, desired_x: int, desired_y: int):
@@ -709,21 +709,30 @@ class Designer:
         #set AppState to dirty
         self._set_dirty()
 
-    def _on_attribute_changed(self, model_id: str, attribute: str, value):
-        """apply attribute changes coming from the AttributesPanel to the model"""
+    def _handle_attribute_panel_change(self, model_id: str, attribute: str, value):
+        """handle an attribute change from the attributes panel by updating the model and spinbox limits"""
         if model_id is None:
             return
 
         #apply change to the model through WidgetController
         self.widget_controller.update_widget_attribute(model_id, attribute, value)  #handles special cases requiring measurement from the rendered widget (text updates → dimension recomputation)
 
-        #recompute spinbox limits
-        model = self.app_state.get_model_from_model_id(model_id)
+        #update spinbox limits
         if attribute in ("anchor", "width", "height"):
+            model = self.app_state.get_model_from_model_id(model_id)
             self.attributes_panel_controller.update_spinbox_limits(model)
 
         #set AppState to dirty
         self._set_dirty()
+
+    def _emit_attribute_changed_event(self, model_id: str, attribute: str, value):
+        """emit an event for attribute changes originating from the attributes panel"""
+        self.event_router.emit(
+            "attribute.changed",
+            model_id=model_id,
+            attribute=attribute,
+            value=value
+        )
 
     #Internals----------------------------------------------------------------------------------------------------------
     def _add_widget_menu(self):

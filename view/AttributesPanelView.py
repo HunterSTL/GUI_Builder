@@ -35,15 +35,14 @@ class AttributesPanelView:
         self.widget_color = widget_color
         self.text_color = text_color
 
-        self.active_model_id = None     #model_id of the currently selected widget
+        self.active_model_id = None     #model ID of the currently selected widget
 
         self.spinboxes = {}             #{attribute_name: tk.Spinbox}
         self._variables = {}            #{attribute_name: tk.Variable}
 
         self._silent_update = False
 
-        #call Designer._on_attribute_changed() to apply changes from the attributes panel to the model
-        self.on_attribute_changed_callback = on_attribute_changed_callback
+        self.on_attribute_changed_callback = on_attribute_changed_callback  #invoked on attribute changes stemming from the panel
 
     #Rendering API------------------------------------------------------------------------------------------------------
     def clear_panel(self):
@@ -136,7 +135,7 @@ class AttributesPanelView:
         ).grid(column=1, row=row, sticky="W")
 
     def create_combobox(self, model, attribute, row):
-        """create a combobox for enumerated attributes (e.g., anchor)"""
+        """create a combobox for enumerated attributes (e.g. anchor)"""
         if attribute == "anchor":
             variable = tk.StringVar(value=str(getattr(model, attribute)))
             spinbox = tk.Spinbox(
@@ -150,7 +149,7 @@ class AttributesPanelView:
             )
             spinbox.grid(column=1, row=row, sticky="W")
 
-            #force-sync after widget exists
+            #force sync after widget exists
             self._silent_update = True
             variable.set(str(getattr(model, attribute)))
             self._silent_update = False
@@ -159,7 +158,7 @@ class AttributesPanelView:
 
     #Internals----------------------------------------------------------------------------------------------------------
     def _bind_variables(self, attribute: str, variable: tk.Variable):
-        """bind tk variable changes to the update callback (applies changes to the model)"""
+        """bind tk.Variable writes to a callback so attribute changes can propagate to the model"""
         def _on_write(*_):
             if self._silent_update:
                 return
@@ -172,29 +171,34 @@ class AttributesPanelView:
                 except ValueError:
                     return
 
+            #invoke callback to forward attribute changes
             self.on_attribute_changed_callback(self.active_model_id, attribute, value)
 
         self._variables[attribute] = variable
         variable.trace_add("write", _on_write)
 
     #Helpers------------------------------------------------------------------------------------------------------------
-    def update_variables_from_model(self, model, attributes=None):
-        """sync tk.Variable values with current model state (silent update)"""
+    def update_variables_from_model(self, model):
+        """sync tk.Variable values with current model state"""
         self._silent_update = True
-        for attribute, variable in self._variables.items():
-            if attributes and attribute not in attributes:
-                continue
-            try:
-                variable.set(getattr(model, attribute))
-            except Exception:
-                variable.set(str(getattr(model, attribute)))
-        self._silent_update = False
+        try:
+            for attribute, variable in self._variables.items():
+                try:
+                    variable.set(getattr(model, attribute))
+                except Exception:
+                    variable.set(str(getattr(model, attribute)))
+        finally:    #ensures silent mode is reset even if an error occurs
+            self._silent_update = False
 
     def apply_spinbox_limits(self, spinbox_limits: dict):
-        """update the min/max values of existing spinboxes"""
-        for attribute, (min_value, max_value) in spinbox_limits.items():
-            self.spinboxes[attribute].config(from_=min_value, to=max_value)
+        """update the minimum and maximum values of existing spinboxes"""
+        self._silent_update = True  #prevents second attribute.changed emission from spinbox limit update
+        try:
+            for attribute, (min_value, max_value) in spinbox_limits.items():
+                self.spinboxes[attribute].config(from_=min_value, to=max_value)
+        finally:    #ensures silent mode is reset even if an error occurs
+            self._silent_update = False
 
     def set_active_model_id(self, model_id):
-        """store the model_id of the currently displayed widget"""
+        """store the model ID of the currently displayed widget"""
         self.active_model_id = model_id

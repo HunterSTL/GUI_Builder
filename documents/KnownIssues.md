@@ -23,7 +23,7 @@ When `new_project` is called, `self.root.withdraw()` hides the startup window, t
 
 ---
 
-## 4. The `attribute.changed` event is subscribed but bypassed — the callback is double-wired
+## 4. [Done] The `attribute.changed` event is subscribed but bypassed — the callback is double-wired
 
 In `Designer._subscribe_functions_to_events`:
 ```python
