@@ -160,6 +160,23 @@ File:                   Where did something change?
    *TestUndoRedoDeleteWidget
 ```
 
+### 2.7 Action target
+* The subject of an action must identify the actual target of the change, not just the code unit containing it
+* The code unit should be used as context unless it is itself the element being changed
+
+#### Incorrect:
+```
+*Updated __init__() to refine comments
+*Updated method() to fix typo in doctring
+*Updated process_data() to add logging
+```
+#### Correct:
+```
+*Refined comments in __init__()
+*Fixed typo in method() docstring
+*Added logging to process_data()
+```
+
 ## 3 Structure templates
 A structure template defines a valid pattern for commit message blocks that fully conforms to the convention.  
 They act as building blocks for constructing complete commit messages.  
