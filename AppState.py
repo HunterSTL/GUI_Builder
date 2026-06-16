@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from model import ProjectDocument, SelectionState, BaseWidgetData
-from utility import call_tracer, BoundingBox, compute_model_bounding_box
+from utility import BoundingBox, compute_model_bounding_box
 
 class AppState:
     """AppState is the central place where all model state changes happen"""
@@ -87,6 +87,7 @@ class AppState:
         if model.id not in self._model_by_id:
             raise ValueError(f"AppState - model removal failed: unknown ID \"{model.id}\"")
 
+        model = self.get_model_from_model_id(model.id)  #prevents removing a stale model
         self._model_by_id.pop(model.id, None)
         self.project.widget_models.remove(model)
         self.structural_change = True
@@ -97,6 +98,7 @@ class AppState:
         if model.id not in self._model_by_id:
             raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
 
+        model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
         model.x = x
         model.y = y
         self.dirty_model_ids.add(model.id)
@@ -107,6 +109,7 @@ class AppState:
         if model.id not in self._model_by_id:
             raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
 
+        model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
         model.x += dx
         model.y += dy
         self.dirty_model_ids.add(model.id)
@@ -114,6 +117,10 @@ class AppState:
 
     def set_model_attribute(self, model, attribute, value):
         """set a model attribute to value if present"""
+        if model.id not in self._model_by_id:
+            raise ValueError(f"AppState - model attribute update failed: unknown ID \"{model.id}\"")
+
+        model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
         if not hasattr(model, attribute):
             raise ValueError(f"AppState - model attribute update failed: unknown attribute \"{attribute}\" [{model.id}]")
 
