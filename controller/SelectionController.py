@@ -45,18 +45,18 @@ class SelectionController:
 
     #Rendering API------------------------------------------------------------------------------------------------------
     def render_outline_for(self, model_id: str):
-        """re-render the selection outline for the given model"""
+        """re-render the selection outline for the given model ID"""
         self.selection_view.render_outline_for(
             model_id=model_id,
-            last_selected_model=self.app_state.selection.last_selected_model,
+            last_selected_model=self.app_state.get_last_selected_model_id(),
             resolve_model_to_widget=self.resolve_model_to_widget
         )
 
     def render_all_outlines(self):
         """re-render all selection outlines"""
         self.selection_view.render_all_outlines(
-            selected_models=self.app_state.selection_currently_selected(),
-            last_selected_model=self.app_state.selection.last_selected_model,
+            selected_models=self.app_state.get_selected_model_ids(),
+            last_selected_model=self.app_state.get_last_selected_model_id(),
             resolve_model_to_widget=self.resolve_model_to_widget
         )
 

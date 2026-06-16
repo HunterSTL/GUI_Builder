@@ -805,15 +805,15 @@ class Designer:
     def _print_selection(self):
         print("#"*150)
         print(f"Selection:")
-        print(self.app_state.selection)
+        print(f"Selected model IDs: {self.app_state.get_selected_model_ids()}")
+        print(f"Last selected model ID: {self.app_state.get_last_selected_model_id()}")
 
     def _print_bounding_boxes(self):
         print("#"*150)
         print(f"Model bounding boxes:")
-        for model in self.app_state.project.widget_models:
-            model_id = model.id
-            bbox = self.app_state.get_model_bounding_box_from_model_id(model_id)
-            print(f"{model_id}:\t{bbox}")
+        for model in self.app_state.get_all_models():
+            bbox = self.app_state.get_model_bounding_box(model)
+            print(f"{model.id}:\t{bbox}")
 
     def _print_id_counters(self):
         print("#"*150)

@@ -1,11 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Optional
 
 @dataclass
 class SelectionState:
-    selected_models: set[str] = field(default_factory=set)
-    last_selected_model: Optional[str] = None
+    selected_model_ids: set[str] = field(default_factory=set)
+    last_selected_model_id: str | None = None
 
     def __repr__(self):
         """called automatically when printing this object"""
-        return f"selected models:\t\t{self.selected_models}\nlast selected model:\t{self.last_selected_model}"
+        return f"selected model IDs:\t\t{self.selected_model_ids}\nlast selected model ID:\t{self.last_selected_model_id}"

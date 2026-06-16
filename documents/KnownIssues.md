@@ -194,7 +194,7 @@ The constants define `MINIMUM_CANVAS_WIDTH=200`, `MAXIMUM_CANVAS_WIDTH=5000`. `f
 
 ---
 
-## 24. `AppState.get_model_bounding_box_from_model_ids` consumes the iterator twice
+## 24. [Done] `AppState.get_model_bounding_box_from_model_ids` consumes the iterator twice
 
 ```python
 first_model_id = next(iter(model_ids))

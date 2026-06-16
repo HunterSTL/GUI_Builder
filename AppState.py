@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 from model import ProjectDocument, SelectionState, BaseWidgetData
 from utility import call_tracer, BoundingBox, compute_model_bounding_box
 
@@ -9,7 +9,7 @@ class AppState:
         project_document: ProjectDocument
     ):
         self.project = project_document         #must only be mutated using AppState API (add_model, set_grid_visible, set_title...)
-        self.selection = SelectionState()
+        self._selection = SelectionState()
 
         #State change notifications-------------------------------------------------------------------------------------
         self._subscribers = []                  #functions that get called when any mutation happens
@@ -38,15 +38,13 @@ class AppState:
     def _notify(self):
         """notify all subscribers"""
         if self._batch_depth > 0:
-            #don't call the subscribers if called while batching (with batch():)
-            #instead set flag to notify once batching is complete
-            self._pending_notify = True
+            self._pending_notify = True #defers notification to the outer most batch
             return
 
         for function in self._subscribers:
             function(self)
 
-        #reset flags and clear dirty models after all subscribers have been called
+        #reset flags and clear dirty model IDs after all subscribers have been called
         self.structural_change = False
         self.selection_change = False
         self.dirty_model_ids.clear()
@@ -146,34 +144,46 @@ class AppState:
 
     #Selection API------------------------------------------------------------------------------------------------------
     def selection_clear(self):
-        """clear all selected models and notify subscribers"""
+        """clear all selected model IDs then notify subscribers"""
         if not self.selection_is_empty():
             self._clear_selection_state()
             self.selection_change = True        #forces redraw of selection outlines
             self._notify()
 
     def selection_select_only(self, model_id: str):
-        """replace the current selection with the given model and notify subscribers"""
-        self.selection.selected_models = {model_id}
-        self.selection.last_selected_model = model_id
+        """replace the current selection with the given model ID then notify subscribers"""
+        self._selection.selected_model_ids = {model_id}
+        self._selection.last_selected_model_id = model_id
         self.selection_change = True
         self._notify()
 
     def selection_toggle(self, model_id: str):
-        """add the given model to the selection or remove it if it's already selected and notify subscribers"""
+        """add the given model ID to the selection or remove it if it's already selected then notify subscribers"""
         if self.selection_contains(model_id):   #already selected → remove from selection
-            self.selection.selected_models.remove(model_id)
-            if self.selection.last_selected_model == model_id:
-                self.selection.last_selected_model = None
+            self._selection.selected_model_ids.remove(model_id)
+            if self._selection.last_selected_model_id == model_id:
+                self._selection.last_selected_model_id = None
         else:                                   #not yet selected → add to selection
-            self.selection.selected_models.add(model_id)
-            self.selection.last_selected_model = model_id
+            self._selection.selected_model_ids.add(model_id)
+            self._selection.last_selected_model_id = model_id
+
+        self.selection_change = True
+        self._notify()
+
+    def selection_select_all(self):
+        """select all model IDs in the ProjectDocument then notify subscribers"""
+        self._selection.selected_model_ids = {model.id for model in self.project.widget_models}
+
+        if not self.selection_is_empty():
+            self._selection.last_selected_model_id = next(iter(self._selection.selected_model_ids))
+        else:
+            self._selection.last_selected_model_id = None
 
         self.selection_change = True
         self._notify()
 
     def selection_handle_click(self, model_id: str, is_additive: bool):
-        """toggle the model if selection is additive, otherwise replace selection with the given model"""
+        """toggle the selection for the given model ID if selection is additive, otherwise select only that model ID"""
         if model_id not in self._model_by_id:
             raise ValueError(f"AppState - selection update failed: unknown ID \"{model_id}\"")
 
@@ -183,41 +193,21 @@ class AppState:
             if not self.selection_contains(model_id):
                 self.selection_select_only(model_id)
 
-    def selection_select_all(self):
-        """select all models in the ProjectDocument"""
-        self.selection.selected_models = {model.id for model in self.project.widget_models}
-
-        if not self.selection_is_empty():
-            self.selection.last_selected_model = next(iter(self.selection.selected_models))
-        else:
-            self.selection.last_selected_model = None
-
-        self.selection_change = True
-        self._notify()
-
-    def _clear_selection_state(self):
-        self.selection.selected_models.clear()
-        self.selection.last_selected_model = None
-
     def apply_rectangle_selection(self, enclosed_model_ids: set[str], is_additive):
-        """
-        finalize a rectangle selection gesture and notify subscribers
-            -if additive: add enclosed model to selection
-            -if not additive: replace selection entirely
-        """
+        """add model IDs of enclosed widgets to selection if selection is additive, otherwise replace selection entirely, then notify subscribers"""
         if not is_additive:
             self._clear_selection_state()
             self.selection_change = True
 
         for model_id in enclosed_model_ids: #add models to selection if they are not already selected
-            if model_id not in self.selection.selected_models:
-                self.selection.selected_models.add(model_id)
-                self.selection.last_selected_model = model_id
+            if model_id not in self._selection.selected_model_ids:
+                self._selection.selected_model_ids.add(model_id)
+                self._selection.last_selected_model_id = model_id
                 self.selection_change = True
 
         self._notify()
 
-    #Model helpers------------------------------------------------------------------------------------------------------
+    #Model query API----------------------------------------------------------------------------------------------------
     def get_model_from_model_id(self, model_id: str) -> BaseWidgetData:
         """return the model associated with the given model ID"""
         try:
@@ -233,26 +223,57 @@ class AppState:
     def get_model_bounding_box_from_model_id(self, model_id: str) -> BoundingBox:
         """return the model's bounding box"""
         model = self.get_model_from_model_id(model_id)
-        return compute_model_bounding_box(model.x, model.y, model.width, model.height, model.anchor)
+        return self.get_model_bounding_box(model)
 
     def get_model_bounding_box_from_model_ids(self, model_ids: Iterable[str]) -> BoundingBox:
         """return the collective bounding box of all given models"""
-        first_model_id = next(iter(model_ids))
-        first_model_bounding_box = self.get_model_bounding_box_from_model_id(first_model_id)
-        left = first_model_bounding_box.left
-        top = first_model_bounding_box.top
-        right = first_model_bounding_box.right
-        bottom = first_model_bounding_box.bottom
+        models = tuple(
+            self.get_model_from_model_id(model_id)
+            for model_id in model_ids
+        )
+        return self.get_model_group_bounding_box(models)
 
-        for model_id in model_ids:
-            if model_id == first_model_id:
-                continue
+    def get_dirty_models(self) -> tuple[BaseWidgetData, ...]:
+        """return all dirty models"""
+        return tuple(
+            model
+            for model in self.project.widget_models #iterate all models for stable order
+            if model.id in self.dirty_model_ids
+        )
 
-            model_bounding_box = self.get_model_bounding_box_from_model_id(model_id)
-            left = min(left, model_bounding_box.left)
-            top = min(top, model_bounding_box.top)
-            right = max(right, model_bounding_box.right)
-            bottom = max(bottom, model_bounding_box.bottom)
+    def get_all_models(self) -> tuple[BaseWidgetData, ...]:
+        """return all models in the ProjectDocument"""
+        return tuple(self.project.widget_models)
+
+    @staticmethod
+    def get_model_bounding_box(model: BaseWidgetData) -> BoundingBox:
+        """return the model's bounding box"""
+        if model is None:
+            raise ValueError("AppState - model bounding box lookup failed: no model provided")
+
+        return compute_model_bounding_box(model.x, model.y, model.width, model.height, model.anchor)
+
+    def get_model_group_bounding_box(self, models: Iterable[BaseWidgetData]) -> BoundingBox:
+        """return the collective bounding box of all given models"""
+        models = tuple(models)
+
+        if not models:
+            raise ValueError("AppState - model group bounding box lookup failed: no models provided")
+
+        first_model = models[0]
+        bounding_box = self.get_model_bounding_box(first_model)
+
+        left = bounding_box.left
+        top = bounding_box.top
+        right = bounding_box.right
+        bottom = bounding_box.bottom
+
+        for model in models[1:]:    #skip first model
+            bounding_box = self.get_model_bounding_box(model)
+            left = min(left, bounding_box.left)
+            top = min(top, bounding_box.top)
+            right = max(right, bounding_box.right)
+            bottom = max(bottom, bounding_box.bottom)
 
         return BoundingBox(
             left=left,
@@ -261,15 +282,39 @@ class AppState:
             bottom=bottom
         )
 
-    #Selection helpers--------------------------------------------------------------------------------------------------
+    #Selection query API------------------------------------------------------------------------------------------------
     def selection_currently_selected(self) -> frozenset[str]:
-        return frozenset(self.selection.selected_models)
+        return self.get_selected_model_ids()
 
-    def selection_last_selected(self) -> str:
-        return self.selection.last_selected_model
+    def selection_last_selected(self) -> str | None:
+        return self.get_last_selected_model_id()
 
     def selection_is_empty(self) -> bool:
-        return len(self.selection.selected_models) == 0
+        return len(self._selection.selected_model_ids) == 0
 
     def selection_contains(self, model_id: str) -> bool:
-        return model_id in self.selection.selected_models
+        return model_id in self._selection.selected_model_ids
+
+    def get_selected_models(self) -> tuple[BaseWidgetData, ...]:
+        return tuple(
+            model
+            for model in self.project.widget_models #iterate all models for stable order
+            if model.id in self._selection.selected_model_ids
+        )
+
+    def get_selected_model_ids(self) -> frozenset[str]:
+        return frozenset(self._selection.selected_model_ids)
+
+    def get_last_selected_model(self) -> BaseWidgetData | None:
+        last_selected_model_id = self._selection.last_selected_model_id
+        if last_selected_model_id is None:
+            return None
+        return self.get_model_from_model_id(last_selected_model_id)
+
+    def get_last_selected_model_id(self) -> str | None:
+        return self._selection.last_selected_model_id
+
+    #Internals----------------------------------------------------------------------------------------------------------
+    def _clear_selection_state(self):
+        self._selection.selected_model_ids.clear()
+        self._selection.last_selected_model_id = None
