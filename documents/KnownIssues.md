@@ -92,7 +92,7 @@ If the user clicks a widget that is already selected (non-additive), nothing hap
 
 ---
 
-## 11. `_update_attributes_panel_visibility` is called only on `selection_change`, not on every `_on_changed_state`
+## 11. [Done] `_update_attributes_panel_visibility` is called only on `selection_change`, not on every `_on_changed_state`
 
 After a `set_model_attribute` call (e.g. changing text from the panel), `dirty_model_ids` is populated and `_on_changed_state` runs `_do_soft_render`. But `_update_attributes_panel_visibility` — which calls `attributes_panel_controller.refresh(model)` — is only called when `state.selection_change` is True. If the model changes in a way that affects panel state (e.g. anchor changes the spinbox limits) but selection_change is False, the panel is not updated until the next selection event. The panel's spinbox limits can therefore show stale valid ranges.
 

@@ -435,13 +435,22 @@ class Designer:
             return
 
         #only update dirty models
-        for model_id in state.dirty_model_ids:
-            self._do_soft_render(model_id)
+        dirty_models = state.get_dirty_models()
+        for model in dirty_models:
+            self._do_soft_render(model.id)
 
-        #re-render selection outlines if selection changed and refresh attributes panel
+        #re-render selection outlines and build or clear the attributes panel if selection changed
         if state.selection_change:
-            self._update_attributes_panel_visibility()
             self.selection_controller.render_all_outlines()
+            self._update_attributes_panel_visibility()
+
+        #refresh attributes panel values if the single selected model changed
+        if len(dirty_models) == 1:
+            dirty_model = dirty_models[0]
+            selected_models = state.get_selected_models()
+
+            if len(selected_models) == 1 and selected_models[0].id == dirty_model.id:   #prevents undo and redo from refreshing the attributes panel with values from an unselected dirty model
+                self.attributes_panel_view.update_variables_from_model(dirty_model)
 
     def _do_full_render(self):
         """perform a full re-render of widgets, selection outlines and grid"""
