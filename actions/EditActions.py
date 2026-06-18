@@ -26,7 +26,7 @@ class EditActions:
     def delete(self):
         """delete selected widgets after user confirmation"""
         #query selection
-        selected_models = self.app_state.selection_currently_selected()
+        selected_models = self.app_state.get_selected_models()
         if not selected_models:
             return
 
@@ -37,7 +37,7 @@ class EditActions:
         #delete models from ProjectDocument
         self.command_stack.execute(
             DeleteWidgets(
-                model_ids=selected_models,
+                models=selected_models,
                 app_state=self.app_state
             )
         )
@@ -50,16 +50,16 @@ class EditActions:
 
     def copy(self):
         """copy selected widgets to clipboard"""
+        #query selection
+        selected_models = self.app_state.get_selected_models()
+        if not selected_models:
+            return
+
         #clear clipboard
         self.clipboard.clear()
 
         #serialize the model of selected widgets into model_data and append it to the clipboard
-        selected_models = self.app_state.selection_currently_selected()
-        for model_id in selected_models:
-            model = self.app_state.get_model_from_model_id(model_id)
-            if model is None:
-                continue
-
+        for model in selected_models:
             model_data = model.to_dict(include_id=False)    #exclude ID because pasting creates new IDs, except on redo
             self.clipboard.append(model_data)
 
@@ -81,7 +81,7 @@ class EditActions:
     def cut(self):
         """copy selected widgets to clipboard then delete them"""
         #query selection
-        selected_models = self.app_state.selection_currently_selected()
+        selected_models = self.app_state.get_selected_models()
         if not selected_models:
             return
 
@@ -91,7 +91,7 @@ class EditActions:
         #delete models from ProjectDocument
         self.command_stack.execute(
             DeleteWidgets(
-                model_ids=selected_models,
+                models=selected_models,
                 app_state=self.app_state
             )
         )

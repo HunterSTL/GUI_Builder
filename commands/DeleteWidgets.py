@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from model import BaseWidgetData
 from commands import Command
 from AppState import AppState
@@ -5,17 +6,20 @@ from AppState import AppState
 class DeleteWidgets(Command):
     def __init__(
         self,
-        model_ids: frozenset,
+        models: Iterable[BaseWidgetData],
         app_state: AppState
     ):
         """store affected model IDs and snapshot model data required to restore deleted widgets during undo"""
-        self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._app_state = app_state
+
+        #store affected model IDs
+        models = tuple(models)                              #freezes iteration order for deterministic undo and redo behaviour
+        self._model_ids = [model.id for model in models]    #storing IDs and retrieving models protects against stale models
 
         #store model data
         self._snapshot = [
-            self._app_state.get_model_from_model_id(model_id).to_dict(include_id=True)
-            for model_id in self._model_ids
+            model.to_dict(include_id=True)
+            for model in models
         ]
 
     def execute(self):

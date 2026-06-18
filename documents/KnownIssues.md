@@ -49,7 +49,7 @@ If subscriber #1 of three raises, subscribers #2 and #3 never fire. This violate
 
 ---
 
-## 6. `MoveWidgetsTo.execute()` is a no-op if called before `freeze_final_positions()`
+## 6. [Done] `MoveWidgetsTo.execute()` is a no-op if called before `freeze_final_positions()`
 
 `MoveWidgetsTo` is an interactive command. If `freeze_final_positions()` is never called before `execute()`, `_final_positions` is an empty dict and `execute()` silently does nothing. There is no guard or assertion. This is exploitable via redo — if `freeze_final_positions` was skipped due to a bug, redo would silently not move anything. The command should raise if executed with an empty `_final_positions`.
 

@@ -1,34 +1,39 @@
+from collections.abc import Iterable
+from model import BaseWidgetData
 from commands import Command
 from AppState import AppState
 
 class MoveWidgetsTo(Command):
     def __init__(
         self,
-        model_ids: frozenset,
+        models: Iterable[BaseWidgetData],
         app_state: AppState
     ):
         """store affected model IDs and snapshot original widget positions; final positions are snapshotted at the end of a drag gesture"""
-        self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._app_state = app_state
+
+        #store affected model IDs
+        models = tuple(models)                              #freezes iteration order for deterministic undo and redo behaviour
+        self._model_ids = [model.id for model in models]    #storing IDs and retrieving models protects against stale models
 
         #snapshot original positions
         self._original_positions = {
-            model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
-            for model_id in self._model_ids
+            model.id: (model.x, model.y)
+            for model in models
         }
         self._final_positions = {}
 
     def has_effect(self):
         """return True if widget positions changed since initialization"""
-        return any(
-            self._original_positions[model_id] != self._app_state.get_model_coordinates_from_model_id(model_id)
-            for model_id in self._model_ids
-        )
+        for model_id in self._model_ids:
+            model = self._app_state.get_model_from_model_id(model_id)
+            if self._original_positions[model_id] != (model.x, model.y):
+                return True
+        return False
 
     def preview_move(self, dx: int, dy: int):
         """apply incremental movement during live dragging"""
-        #dx and dy are incremental deltas since last drag event
-        if dx == 0 and dy == 0:
+        if dx == 0 and dy == 0:         #incremental deltas since last drag event
             return
 
         with self._app_state.batch():   #batching so only one notify happens even if multiple widgets are moved
@@ -38,13 +43,19 @@ class MoveWidgetsTo(Command):
 
     def freeze_final_positions(self):
         """record final positions at the end of a drag gesture"""
-        self._final_positions = {       #record final positions for selected widgets at drag end
-            model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
-            for model_id in self._model_ids
-        }
+        final_positions = {}
+
+        for model_id in self._model_ids:
+            model = self._app_state.get_model_from_model_id(model_id)
+            final_positions[model_id] = (model.x, model.y)
+
+        self._final_positions = final_positions
 
     def execute(self):
         """apply the snapshotted final widget positions to AppState"""
+        if not self._final_positions:
+            raise ValueError("MoveWidgetsTo - execution failed: final positions were not frozen")
+
         with self._app_state.batch():
             for model_id, (x, y) in self._final_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)

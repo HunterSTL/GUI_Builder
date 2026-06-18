@@ -522,27 +522,13 @@ class Designer:
         self.actions.widget.start_drag()
 
     def _preview_drag(self, dx: int, dy: int):
-        affected_models = self.actions.widget.preview_drag(dx, dy)
-
-        #refresh attributes panel if only one widget is selected
-        if len(affected_models) == 1:
-            model = self.app_state.get_model_from_model_id(
-                self.app_state.selection_last_selected()
-            )
-            self.attributes_panel_view.update_variables_from_model(model)
+        self.actions.widget.preview_drag(dx, dy)
 
     def _commit_drag(self):
         self.actions.widget.commit_drag()
 
     def _snap_to_grid(self):
-        affected_models = self.actions.widget.snap_to_grid()
-
-        #refresh attributes panel if only one widget is selected
-        if len(affected_models) == 1:
-            model = self.app_state.get_model_from_model_id(
-                self.app_state.selection_last_selected()
-            )
-            self.attributes_panel_view.update_variables_from_model(model)
+        self.actions.widget.snap_to_grid()
 
     def _align(self, edge: Edge):
         self.actions.widget.align(edge)

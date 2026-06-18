@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+from model import BaseWidgetData
 from commands import Command
 from utility import allowed_x_range, allowed_y_range, nearest_in_bounds_grid_step
 from AppState import AppState
@@ -5,24 +7,25 @@ from AppState import AppState
 class SnapWidgetsToGrid(Command):
     def __init__(
         self,
-        model_ids: frozenset,
+        models: Iterable[BaseWidgetData],
         app_state: AppState
     ):
         """store affected model IDs, snapshot original widget positions and compute and snapshot final widget positions"""
-        self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._app_state = app_state
+
+        #store affected model IDs
+        models = tuple(models)                              #freezes iteration order for deterministic undo and redo behaviour
+        self._model_ids = [model.id for model in models]    #storing IDs and retrieving models protects against stale models
 
         #snapshot original positions
         self._original_positions = {
-            model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
-            for model_id in self._model_ids
+            model.id: (model.x, model.y)
+            for model in models
         }
 
         #compute and snapshot final positions
         self._final_positions = {}
-        for model_id in self._model_ids:
-            model = self._app_state.get_model_from_model_id(model_id)
-
+        for model in models:
             #compute allowed x and y range for the model
             min_x, max_x = allowed_x_range(self._app_state.project.width, model.width, model.anchor)
             min_y, max_y = allowed_y_range(self._app_state.project.height, model.height, model.anchor)
@@ -32,7 +35,7 @@ class SnapWidgetsToGrid(Command):
             new_y = nearest_in_bounds_grid_step(model.y, self._app_state.project.grid.size, min_y, max_y)
 
             #snapshot final positions
-            self._final_positions[model_id] = (new_x, new_y)
+            self._final_positions[model.id] = (new_x, new_y)
 
     def has_effect(self):
         """return True if executing this command would cause the model to change"""

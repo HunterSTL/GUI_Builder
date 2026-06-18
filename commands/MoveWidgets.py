@@ -1,24 +1,29 @@
+from collections.abc import Iterable
+from model import BaseWidgetData
 from commands import Command
 from AppState import AppState
 
 class MoveWidgets(Command):
     def __init__(
         self,
-        model_ids: frozenset,
+        models: Iterable[BaseWidgetData],
         dx: int,
         dy: int,
         app_state: AppState
     ):
         """store affected model IDs, store movement deltas and snapshot original widget positions for undo"""
-        self._model_ids = list(model_ids)   #freeze iteration order for deterministic undo/redo behaviour
         self._dx = dx
         self._dy = dy
         self._app_state = app_state
 
+        #store affected model IDs
+        models = tuple(models)                              #freezes iteration order for deterministic undo and redo behaviour
+        self._model_ids = [model.id for model in models]    #storing IDs and retrieving models protects against stale models
+
         #snapshot original positions
         self._original_positions = {
-            model_id: self._app_state.get_model_coordinates_from_model_id(model_id)
-            for model_id in self._model_ids
+            model.id: (model.x, model.y)
+            for model in models
         }
 
     def execute(self):

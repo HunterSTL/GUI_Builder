@@ -222,24 +222,6 @@ class AppState:
         except KeyError:
             raise ValueError(f"AppState - model lookup failed: unknown ID \"{model_id}\"")
 
-    def get_model_coordinates_from_model_id(self, model_id: str) -> tuple[int, int]:
-        """return the model's position (x and y)"""
-        model = self.get_model_from_model_id(model_id)
-        return model.x, model.y
-
-    def get_model_bounding_box_from_model_id(self, model_id: str) -> BoundingBox:
-        """return the model's bounding box"""
-        model = self.get_model_from_model_id(model_id)
-        return self.get_model_bounding_box(model)
-
-    def get_model_bounding_box_from_model_ids(self, model_ids: Iterable[str]) -> BoundingBox:
-        """return the collective bounding box of all given models"""
-        models = tuple(
-            self.get_model_from_model_id(model_id)
-            for model_id in model_ids
-        )
-        return self.get_model_group_bounding_box(models)
-
     def get_dirty_models(self) -> tuple[BaseWidgetData, ...]:
         """return all dirty models"""
         return tuple(
