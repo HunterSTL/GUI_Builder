@@ -13,9 +13,9 @@ class WidgetView:
     ):
         """store canvas reference and widget/model mappings"""
         self.canvas = canvas
-        self.widget_map = {}                            #{widget_id: {"model": model, "widget": widget}}
-        self.model_id_to_widget_id: dict[str, int] = {} #model_id → widget_id
-        self.widget_id_to_model_id: dict[int, str] = {} #widget_id → model_id
+        self.widget_map = {}                            #{widget ID: {"model": model, "widget": widget}}
+        self.model_id_to_widget_id: dict[str, int] = {} #model ID → widget ID
+        self.widget_id_to_model_id: dict[int, str] = {} #widget ID → model ID
 
     #Rendering API------------------------------------------------------------------------------------------------------
     def render_soft(self, model):
@@ -24,7 +24,7 @@ class WidgetView:
         if model.x is None or model.y is None:
             raise ValueError(f"WidgetView - widget rendering failed: missing position for model \"{model.id}\"")
 
-        #get the widget_id of this model
+        #get the widget ID of this model
         widget_id = self.get_widget_id_from_model_id(model.id)
 
         if widget_id is None:
@@ -32,7 +32,7 @@ class WidgetView:
             self._render_widget(model)
             return
 
-        #validate widget with the given widget_id exists
+        #validate widget with the given widget ID exists
         entry = self.widget_map.get(widget_id)
         if not entry:
             raise ValueError(f"WidgetView - widget rendering failed: unknown widget ID \"{widget_id}\"")
@@ -71,7 +71,7 @@ class WidgetView:
                 widget = widget_map_entry["widget"]
                 widget.destroy()
 
-        #clear widget_map and model_id <> widget_id mappings
+        #clear widget_map and model ID <> widget ID mappings
         self.widget_map.clear()
         self.model_id_to_widget_id.clear()
         self.widget_id_to_model_id.clear()
@@ -102,7 +102,7 @@ class WidgetView:
         raise ValueError(f"WidgetView - widget creation failed: unsupported type \"{model.type}\"")
 
     def _insert_widget_into_canvas(self, widget, x, y, anchor):
-        """place widget on canvas and return resulting widget_id"""
+        """place widget on canvas and return resulting widget ID"""
         widget_id = self.canvas.create_window(
             x, y,
             window=widget,
@@ -112,7 +112,7 @@ class WidgetView:
         return widget_id
 
     def _register_widget_mappings(self, model, widget, widget_id):
-        """insert widget and model into widget map (keyed by widget_id) and register widget_id <> model_id mappings"""
+        """insert widget and model into widget map (keyed by widget ID) and register widget ID <> model ID mappings"""
         self.widget_map[widget_id] = {"model": model, "widget": widget}
         self.widget_id_to_model_id[widget_id] = model.id
         self.model_id_to_widget_id[model.id] = widget_id
@@ -154,12 +154,12 @@ class WidgetView:
         self.render_soft(model)
 
     #Helpers------------------------------------------------------------------------------------------------------------
-    def get_widget_id_from_model_id(self, model_id: str):
-        """return the widget_id mapped to a model_id"""
+    def get_widget_id_from_model_id(self, model_id: str) -> int | None:
+        """return the widget ID mapped to a model ID"""
         return self.model_id_to_widget_id.get(model_id)
 
-    def get_widget_from_model_id(self, model_id: str):
-        """return the widget associated with a given model_id"""
+    def get_widget_from_model_id(self, model_id: str) -> object | None:
+        """return the widget associated with a given model ID"""
         widget_id = self.get_widget_id_from_model_id(model_id)
         if widget_id is None:
             return None #widget not created yet (valid state)
@@ -169,6 +169,6 @@ class WidgetView:
             raise ValueError(f"WidgetView - widget lookup failed: unknown widget ID \"{widget_id}\"")
         return entry["widget"]
 
-    def get_model_id_from_widget_id(self, widget_id: int):
-        """return the model_id mapped to a widget_id"""
+    def get_model_id_from_widget_id(self, widget_id: int) -> str | None:
+        """return the model ID mapped to a widget ID"""
         return self.widget_id_to_model_id.get(widget_id)
