@@ -13,7 +13,7 @@ class AppState:
 
         #State change notifications-------------------------------------------------------------------------------------
         self._subscribers = []                  #functions that get called when any mutation happens
-        self.dirty_model_ids: set[str] = set()  #holds the IDs of models that changed
+        self._dirty_model_ids: set[str] = set() #holds the IDs of models that changed
         self.structural_change = False          #signals whether a full re-render is necessary
         self.selection_change = False           #signals whether the selection outlines need to be redrawn
 
@@ -47,7 +47,7 @@ class AppState:
         #reset flags and clear dirty model IDs after all subscribers have been called
         self.structural_change = False
         self.selection_change = False
-        self.dirty_model_ids.clear()
+        self._dirty_model_ids.clear()
 
     def batch(self):
         class _Batch:
@@ -101,7 +101,7 @@ class AppState:
         model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
         model.x = x
         model.y = y
-        self.dirty_model_ids.add(model.id)
+        self._dirty_model_ids.add(model.id)
         self._notify()
 
     def offset_model_position(self, model, dx: int, dy: int):
@@ -112,7 +112,7 @@ class AppState:
         model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
         model.x += dx
         model.y += dy
-        self.dirty_model_ids.add(model.id)
+        self._dirty_model_ids.add(model.id)
         self._notify()
 
     def set_model_attribute(self, model, attribute, value):
@@ -125,7 +125,7 @@ class AppState:
             raise ValueError(f"AppState - model attribute update failed: unknown attribute \"{attribute}\" [{model.id}]")
 
         setattr(model, attribute, value)
-        self.dirty_model_ids.add(model.id)
+        self._dirty_model_ids.add(model.id)
         self._notify()
 
     #Grid API-----------------------------------------------------------------------------------------------------------
@@ -227,7 +227,7 @@ class AppState:
         return tuple(
             model
             for model in self.project.widget_models #iterate all models for stable order
-            if model.id in self.dirty_model_ids
+            if model.id in self._dirty_model_ids
         )
 
     def get_all_models(self) -> tuple[BaseWidgetData, ...]:

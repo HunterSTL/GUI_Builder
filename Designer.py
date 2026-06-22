@@ -429,13 +429,15 @@ class Designer:
     #Rendering API------------------------------------------------------------------------------------------------------
     def _on_changed_state(self, state: AppState):
         """respond to AppState mutations by performing full or soft rendering"""
+        #query dirty models
+        dirty_models = state.get_dirty_models()
+
         #determine if full render is required
-        if state.structural_change or len(state.dirty_model_ids) > self.constants["full_render_threshold"]:
+        if state.structural_change or len(dirty_models) > self.constants["full_render_threshold"]:
             self._do_full_render()
             return
 
         #only update dirty models
-        dirty_models = state.get_dirty_models()
         for model in dirty_models:
             self._do_soft_render(model.id)
 
