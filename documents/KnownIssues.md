@@ -154,7 +154,7 @@ Actually checking: `render_full` in `WidgetView` destroys widgets but not the ca
 
 ---
 
-## 18. `Designer._on_changed_state` uses a magic number `10` for the full-render threshold
+## 18. [Done] `Designer._on_changed_state` uses a magic number `10` for the full-render threshold
 
 ```python
 if state.structural_change or len(state.dirty_model_ids) > 10:

@@ -1,4 +1,4 @@
-#Initial values for user theme (can be changed in setup wizard)
+#initial values for user theme (can be changed in setup wizard)
 user_BACKGROUND_COLOR = "#404040"
 user_TITLEBAR_COLOR = "#202020"
 user_TITLEBAR_TEXT_COLOR = "#FFFFFF"
@@ -125,6 +125,7 @@ SELECTION_PADDING = 3
 GRID_SIZE = 10
 CTRL_KEY = 0x0004
 DRAG_THRESHOLD = 10
+FULL_RENDER_THRESHOLD = 10
 
 CONSTANTS = {
     "window": {
@@ -156,5 +157,6 @@ CONSTANTS = {
     },
     "grid_size": GRID_SIZE,
     "ctrl_key": CTRL_KEY,
-    "drag_threshold": DRAG_THRESHOLD
+    "drag_threshold": DRAG_THRESHOLD,
+    "full_render_threshold": FULL_RENDER_THRESHOLD
 }

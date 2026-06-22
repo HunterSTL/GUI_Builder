@@ -429,8 +429,8 @@ class Designer:
     #Rendering API------------------------------------------------------------------------------------------------------
     def _on_changed_state(self, state: AppState):
         """respond to AppState mutations by performing full or soft rendering"""
-        #re-render entire AppState if structural change happened (widget creation/deletion, grid settings, selection outlines)
-        if state.structural_change or len(state.dirty_model_ids) > 10:  #full render may be faster than doing soft render for multiple models
+        #determine if full render is required
+        if state.structural_change or len(state.dirty_model_ids) > self.constants["full_render_threshold"]:
             self._do_full_render()
             return
 
