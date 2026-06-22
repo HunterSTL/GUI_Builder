@@ -18,15 +18,13 @@ class WidgetController:
         self.widget_view = widget_view
 
     #Rendering API------------------------------------------------------------------------------------------------------
-    def render_soft(self, model_id: str):
+    def render_soft(self, model: BaseWidgetData):
         """re-render an existing model"""
-        model = self.app_state.get_model_from_model_id(model_id)
         self.widget_view.render_soft(model)
 
     def render_full(self):
         """rebuild all widgets from models"""
-        models = self.app_state.project.widget_models
-        self.widget_view.render_full(models)
+        self.widget_view.render_full(self.app_state.get_all_models())
 
     #Domain logic-------------------------------------------------------------------------------------------------------
     def update_widget_attribute(self, model_id: str, attribute: str, value):

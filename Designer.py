@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
-from model import DesignerState, ProjectDocument, LabelWidgetData, EntryWidgetData, ButtonWidgetData
+from model import DesignerState, ProjectDocument, BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
@@ -439,7 +439,7 @@ class Designer:
 
         #only update dirty models
         for model in dirty_models:
-            self._do_soft_render(model.id)
+            self._do_soft_render(model)
 
         #re-render selection outlines and build or clear the attributes panel if selection changed
         if state.selection_change:
@@ -466,11 +466,10 @@ class Designer:
         #render selection outlines
         self.selection_controller.render_all_outlines()
 
-    def _do_soft_render(self, model_id: str):
+    def _do_soft_render(self, model: BaseWidgetData):
         """perform a soft re-render limited to a single updated widget"""
-        call_tracer.log_event(f"soft render {model_id}")
-        self.widget_controller.render_soft(model_id)
-        self.selection_controller.render_outline_for(model_id)
+        self.widget_controller.render_soft(model)
+        self.selection_controller.render_outline_for(model.id)
 
     def _update_attributes_panel_visibility(self):
         """update attributes panel visibility when selection changes"""
