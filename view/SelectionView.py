@@ -1,4 +1,5 @@
 import tkinter as tk
+from utility import BoundingBox
 
 class SelectionView:
     """
@@ -22,45 +23,37 @@ class SelectionView:
         self.selection_dash = selection_dash
         self.selection_padding = selection_padding
 
-        self._selection_rectangle_id = None     #stores the id of the selection rectangle
-        self._selection_outlines = {}           #model_id -> outline rectangle_id
+        self._selection_rectangle_id = None     #stores the ID of the selection rectangle
+        self._selection_outlines = {}           #maps model IDs to the ID of selection outline rectangles
 
     #Rendering API------------------------------------------------------------------------------------------------------
     def clear_selection_outlines(self):
-        """delete all canvas items with tag "selection_outline" and clear the selection_outlines dictionary"""
+        """delete all selection outlines and clear the dictionary mapping them to model IDs"""
         for rect_id in self.canvas.find_withtag("selection_outline"):
             self.canvas.delete(rect_id)
         self._selection_outlines.clear()
 
-    def render_outline_for(self, model_id: str, last_selected_model: str | None, resolve_model_to_widget):
-        """create or update the selection outline for a single selected widget"""
-        widget_id = resolve_model_to_widget(model_id)
-        if widget_id is None:
-            return
+    def render_outline_for(self, model_id: str, bounding_box: BoundingBox, is_last_selected: bool):
+        """render or update the selection outline for a model ID using the given bounding box"""
+        #compute top-left corner of selection outline
+        x1 = bounding_box.left - self.selection_padding
+        y1 = bounding_box.top - self.selection_padding
 
-        bbox = self.canvas.bbox(widget_id)
-        if not bbox:
-            return
+        #compute bottom-right corner of selection outline
+        x2 = bounding_box.right + self.selection_padding
+        y2 = bounding_box.bottom + self.selection_padding
 
-        x1, y1, x2, y2 = bbox
-        x1 -= self.selection_padding
-        y1 -= self.selection_padding
-        x2 += self.selection_padding
-        y2 += self.selection_padding
+        #determine color
+        outline_color = self.last_selected_color if is_last_selected else self.selection_color
 
-        if last_selected_model == model_id:
-            outline_color = self.last_selected_color
-        else:
-            outline_color = self.selection_color
-
-        rect_id = self._selection_outlines.get(model_id)
-        if rect_id and self.canvas.type(rect_id) == "rectangle":
+        rectangle_id = self._selection_outlines.get(model_id)
+        if rectangle_id and self.canvas.type(rectangle_id) == "rectangle":
             #update existing selection outline
-            self.canvas.coords(rect_id, x1, y1, x2, y2)
-            self.canvas.itemconfig(rect_id, outline=outline_color)
+            self.canvas.coords(rectangle_id, x1, y1, x2, y2)
+            self.canvas.itemconfig(rectangle_id, outline=outline_color)
         else:
             #create new selection outline
-            rect_id = self.canvas.create_rectangle(
+            rectangle_id = self.canvas.create_rectangle(
                 x1, y1, x2, y2,
                 outline=outline_color,
                 width=self.selection_width,
@@ -68,16 +61,8 @@ class SelectionView:
                 fill="",
                 tags="selection_outline"
             )
-            self._selection_outlines[model_id] = rect_id
-        self.canvas.tag_raise(rect_id)
-
-    def render_all_outlines(self, selected_models: frozenset[str], last_selected_model: str | None, resolve_model_to_widget):
-        """clear existing selection outlines and recreate for all selected widgets"""
-        self.clear_selection_outlines()
-
-        #recreate outlines for selected models
-        for model_id in selected_models:
-            self.render_outline_for(model_id, last_selected_model, resolve_model_to_widget)
+            self._selection_outlines[model_id] = rectangle_id
+        self.canvas.tag_raise(rectangle_id)
 
     def draw_selection_rectangle(self, x0: int, y0: int):
         """begin drawing the selection rectangle (UI-element) used for the rectangle selection (gesture)"""

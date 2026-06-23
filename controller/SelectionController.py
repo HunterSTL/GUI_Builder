@@ -1,5 +1,5 @@
 import tkinter as tk
-from model import WidgetDragState, RectangleSelectionState
+from model import WidgetDragState, RectangleSelectionState, BaseWidgetData
 from view import SelectionView
 from events import EventRouter
 from AppState import AppState
@@ -7,7 +7,7 @@ from AppState import AppState
 class SelectionController:
     """
     Implements click selection, additive selection, rectangle selection,
-    drag gestures, hit-testing and coordinates updates to AppState.
+    drag gestures, hit-testing and model based selection outline rendering.
     """
     #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
@@ -17,7 +17,6 @@ class SelectionController:
         selection_view: SelectionView,
         ctrl_key: str,
         drag_threshold: int,
-        resolve_model_to_widget,
         resolve_widget_to_model,
         event_router: EventRouter
     ):
@@ -29,8 +28,7 @@ class SelectionController:
         self.ctrl_key = ctrl_key
         self.drag_threshold = drag_threshold
 
-        self.resolve_model_to_widget = resolve_model_to_widget  #label1 → 1
-        self.resolve_widget_to_model = resolve_widget_to_model  #1 → label1
+        self.resolve_widget_to_model = resolve_widget_to_model  #resolves widget ID → model ID
 
         self.event_router = event_router
 
@@ -44,21 +42,23 @@ class SelectionController:
         self._rectangle_selection_state = RectangleSelectionState()
 
     #Rendering API------------------------------------------------------------------------------------------------------
-    def render_outline_for(self, model_id: str):
-        """re-render the selection outline for the given model ID"""
+    def render_outline_for(self, model: BaseWidgetData):
+        """render or update the selection outline for the given model using its bounding box"""
         self.selection_view.render_outline_for(
-            model_id=model_id,
-            last_selected_model=self.app_state.get_last_selected_model_id(),
-            resolve_model_to_widget=self.resolve_model_to_widget
+            model_id=model.id,  #used to map selection outline rectangles to models
+            bounding_box=self.app_state.get_model_bounding_box(model),
+            is_last_selected=model.id == self.app_state.get_last_selected_model_id()
         )
 
     def render_all_outlines(self):
-        """re-render all selection outlines"""
-        self.selection_view.render_all_outlines(
-            selected_models=self.app_state.get_selected_model_ids(),
-            last_selected_model=self.app_state.get_last_selected_model_id(),
-            resolve_model_to_widget=self.resolve_model_to_widget
-        )
+        """clear and render selection outlines for all selected models"""
+        #clear existing outlines
+        self.selection_view.clear_selection_outlines()
+
+        #render outlines for all selected widgets
+        selected_models = self.app_state.get_selected_models()
+        for model in selected_models:
+            self.render_outline_for(model)
 
     #Event handling-----------------------------------------------------------------------------------------------------
     def handle_canvas_press(self, event):
@@ -66,7 +66,7 @@ class SelectionController:
         canvas_x, canvas_y = self.pointer_in_canvas_coords(event)
 
         #check for model at canvas coords
-        model_id = self.model_at(canvas_x, canvas_y)
+        model_id = self.model_id_at(canvas_x, canvas_y)
 
         if model_id:
             #widget clicked → set mode to "drag" → start widget drag
@@ -228,10 +228,10 @@ class SelectionController:
             for widget_id in enclosed_widget_ids
         }
 
-        #update model
+        #update selection
         if not rss.is_dragging:
             #not dragging → behave like a click
-            model_id = self.model_at(x1, y1)
+            model_id = self.model_id_at(x1, y1)
             if model_id is None:
                 self.app_state.selection_clear()
             else:
@@ -249,20 +249,20 @@ class SelectionController:
         self.selection_view.clear_selection_rectangle()
 
     #Helpers------------------------------------------------------------------------------------------------------------
-    def pointer_in_canvas_coords(self, event):
+    def pointer_in_canvas_coords(self, event) -> tuple[int, int]:
         """convert tk event coordinates to canvas coordinates"""
         return int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
 
-    def find_topmost_window_at(self, x: int, y: int):
-        """return the topmost canvas window item (widget) at the given coordinates"""
+    def find_topmost_window_at(self, x: int, y: int) -> int | None:
+        """return the topmost widget at the given coordinates"""
         items = self.canvas.find_overlapping(x, y, x, y)
         for item in reversed(items):    #last is top-most
             if self.canvas.type(item) == "window":
                 return item
         return None
 
-    def model_at(self, x: int, y: int):
-        """return the model_id of the widget located at the given canvas coordinates"""
+    def model_id_at(self, x: int, y: int) -> str | None:
+        """return the model ID of the widget located at the given canvas coordinates"""
         widget_id = self.find_topmost_window_at(x, y)
         if widget_id is None:
             return None

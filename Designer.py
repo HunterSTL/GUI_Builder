@@ -117,7 +117,6 @@ class Designer:
             selection_view=self.selection_view,
             ctrl_key=self.constants["ctrl_key"],
             drag_threshold=self.constants["drag_threshold"],
-            resolve_model_to_widget=lambda model_id: self.widget_view.get_widget_id_from_model_id(model_id),
             resolve_widget_to_model=lambda widget_id: self.widget_view.get_model_id_from_widget_id(widget_id),
             event_router=self.event_router
         )
@@ -467,9 +466,9 @@ class Designer:
         self.selection_controller.render_all_outlines()
 
     def _do_soft_render(self, model: BaseWidgetData):
-        """perform a soft re-render limited to a single updated widget"""
+        """perform a soft re-render of a widget and its selection outline"""
         self.widget_controller.render_soft(model)
-        self.selection_controller.render_outline_for(model.id)
+        self.selection_controller.render_outline_for(model)
 
     def _update_attributes_panel_visibility(self):
         """update attributes panel visibility when selection changes"""
