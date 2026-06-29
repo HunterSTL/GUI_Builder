@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
-from model import DesignerState, ProjectDocument, BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData
+from model import ProjectDocument, BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
@@ -56,9 +56,6 @@ class Designer:
         #AppState: central model mutation engine
         self.app_state = AppState(project_document)
 
-        #DesignerState: last click position, dirty flag, deleting flag etc.
-        self.state = DesignerState()
-
         #CommandStack: provides undo/redo functionality
         self.command_stack = CommandStack()
 
@@ -67,6 +64,9 @@ class Designer:
 
         #variable to represent grid state from ProjectDocument
         self.grid_visible_variable = tk.BooleanVar(value=self.app_state.project.grid.visible)
+
+        self._is_dirty = False
+        self._last_right_click_coordinates = None
 
         #build designer UI
         self._build_designer_ui()
@@ -485,7 +485,7 @@ class Designer:
     #External API-------------------------------------------------------------------------------------------------------
     def is_dirty(self):
         """return True if the project has unsaved changes"""
-        return self.state.is_dirty
+        return self._is_dirty
 
     def set_dirty(self):
         """mark project state as dirty (unsaved changes exist)"""
@@ -584,7 +584,7 @@ class Designer:
     #Event handling (UI actions)----------------------------------------------------------------------------------------
     def _show_menu(self, event):
         """show the context menu at the mouse position"""
-        self.state.last_click_coords = event.x, event.y
+        self._last_right_click_coordinates = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
 
     #Event handling (wiring)--------------------------------------------------------------------------------------------
@@ -736,10 +736,10 @@ class Designer:
         )
 
         def _pos():
-            if self.state.last_click_coords is None:
+            if self._last_right_click_coordinates is None:
                 return 100, 100
             else:
-                return self.state.last_click_coords
+                return self._last_right_click_coordinates
 
         self.menu.add_command(
             label="Add Label",
@@ -769,12 +769,12 @@ class Designer:
 
     def _set_dirty(self):
         """mark project as dirty and update titlebar"""
-        self.state.is_dirty = True
+        self._is_dirty = True
         self.titlebar_label.configure(text=self.app_state.project.title + "*")
 
     def _set_clean(self):
         """mark project as clean and update titlebar"""
-        self.state.is_dirty = False
+        self._is_dirty = False
         self.titlebar_label.configure(text=self.app_state.project.title)
         self.titlebar_label.update()
 
