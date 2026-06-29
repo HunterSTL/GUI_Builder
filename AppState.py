@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from model import ProjectDocument, SelectionState, BaseWidgetData
+from model import ProjectDocument, BaseWidgetData
 from utility import BoundingBox, compute_model_bounding_box
 
 class AppState:
@@ -9,11 +9,10 @@ class AppState:
         project_document: ProjectDocument
     ):
         self.project = project_document         #must only be mutated using AppState API (add_model, set_grid_visible, set_title...)
-        self._selection = SelectionState()
 
         #State change notifications-------------------------------------------------------------------------------------
         self._subscribers = []                  #functions that get called when any mutation happens
-        self._dirty_model_ids: set[str] = set() #holds the IDs of models that changed
+        self._dirty_model_ids: set[str] = set() #stores the IDs of models that changed
         self.structural_change = False          #signals whether a full re-render is necessary
         self.selection_change = False           #signals whether the selection outlines need to be redrawn
 
@@ -23,6 +22,10 @@ class AppState:
 
         #Model dictionary-----------------------------------------------------------------------------------------------
         self._model_by_id = {}                  #{model.id: model} for O(1) lookup; maintained in add_/remove_model()
+
+        #Selection------------------------------------------------------------------------------------------------------
+        self._selected_model_ids = set()        #stores the IDs of selected models
+        self._last_selected_model_id = None     #stores the ID of the last selected model
 
         #add existing models in ProjectDocument to the dictionary
         for model in self.project.widget_models:
@@ -152,42 +155,47 @@ class AppState:
     #Selection API------------------------------------------------------------------------------------------------------
     def selection_clear(self):
         """clear all selected model IDs then notify subscribers"""
-        if not self.selection_is_empty():
-            self._clear_selection_state()
-            self.selection_change = True        #forces redraw of selection outlines
-            self._notify()
+        if self.selection_is_empty():
+            return
+
+        self._selected_model_ids.clear()
+        self._last_selected_model_id = None
+        self._mark_selection_change()
 
     def selection_select_only(self, model_id: str):
         """replace the current selection with the given model ID then notify subscribers"""
-        self._selection.selected_model_ids = {model_id}
-        self._selection.last_selected_model_id = model_id
-        self.selection_change = True
-        self._notify()
+        if self._selected_model_ids == {model_id}:
+            return
+
+        self._selected_model_ids = {model_id}
+        self._last_selected_model_id = model_id
+        self._mark_selection_change()
 
     def selection_toggle(self, model_id: str):
         """add the given model ID to the selection or remove it if it's already selected then notify subscribers"""
         if self.selection_contains(model_id):   #already selected → remove from selection
-            self._selection.selected_model_ids.remove(model_id)
-            if self._selection.last_selected_model_id == model_id:
-                self._selection.last_selected_model_id = None
+            self._selected_model_ids.remove(model_id)
+            if self._last_selected_model_id == model_id:
+                self._last_selected_model_id = None
         else:                                   #not yet selected → add to selection
-            self._selection.selected_model_ids.add(model_id)
-            self._selection.last_selected_model_id = model_id
+            self._selected_model_ids.add(model_id)
+            self._last_selected_model_id = model_id
 
-        self.selection_change = True
-        self._notify()
+        self._mark_selection_change()
 
     def selection_select_all(self):
         """select all model IDs in the ProjectDocument then notify subscribers"""
-        self._selection.selected_model_ids = {model.id for model in self.project.widget_models}
+        if self._selected_model_ids == {model.id for model in self.project.widget_models}:
+            return
+
+        self._selected_model_ids = {model.id for model in self.project.widget_models}
 
         if not self.selection_is_empty():
-            self._selection.last_selected_model_id = next(iter(self._selection.selected_model_ids))
+            self._last_selected_model_id = self.project.widget_models[0].id
         else:
-            self._selection.last_selected_model_id = None
+            self._last_selected_model_id = None
 
-        self.selection_change = True
-        self._notify()
+        self._mark_selection_change()
 
     def selection_handle_click(self, model_id: str, is_additive: bool):
         """toggle the selection for the given model ID if selection is additive, otherwise select only that model ID"""
@@ -203,13 +211,12 @@ class AppState:
     def apply_rectangle_selection(self, enclosed_model_ids: set[str], is_additive):
         """add model IDs of enclosed widgets to selection if selection is additive, otherwise replace selection entirely, then notify subscribers"""
         if not is_additive:
-            self._clear_selection_state()
-            self.selection_change = True
+            self.selection_clear()
 
         for model_id in enclosed_model_ids: #add models to selection if they are not already selected
-            if model_id not in self._selection.selected_model_ids:
-                self._selection.selected_model_ids.add(model_id)
-                self._selection.last_selected_model_id = model_id
+            if model_id not in self._selected_model_ids:
+                self._selected_model_ids.add(model_id)
+                self._last_selected_model_id = model_id
                 self.selection_change = True
 
         self._notify()
@@ -279,31 +286,31 @@ class AppState:
         return self.get_last_selected_model_id()
 
     def selection_is_empty(self) -> bool:
-        return len(self._selection.selected_model_ids) == 0
+        return len(self._selected_model_ids) == 0
 
     def selection_contains(self, model_id: str) -> bool:
-        return model_id in self._selection.selected_model_ids
+        return model_id in self._selected_model_ids
 
     def get_selected_models(self) -> tuple[BaseWidgetData, ...]:
         return tuple(
             model
             for model in self.project.widget_models #iterate all models for stable order
-            if model.id in self._selection.selected_model_ids
+            if model.id in self._selected_model_ids
         )
 
     def get_selected_model_ids(self) -> frozenset[str]:
-        return frozenset(self._selection.selected_model_ids)
+        return frozenset(self._selected_model_ids)
 
     def get_last_selected_model(self) -> BaseWidgetData | None:
-        last_selected_model_id = self._selection.last_selected_model_id
+        last_selected_model_id = self._last_selected_model_id
         if last_selected_model_id is None:
             return None
         return self.get_model_from_model_id(last_selected_model_id)
 
     def get_last_selected_model_id(self) -> str | None:
-        return self._selection.last_selected_model_id
+        return self._last_selected_model_id
 
     #Internals----------------------------------------------------------------------------------------------------------
-    def _clear_selection_state(self):
-        self._selection.selected_model_ids.clear()
-        self._selection.last_selected_model_id = None
+    def _mark_selection_change(self):
+        self.selection_change = True
+        self._notify()
