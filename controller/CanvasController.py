@@ -1,6 +1,6 @@
 from view import CanvasView
 from events import EventRouter
-from utility import Direction
+from utility import Direction, Edge
 from AppState import AppState
 
 class CanvasController:
@@ -57,9 +57,10 @@ class CanvasController:
         canvas.bind("<Alt-F4>", lambda e: self.event_router.emit("app.exit"))
 
         #edit events
-        canvas.bind("<Control-x>", lambda e: self.event_router.emit("edit.cut"))
+        canvas.bind("<Delete>", lambda e: self.event_router.emit("edit.delete"))
         canvas.bind("<Control-c>", lambda e: self.event_router.emit("edit.copy"))
         canvas.bind("<Control-v>", lambda e: self.event_router.emit("edit.paste"))
+        canvas.bind("<Control-x>", lambda e: self.event_router.emit("edit.cut"))
         canvas.bind("<Control-z>", lambda e: self.event_router.emit("edit.undo"))
         canvas.bind("<Control-y>", lambda e: self.event_router.emit("edit.redo"))
 
@@ -73,11 +74,10 @@ class CanvasController:
         canvas.bind("<Shift-Up>", lambda e: self.event_router.emit("widget.nudge", direction=Direction.UP, amount=self.nudge_big))
         canvas.bind("<Shift-Down>", lambda e: self.event_router.emit("widget.nudge", direction=Direction.DOWN, amount=self.nudge_big))
         canvas.bind("<Key-s>", lambda e: self.event_router.emit("widget.snap_to_grid"))
-        canvas.bind("<Delete>", lambda e: self.event_router.emit("widget.delete"))
-        canvas.bind("<Control-Left>", lambda e: self.event_router.emit("widget.align.left"))
-        canvas.bind("<Control-Right>", lambda e: self.event_router.emit("widget.align.right"))
-        canvas.bind("<Control-Up>", lambda e: self.event_router.emit("widget.align.top"))
-        canvas.bind("<Control-Down>", lambda e: self.event_router.emit("widget.align.bottom"))
+        canvas.bind("<Control-Left>", lambda e: self.event_router.emit("widget.align", edge=Edge.LEFT))
+        canvas.bind("<Control-Right>", lambda e: self.event_router.emit("widget.align", edge=Edge.RIGHT))
+        canvas.bind("<Control-Up>", lambda e: self.event_router.emit("widget.align", edge=Edge.TOP))
+        canvas.bind("<Control-Down>", lambda e: self.event_router.emit("widget.align", edge=Edge.BOTTOM))
         canvas.bind("<Control-a>", lambda e: self.event_router.emit("widget.select_all"))
 
         #grid events

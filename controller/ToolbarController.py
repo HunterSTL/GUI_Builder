@@ -1,5 +1,6 @@
 from view import ToolbarView
 from events import EventRouter
+from utility import Edge
 
 class ToolbarController:
     """
@@ -57,9 +58,9 @@ class ToolbarController:
         self.toolbar_view.add_menu("Edit")
         self.toolbar_view.add_menu_item(
             menu_name="Edit",
-            label="Cut",
-            command=lambda: self.event_router.emit("edit.cut"),
-            accelerator="[CTRL] + [X]"
+            label="Delete",
+            command=lambda: self.event_router.emit("edit.delete"),
+            accelerator="[Del]"
         )
         self.toolbar_view.add_menu_item(
             menu_name="Edit",
@@ -72,6 +73,12 @@ class ToolbarController:
             label="Paste",
             command=lambda: self.event_router.emit("edit.paste"),
             accelerator="[CTRL] + [V]"
+        )
+        self.toolbar_view.add_menu_item(
+            menu_name="Edit",
+            label="Cut",
+            command=lambda: self.event_router.emit("edit.cut"),
+            accelerator="[CTRL] + [X]"
         )
         self.toolbar_view.add_menu_item(
             menu_name="Edit",
@@ -90,12 +97,6 @@ class ToolbarController:
         self.toolbar_view.add_menu("Widgets")
         self.toolbar_view.add_menu_item(
             menu_name="Widgets",
-            label="Delete",
-            command=lambda: self.event_router.emit("widget.delete"),
-            accelerator="[Del]"
-        )
-        self.toolbar_view.add_menu_item(
-            menu_name="Widgets",
             label="Snap to grid",
             command=lambda: self.event_router.emit("widget.snap_to_grid"),
             accelerator="[S]"
@@ -103,25 +104,25 @@ class ToolbarController:
         self.toolbar_view.add_menu_item(
             menu_name="Widgets",
             label="Align left",
-            command=lambda: self.event_router.emit("widget.align.left"),
+            command=lambda: self.event_router.emit("widget.align", edge=Edge.LEFT),
             accelerator="[CTRL] + [←]"
         )
         self.toolbar_view.add_menu_item(
             menu_name="Widgets",
             label="Align right",
-            command=lambda: self.event_router.emit("widget.align.right"),
+            command=lambda: self.event_router.emit("widget.align", edge=Edge.RIGHT),
             accelerator="[CTRL] + [→]"
         )
         self.toolbar_view.add_menu_item(
             menu_name="Widgets",
             label="Align top",
-            command=lambda: self.event_router.emit("widget.align.top"),
+            command=lambda: self.event_router.emit("widget.align", edge=Edge.TOP),
             accelerator="[CTRL] + [↑]"
         )
         self.toolbar_view.add_menu_item(
             menu_name="Widgets",
             label="Align bottom",
-            command=lambda: self.event_router.emit("widget.align.bottom"),
+            command=lambda: self.event_router.emit("widget.align", edge=Edge.BOTTOM),
             accelerator="[CTRL] + [↓]"
         )
         self.toolbar_view.add_menu_item(

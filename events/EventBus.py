@@ -4,7 +4,7 @@ class EventBus:
 
     self._subscribers = {
         "widget.nudge":     [function1, function2],
-        "widget.delete":    [function3],
+        "edit.delete":      [function3],
         "project.save":     [function4]
     }
     """

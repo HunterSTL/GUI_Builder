@@ -6,7 +6,7 @@ from controller import AttributesPanelController, CanvasController, SelectionCon
 from events import EventBus, EventRouter
 from actions import Actions, EditActions, WidgetActions
 from commands import CommandStack
-from utility import call_tracer, Direction, Edge, allowed_x_range, allowed_y_range, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType
+from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType
 from AppState import AppState
 
 class Designer:
@@ -495,44 +495,6 @@ class Designer:
         """mark project state as clean (no unsaved changes)"""
         self._set_clean()
 
-    #Event handling (edit actions)--------------------------------------------------------------------------------------
-    def _delete(self):
-        self.actions.edit.delete()
-
-    def _copy(self):
-        self.actions.edit.copy()
-
-    def _paste(self):
-        self.actions.edit.paste()
-
-    def _cut(self):
-        self.actions.edit.cut()
-
-    def _undo(self):
-        self.actions.edit.undo()
-
-    def _redo(self):
-        self.actions.edit.redo()
-
-    #Event handling (widget actions)------------------------------------------------------------------------------------
-    def _nudge(self, direction: Direction, amount: int):
-        self.actions.widget.nudge(direction, amount)
-
-    def _start_drag(self):
-        self.actions.widget.start_drag()
-
-    def _preview_drag(self, dx: int, dy: int):
-        self.actions.widget.preview_drag(dx, dy)
-
-    def _commit_drag(self):
-        self.actions.widget.commit_drag()
-
-    def _snap_to_grid(self):
-        self.actions.widget.snap_to_grid()
-
-    def _align(self, edge: Edge):
-        self.actions.widget.align(edge)
-
     #Event handling (grid actions)--------------------------------------------------------------------------------------
     def _toggle_grid(self):
         """toggle grid visibility"""
@@ -599,23 +561,20 @@ class Designer:
         self.designer_event_bus.subscribe("selection.handle_release", self.selection_controller.handle_canvas_release)
 
         #edit events
-        self.designer_event_bus.subscribe("edit.cut", self._cut)
-        self.designer_event_bus.subscribe("edit.copy", self._copy)
-        self.designer_event_bus.subscribe("edit.paste", self._paste)
-        self.designer_event_bus.subscribe("edit.undo", self._undo)
-        self.designer_event_bus.subscribe("edit.redo", self._redo)
+        self.designer_event_bus.subscribe("edit.delete", self.actions.edit.delete)
+        self.designer_event_bus.subscribe("edit.copy", self.actions.edit.copy)
+        self.designer_event_bus.subscribe("edit.paste", self.actions.edit.paste)
+        self.designer_event_bus.subscribe("edit.cut", self.actions.edit.cut)
+        self.designer_event_bus.subscribe("edit.undo", self.actions.edit.undo)
+        self.designer_event_bus.subscribe("edit.redo", self.actions.edit.redo)
 
         #widget events
-        self.designer_event_bus.subscribe("widget.nudge", self._nudge)
-        self.designer_event_bus.subscribe("widget.drag.start", self._start_drag)
-        self.designer_event_bus.subscribe("widget.drag.preview", self._preview_drag)
-        self.designer_event_bus.subscribe("widget.drag.commit", self._commit_drag)
-        self.designer_event_bus.subscribe("widget.snap_to_grid", self._snap_to_grid)
-        self.designer_event_bus.subscribe("widget.delete", self._delete)
-        self.designer_event_bus.subscribe("widget.align.left", lambda: self._align(Edge.LEFT))
-        self.designer_event_bus.subscribe("widget.align.right", lambda: self._align(Edge.RIGHT))
-        self.designer_event_bus.subscribe("widget.align.top", lambda: self._align(Edge.TOP))
-        self.designer_event_bus.subscribe("widget.align.bottom", lambda: self._align(Edge.BOTTOM))
+        self.designer_event_bus.subscribe("widget.nudge", self.actions.widget.nudge)
+        self.designer_event_bus.subscribe("widget.drag.start", self.actions.widget.start_drag)
+        self.designer_event_bus.subscribe("widget.drag.preview", self.actions.widget.preview_drag)
+        self.designer_event_bus.subscribe("widget.drag.commit", self.actions.widget.commit_drag)
+        self.designer_event_bus.subscribe("widget.snap_to_grid", self.actions.widget.snap_to_grid)
+        self.designer_event_bus.subscribe("widget.align", self.actions.widget.align)
         self.designer_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
 
         #grid events
