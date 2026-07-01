@@ -21,7 +21,7 @@ class Designer:
     *Routing user input via the EventBus into edit, widget, grid and UI actions
     *Managing rendering in response to AppState mutations (full and soft renders)
     *Executing domain specific editor logic (widget creation, alignment, snapping)
-    *Tracking dirty state and updating the window title accordingly
+    *Reflecting dirty state in the window title
     """
     #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
@@ -65,7 +65,6 @@ class Designer:
         #variable to represent grid state from ProjectDocument
         self.grid_visible_variable = tk.BooleanVar(value=self.app_state.project.grid.visible)
 
-        self._is_dirty = False
         self._last_right_click_coordinates = None
 
         #build designer UI
@@ -171,15 +170,13 @@ class Designer:
             app_state=self.app_state,
             command_stack=self.command_stack,
             clipboard=self.clipboard,
-            confirm_delete_callback=self._confirm_delete,
-            set_dirty_callback=self.set_dirty
+            confirm_delete_callback=self._confirm_delete
         )
 
         #create WidgetActions to provide widget semantics (nudge, drag, snap to grid, align)---------------------------
         widget_actions = WidgetActions(
             app_state=self.app_state,
-            command_stack=self.command_stack,
-            set_dirty_callback=self.set_dirty
+            command_stack=self.command_stack
         )
 
         #create Actions to provide a single access point for all actions------------------------------------------------
@@ -425,9 +422,14 @@ class Designer:
         )
         self.top.geometry(f"+{x_offset}+{y_offset}")
 
-    #Rendering API------------------------------------------------------------------------------------------------------
+    #Rendering----------------------------------------------------------------------------------------------------------
     def _on_changed_state(self, state: AppState):
         """respond to AppState mutations by performing full or soft rendering"""
+        if state.is_dirty():
+            self.titlebar_label.configure(text=self.app_state.project.title + "*")
+        else:
+            self.titlebar_label.configure(text=self.app_state.project.title)
+
         #query dirty models
         dirty_models = state.get_dirty_models()
 
@@ -482,20 +484,7 @@ class Designer:
         else:
             self.attributes_panel_controller.clear()
 
-    #External API-------------------------------------------------------------------------------------------------------
-    def is_dirty(self):
-        """return True if the project has unsaved changes"""
-        return self._is_dirty
-
-    def set_dirty(self):
-        """mark project state as dirty (unsaved changes exist)"""
-        self._set_dirty()
-
-    def set_clean(self):
-        """mark project state as clean (no unsaved changes)"""
-        self._set_clean()
-
-    #Event handling (grid actions)--------------------------------------------------------------------------------------
+    #Grid actions-------------------------------------------------------------------------------------------------------
     def _toggle_grid(self):
         """toggle grid visibility"""
         #flip grid visible variable
@@ -513,9 +502,6 @@ class Designer:
         #update grid size in ProjectDocument
         self.app_state.set_grid_size(new_grid_size)
 
-        #set AppState to dirty
-        self._set_dirty()
-
     def _change_grid_color(self):
         """prompt for and apply a new grid color"""
         color = colorchooser.askcolor()[1]
@@ -530,9 +516,6 @@ class Designer:
         #set focus back to canvas
         self.canvas.focus_set()
 
-        #set AppState to dirty
-        self._set_dirty()
-
     def _apply_grid_from_variable(self):
         """apply grid visibility state from BooleanVar to AppState"""
         visible = self.grid_visible_variable.get()
@@ -540,16 +523,13 @@ class Designer:
         #write current grid visible state to ProjectDocument
         self.app_state.set_grid_visible(visible)
 
-        #set AppState to dirty
-        self._set_dirty()
-
-    #Event handling (UI actions)----------------------------------------------------------------------------------------
+    #UI actions---------------------------------------------------------------------------------------------------------
     def _show_menu(self, event):
         """show the context menu at the mouse position"""
         self._last_right_click_coordinates = event.x, event.y
         self.menu.post(event.x_root, event.y_root)
 
-    #Event handling (wiring)--------------------------------------------------------------------------------------------
+    #Wiring-------------------------------------------------------------------------------------------------------------
     def _subscribe_functions_to_events(self):
         """subscribe all functions, that should be called when an event is emitted, to the corresponding event"""
         #menu events
@@ -585,8 +565,6 @@ class Designer:
 
         #debug events
         self.designer_event_bus.subscribe("debug.toggle_call_tracing", call_tracer.toggle)
-        self.designer_event_bus.subscribe("debug.set_dirty", self._set_dirty)
-        self.designer_event_bus.subscribe("debug.set_clean", self._set_clean)
         self.designer_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
         self.designer_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
         self.designer_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
@@ -656,9 +634,6 @@ class Designer:
         #add new model to AppState
         self.app_state.add_model(model)
 
-        #set AppState to dirty
-        self._set_dirty()
-
     def _handle_attribute_panel_change(self, model_id: str, attribute: str, value):
         """handle an attribute change from the attributes panel by updating the model and spinbox limits"""
         if model_id is None:
@@ -671,9 +646,6 @@ class Designer:
         if attribute in ("anchor", "width", "height"):
             model = self.app_state.get_model_from_model_id(model_id)
             self.attributes_panel_controller.update_spinbox_limits(model)
-
-        #set AppState to dirty
-        self._set_dirty()
 
     def _emit_attribute_changed_event(self, model_id: str, attribute: str, value):
         """emit an event for attribute changes originating from the attributes panel"""
@@ -725,17 +697,6 @@ class Designer:
             messagebox_text,
             parent=self.top     #disables interaction with the parent (Designer) while the messagebox is shown
         )
-
-    def _set_dirty(self):
-        """mark project as dirty and update titlebar"""
-        self._is_dirty = True
-        self.titlebar_label.configure(text=self.app_state.project.title + "*")
-
-    def _set_clean(self):
-        """mark project as clean and update titlebar"""
-        self._is_dirty = False
-        self.titlebar_label.configure(text=self.app_state.project.title)
-        self.titlebar_label.update()
 
     def _print_widget_count(self):
         print("#"*150)

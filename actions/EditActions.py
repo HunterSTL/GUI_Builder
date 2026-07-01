@@ -7,21 +7,19 @@ class EditActions:
 
     This class uses AppState for model access and mutation, a CommandStack
     for undo and redo support, a shared clipboard for copy and paste operations
-    and injected callbacks to handle delete confirmation and dirty state updates.
+    and an injected callback to handle delete confirmation.
     """
     def __init__(
         self,
         app_state: AppState,
         command_stack: CommandStack,
         clipboard: list,
-        confirm_delete_callback,
-        set_dirty_callback
+        confirm_delete_callback
     ):
         self.app_state = app_state
         self.command_stack = command_stack
         self.clipboard = clipboard  #shared clipboard owned by Designer
         self.confirm_delete_callback = confirm_delete_callback
-        self.set_dirty_callback = set_dirty_callback
 
     def delete(self):
         """delete selected widgets after user confirmation"""
@@ -44,9 +42,6 @@ class EditActions:
 
         #clear selection
         self.app_state.selection_clear()
-
-        #mark project as dirty
-        self.set_dirty_callback()
 
     def copy(self):
         """copy selected widgets to clipboard"""
@@ -75,9 +70,6 @@ class EditActions:
             )
         )
 
-        #mark project as dirty
-        self.set_dirty_callback()
-
     def cut(self):
         """copy selected widgets to clipboard then delete them"""
         #query selection
@@ -99,15 +91,10 @@ class EditActions:
         #clear selection
         self.app_state.selection_clear()
 
-        #mark project as dirty
-        self.set_dirty_callback()
-
     def undo(self):
         """undo last command"""
-        if self.command_stack.undo():
-            self.set_dirty_callback()   #only mark project as dirty if undo stack is not empty
+        self.command_stack.undo()
 
     def redo(self):
         """redo last undone command"""
-        if self.command_stack.redo():
-            self.set_dirty_callback()   #only mark project as dirty if redo stack is not empty
+        self.command_stack.redo()

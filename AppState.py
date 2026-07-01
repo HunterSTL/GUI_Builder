@@ -10,13 +10,16 @@ class AppState:
     ):
         self.project = project_document         #must only be mutated using AppState API (add_model, set_grid_visible, set_title...)
 
-        #State change notifications-------------------------------------------------------------------------------------
-        self._subscribers = []                  #functions that get called when any mutation happens
+        #Persistent project state (survives across notifications)-------------------------------------------------------
+        self._is_dirty = False                  #signals whether unsaved changes exist
+
+        #Transient change flags (reset after each notification)---------------------------------------------------------
         self._dirty_model_ids: set[str] = set() #stores the IDs of models that changed
         self.structural_change = False          #signals whether a full re-render is necessary
         self.selection_change = False           #signals whether the selection outlines need to be redrawn
 
-        #Batching-------------------------------------------------------------------------------------------------------
+        #Notification system--------------------------------------------------------------------------------------------
+        self._subscribers = []                  #functions that get called when any mutation happens
         self._batch_depth = 0                   #keeps track of batch depth so only the outer most batch calls _notify (batches can be nested)
         self._pending_notify = False            #signals whether _notify will be called at the end of the batch
 
@@ -67,9 +70,20 @@ class AppState:
                 if state._batch_depth == 0 and state._pending_notify:
                     state._pending_notify = False
                     state._notify()
-                return False #propagate exceptions so notify → re-render doesn't happen on exceptions
+                return False #propagate exceptions
 
         return _Batch(self)
+
+    #Dirty state API----------------------------------------------------------------------------------------------------
+    def is_dirty(self) -> bool:
+        return self._is_dirty
+
+    def mark_clean(self) -> None:
+        if not self._is_dirty:
+            return
+
+        self._is_dirty = False
+        self._notify()
 
     #Model API----------------------------------------------------------------------------------------------------------
     def add_model(self, model):
@@ -83,7 +97,7 @@ class AppState:
         self._model_by_id[model.id] = model
         self.project.widget_models.append(model)
         self.structural_change = True
-        self._notify()
+        self._mark_dirty()
 
     def remove_model(self, model):
         """remove an existing model from the ProjectDocument"""
@@ -94,7 +108,7 @@ class AppState:
         self._model_by_id.pop(model.id, None)
         self.project.widget_models.remove(model)
         self.structural_change = True
-        self._notify()
+        self._mark_dirty()
 
     def set_model_position(self, model, x: int, y: int):
         """set absolute model position"""
@@ -102,10 +116,14 @@ class AppState:
             raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
 
         model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
+
+        if model.x == x and model.y == y:
+            return
+
         model.x = x
         model.y = y
         self._dirty_model_ids.add(model.id)
-        self._notify()
+        self._mark_dirty()
 
     def offset_model_position(self, model, dx: int, dy: int):
         """offset model position by a delta"""
@@ -116,7 +134,7 @@ class AppState:
         model.x += dx
         model.y += dy
         self._dirty_model_ids.add(model.id)
-        self._notify()
+        self._mark_dirty()
 
     def set_model_attribute(self, model, attribute, value):
         """set a model attribute to value if present"""
@@ -124,33 +142,49 @@ class AppState:
             raise ValueError(f"AppState - model attribute update failed: unknown ID \"{model.id}\"")
 
         model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
+
         if not hasattr(model, attribute):
             raise ValueError(f"AppState - model attribute update failed: unknown attribute \"{attribute}\" [{model.id}]")
 
+        if getattr(model, attribute) == value:
+            return
+
         setattr(model, attribute, value)
         self._dirty_model_ids.add(model.id)
-        self._notify()
+        self._mark_dirty()
 
     #Grid API-----------------------------------------------------------------------------------------------------------
     def set_grid_visible(self, visible: bool):
+        if self.project.grid.visible == visible:
+            return
+
         self.project.grid.visible = visible
         self.structural_change = True
-        self._notify()
+        self._mark_dirty()
 
     def set_grid_size(self, size: int):
+        if self.project.grid.size == size:
+            return
+
         self.project.grid.size = size
         self.structural_change = True
-        self._notify()
+        self._mark_dirty()
 
     def set_grid_color(self, color: str):
+        if self.project.grid.color == color:
+            return
+
         self.project.grid.color = color
         self.structural_change = True
-        self._notify()
+        self._mark_dirty()
 
     #Project API--------------------------------------------------------------------------------------------------------
     def set_title(self, title: str):
+        if self.project.title == title:
+            return
+
         self.project.title = title
-        self._notify()
+        self._mark_dirty()
 
     #Selection API------------------------------------------------------------------------------------------------------
     def selection_clear(self):
@@ -311,6 +345,10 @@ class AppState:
         return self._last_selected_model_id
 
     #Internals----------------------------------------------------------------------------------------------------------
+    def _mark_dirty(self):
+        self._is_dirty = True
+        self._notify()
+
     def _mark_selection_change(self):
         self.selection_change = True
         self._notify()

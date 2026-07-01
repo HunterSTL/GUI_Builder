@@ -128,7 +128,7 @@ class AppController:
 
     def _handle_unsaved_changes(self) -> str:
         """prompt the user to save, discard or cancel if unsaved changes exist, returning PROCEED or CANCEL"""
-        if not self.designer or not self.designer.is_dirty():
+        if not self.designer or not self.designer.app_state.is_dirty():
             return "PROCEED"    #no unsaved changes exist
 
         choice = messagebox.askyesnocancel("Unsaved changes", "There are still unsaved changes.\nDo you want to save them?")
@@ -219,8 +219,8 @@ class AppController:
             #overwrite file at save path with project data as formatted JSON
             atomic_write_json(self._save_path, project_data)    #atomic prevents corruption on error
 
-            #mark project as clean
-            self.designer.set_clean()
+            #mark project clean
+            self.designer.app_state.mark_clean()
         except Exception as e:
             messagebox.showerror("File error", f"Could not save file:\n{self._save_path}\n\n{e}")
             return False
@@ -255,8 +255,8 @@ class AppController:
             self._save_path = save_path                 #only update save path after successful write
             self._last_directory = os.path.dirname(save_path)
 
-            #mark project as clean
-            self.designer.set_clean()
+            #mark project clean
+            self.designer.app_state.mark_clean()
         except Exception as e:
             messagebox.showerror("File error", f"Could not save file:\n{save_path}\n\n{e}")
             return False

@@ -7,18 +7,15 @@ class WidgetActions:
     """
     Encapsulates the editor's widget semantics: nudge, drag (start, preview, commit), snap to grid and align.
 
-    This class uses AppState for model access and mutation, a CommandStack
-    for undo and redo support and an injected callback to handle dirty state updates.
+    This class uses AppState for model access and mutation and a CommandStack for undo and redo support.
     """
     def __init__(
         self,
         app_state: AppState,
-        command_stack: CommandStack,
-        set_dirty_callback
+        command_stack: CommandStack
     ):
         self.app_state = app_state
         self.command_stack = command_stack
-        self.set_dirty_callback = set_dirty_callback
 
         self._active_drag_command: MoveWidgetsTo | None = None              #MoveWidgetsTo command used for drag preview
         self._active_drag_models: tuple[BaseWidgetData, ...] | None = None  #models used for bounding box lookup during drag preview
@@ -54,9 +51,6 @@ class WidgetActions:
                 app_state=self.app_state
             )
         )
-
-        #mark project as dirty
-        self.set_dirty_callback()
 
     def start_drag(self):
         """initialize drag state to snapshot original widget positions"""
@@ -107,9 +101,6 @@ class WidgetActions:
             #execute the actual command
             self.command_stack.execute(cmd)
 
-            #mark project as dirty
-            self.set_dirty_callback()
-
         #reset active_drag_models and active_widget_drag_command
         self._active_drag_models = None
         self._active_drag_command = None
@@ -134,9 +125,6 @@ class WidgetActions:
         #snap widgets to grid
         self.command_stack.execute(cmd)
 
-        #mark project as dirty
-        self.set_dirty_callback()
-
     def align(self, edge: Edge):
         """align the given edge of selected widgets to the corresponding edge of the last selected widget"""
         #query selection
@@ -159,6 +147,3 @@ class WidgetActions:
 
         #align widgets
         self.command_stack.execute(cmd)
-
-        #mark project as dirty
-        self.set_dirty_callback()

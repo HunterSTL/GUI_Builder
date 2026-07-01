@@ -164,18 +164,6 @@ class ToolbarController:
         )
         self.toolbar_view.add_menu_item(
             menu_name="Debug",
-            label="Set dirty",
-            command=lambda: self.event_router.emit("debug.set_dirty"),
-            accelerator="[CTRL] + [D]"
-        )
-        self.toolbar_view.add_menu_item(
-            menu_name="Debug",
-            label="Set clean",
-            command=lambda: self.event_router.emit("debug.set_clean"),
-            accelerator="[CTRL] + [SHIFT] + [D]"
-        )
-        self.toolbar_view.add_menu_item(
-            menu_name="Debug",
             label="Print widget count",
             command=lambda: self.event_router.emit("debug.print_widget_count"),
             accelerator="[#]"

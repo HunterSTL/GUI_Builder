@@ -10,23 +10,23 @@ class CommandStack:
         self._undo_stack.append(command)
         self._redo_stack.clear()
 
-    def undo(self) -> bool:
-        """undo the last command and push it to the redo stack, returning False if the undo stack was empty"""
+    def undo(self):
+        """undo the last command and push it to the redo stack"""
         if not self._undo_stack:
-            return False
+            return
+
         command = self._undo_stack.pop()
         command.undo()
         self._redo_stack.append(command)
-        return True
 
-    def redo(self) -> bool:
-        """redo the last command and push it to the undo stack, returning False if the redo stack was empty"""
+    def redo(self):
+        """redo the last command and push it to the undo stack"""
         if not self._redo_stack:
-            return False
+            return
+
         command = self._redo_stack.pop()
         command.execute()
         self._undo_stack.append(command)
-        return True
 
     def __repr__(self):
         """called automatically when printing this object"""
