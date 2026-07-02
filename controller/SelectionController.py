@@ -156,7 +156,7 @@ class SelectionController:
             wds.last_total_dx = 0
             wds.last_total_dy = 0
 
-        self.event_router.emit("widget.drag.preview", dx=incremental_dx, dy=incremental_dy)
+        self.event_router.emit("widget.drag.apply_delta", dx=incremental_dx, dy=incremental_dy)
 
     def end_widget_drag(self):
         """end a widget drag by resetting widget drag state and notifying the Designer (to execute the MoveWidgetsTo command)"""

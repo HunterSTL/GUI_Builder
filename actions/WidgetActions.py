@@ -5,7 +5,7 @@ from AppState import AppState
 
 class WidgetActions:
     """
-    Encapsulates the editor's widget semantics: nudge, drag (start, preview, commit), snap to grid and align.
+    Encapsulates the editor's widget semantics: nudge, drag (start, apply delta, commit), snap to grid and align.
 
     This class uses AppState for model access and mutation and a CommandStack for undo and redo support.
     """
@@ -17,8 +17,8 @@ class WidgetActions:
         self.app_state = app_state
         self.command_stack = command_stack
 
-        self._active_drag_command: MoveWidgetsTo | None = None              #MoveWidgetsTo command used for drag preview
-        self._active_drag_models: tuple[BaseWidgetData, ...] | None = None  #models used for bounding box lookup during drag preview
+        self._active_drag_command: MoveWidgetsTo | None = None              #MoveWidgetsTo command used for live dragging
+        self._active_drag_models: tuple[BaseWidgetData, ...] | None = None  #models used for bounding box lookup during live dragging
 
     def nudge(self, direction: Direction, amount: int):
         """nudge selected widgets in the given direction by a fixed amount"""
@@ -59,7 +59,7 @@ class WidgetActions:
         if not selected_models:
             return
 
-        #store models used for bounding box lookup during drag preview
+        #store models used for bounding box lookup during live dragging
         self._active_drag_models = selected_models
 
         #create the MoveWidgetsTo command to record original widget positions
@@ -68,8 +68,8 @@ class WidgetActions:
             app_state=self.app_state
         )
 
-    def preview_drag(self, dx: int, dy: int):
-        """apply a clamped drag preview delta to the selected widgets"""
+    def apply_drag_delta(self, dx: int, dy: int):
+        """apply a clamped drag delta to the selected widgets"""
         if self._active_drag_command is None or self._active_drag_models is None:
             return
 
@@ -85,8 +85,8 @@ class WidgetActions:
         if dx == 0 and dy == 0:
             return
 
-        #preview the clamped drag movement
-        self._active_drag_command.preview_move(dx, dy)
+        #apply the clamped drag delta to the live model
+        self._active_drag_command.apply_drag_delta(dx, dy)
 
     def commit_drag(self):
         """commit the current drag gesture"""
@@ -96,7 +96,7 @@ class WidgetActions:
 
         if cmd and cmd.has_effect():
             #record final widget positions
-            cmd.freeze_final_positions()
+            cmd.record_final_positions()
 
             #execute the actual command
             self.command_stack.execute(cmd)

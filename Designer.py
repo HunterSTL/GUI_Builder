@@ -551,7 +551,7 @@ class Designer:
         #widget events
         self.designer_event_bus.subscribe("widget.nudge", self.actions.widget.nudge)
         self.designer_event_bus.subscribe("widget.drag.start", self.actions.widget.start_drag)
-        self.designer_event_bus.subscribe("widget.drag.preview", self.actions.widget.preview_drag)
+        self.designer_event_bus.subscribe("widget.drag.apply_delta", self.actions.widget.apply_drag_delta)
         self.designer_event_bus.subscribe("widget.drag.commit", self.actions.widget.commit_drag)
         self.designer_event_bus.subscribe("widget.snap_to_grid", self.actions.widget.snap_to_grid)
         self.designer_event_bus.subscribe("widget.align", self.actions.widget.align)

@@ -31,8 +31,8 @@ class MoveWidgetsTo(Command):
                 return True
         return False
 
-    def preview_move(self, dx: int, dy: int):
-        """apply incremental movement during live dragging"""
+    def apply_drag_delta(self, dx: int, dy: int):
+        """apply incremental drag movement"""
         if dx == 0 and dy == 0:         #incremental deltas since last drag event
             return
 
@@ -41,7 +41,7 @@ class MoveWidgetsTo(Command):
                 model = self._app_state.get_model_from_model_id(model_id)
                 self._app_state.offset_model_position(model, dx, dy)
 
-    def freeze_final_positions(self):
+    def record_final_positions(self):
         """record final positions at the end of a drag gesture"""
         final_positions = {}
 
@@ -54,7 +54,7 @@ class MoveWidgetsTo(Command):
     def execute(self):
         """apply the snapshotted final widget positions to AppState"""
         if not self._final_positions:
-            raise ValueError("MoveWidgetsTo - execution failed: final positions were not frozen")
+            raise ValueError("MoveWidgetsTo - execution failed: final positions were not recorded")
 
         with self._app_state.batch():
             for model_id, (x, y) in self._final_positions.items():
