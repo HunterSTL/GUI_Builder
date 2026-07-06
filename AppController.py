@@ -157,6 +157,9 @@ class AppController:
         #hide startup window
         self.root.withdraw()
 
+        #reset save path
+        self._save_path = None
+
         #create SetupWizard as a child
         setup_wizard_window = tk.Toplevel(self.root)
         SetupWizard(
