@@ -68,15 +68,23 @@ class WidgetView:
         self.model_id_to_widget_id.pop(model_id, None)
         self.widget_id_to_model_id.pop(widget_id, None)
 
-    def create_preview_widget(self, model):
-        """create a temporary tk widget to measure size & clamp coordinates"""
-        #create the correct Tk widget
+    def measure_preview_widget(self, model):
+        """create a temporary preview widget then measure and return its required size"""
+        #create temporary widget
         widget = self._instantiate_widget(model.type)
 
-        #insert widget into canvas
-        widget_id = self._insert_widget_into_canvas(widget, model.x, model.y, model.anchor)
+        if model.type in (WidgetType.LABEL, WidgetType.BUTTON):
+            widget.config(text=model.text)
 
-        return widget, widget_id
+        #measure required size
+        widget.update_idletasks()
+        widget_width = widget.winfo_reqwidth()
+        widget_height = widget.winfo_reqheight()
+
+        #delete temporary widget
+        widget.destroy()
+
+        return widget_width, widget_height
 
     #Internals----------------------------------------------------------------------------------------------------------
     def _create_widget_for(self, model):

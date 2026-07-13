@@ -101,13 +101,13 @@ def test_look_up_model_with_unknown_id():
     #look up model with unknown ID
     app_state.get_model_from_model_id("UNKNOWN_ID")
 
-#Designer tests---------------------------------------------------------------------------------------------------------
+#WidgetActions tests---------------------------------------------------------------------------------------------------------
 def test_create_widget_with_unsupported_type():
     #add widget with unsupported type
-    designer._add_widget(
+    designer.actions.widget.add(
         widget_type="UNSUPPORTED_TYPE",
-        desired_x=50,
-        desired_y=50
+        coordinates=(50, 50),
+        text=None
     )
 
 #AttributesPanelController tests----------------------------------------------------------------------------------------
@@ -328,7 +328,7 @@ APP_STATE_TESTS = {
     "Looking up model with unknown ID": test_look_up_model_with_unknown_id
 }
 
-DESIGNER_TESTS = {
+WIDGET_ACTIONS_TESTS = {
     "Adding widget with unsupported type": test_create_widget_with_unsupported_type
 }
 
@@ -368,14 +368,14 @@ GEOMETRY_TESTS = {
 
 WIDGET_VIEW_TESTS = {
     "Creating widget with unsupported type": test_create_widget_unsupported_type,
-    "Rendering widget with missing position": test_update_widget_missing_position,
-    "Rendering widget with unknown widget ID": test_update_widget_unknown_widget_id,
+    "Updating widget with missing position": test_update_widget_missing_position,
+    "Updating widget with unknown widget ID": test_update_widget_unknown_widget_id,
     "Looking up widget with unknown widget ID": test_look_up_widget_unknown_widget_id
 }
 
 TEST_GROUPS = {
     "AppState": APP_STATE_TESTS,
-    "Designer": DESIGNER_TESTS,
+    "WidgetActions": WIDGET_ACTIONS_TESTS,
     "AttributesPanelController": ATTRIBUTES_PANEL_CONTROLLER_TESTS,
     "WidgetController": WIDGET_CONTROLLER_TESTS,
     "EventBus": EVENT_BUS_TESTS,

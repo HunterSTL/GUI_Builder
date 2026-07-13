@@ -77,12 +77,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
         model.create_id(project_document.id_counters)
         app_state.add_model(model)
 
-        preview_widget, preview_widget_id = widget_view.create_preview_widget(model)
-        preview_widget.config(text=model.text, bg=model.bg, fg=model.fg)
-        preview_widget.update_idletasks()
-        model.width = preview_widget.winfo_reqwidth()
-        model.height = preview_widget.winfo_reqheight()
-        canvas.delete(preview_widget_id)
+        model.width, model.height = widget_view.measure_preview_widget(model)
 
         widget_view.update_widget_for(model)
         widget_id = widget_view.get_widget_id_from_model_id(model.id)
@@ -132,6 +127,31 @@ class TestMoveWidget(unittest.TestCase):
         x, y = canvas.coords(widget_id)
         self.assertEqual(x, 150)
         self.assertEqual(y, 150)
+
+class TestUndoRedoAddWidget(unittest.TestCase):
+    def test_undo_redo_add_widget(self):
+        from AppState import AppState
+        from model import ProjectDocument, LabelWidgetData
+        from commands import CommandStack, AddWidget
+
+        project_document = ProjectDocument(width=300, height=200, theme={})
+        app_state = AppState(project_document)
+
+        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
+        model.create_id(project_document.id_counters)
+        command_stack = CommandStack()
+
+        #add model
+        command_stack.execute(AddWidget(model, app_state))
+        self.assertEqual(len(project_document.widget_models), 1)
+
+        #undo
+        command_stack.undo()
+        self.assertEqual(len(project_document.widget_models), 0)
+
+        #redo
+        command_stack.redo()
+        self.assertEqual(len(project_document.widget_models), 1)
 
 class TestUndoRedoDeleteWidget(unittest.TestCase):
     def test_undo_redo_delete_widget(self):

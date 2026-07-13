@@ -1,12 +1,12 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
-from model import ProjectDocument, LabelWidgetData, EntryWidgetData, ButtonWidgetData
+from model import ProjectDocument
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
 from actions import Actions, EditActions, WidgetActions
 from commands import CommandStack
-from utility import call_tracer, allowed_x_range, allowed_y_range, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType
+from utility import call_tracer, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType
 from AppState import AppState
 
 class Designer:
@@ -161,7 +161,8 @@ class Designer:
         #create WidgetActions to provide widget semantics (nudge, drag, snap to grid, align)---------------------------
         widget_actions = WidgetActions(
             app_state=self.app_state,
-            command_stack=self.command_stack
+            command_stack=self.command_stack,
+            measure_preview_widget_callback=self.widget_view.measure_preview_widget
         )
 
         #create Actions to provide a single access point for all actions------------------------------------------------
@@ -182,7 +183,7 @@ class Designer:
         self.canvas_controller.bind_events()
 
         #create context menu (right click) for creating new widgets
-        self._add_widget_menu()
+        self._create_context_menu()
 
         #subscribe the function "_on_changed_state" as a listener for state changes
         self.app_state.subscribe(self._on_changed_state)
@@ -550,63 +551,24 @@ class Designer:
         self.designer_event_bus.subscribe("attribute.changed", self._handle_attribute_panel_change)
 
     #Domain logic-------------------------------------------------------------------------------------------------------
-    def _add_widget(self, widget_type: WidgetType, desired_x: int, desired_y: int):
-        """create a new widget of the given type at the given coordinates (with clamping)"""
+    def _request_add_widget_from_context_menu(self, widget_type: WidgetType):
+        """collect required widget specific input and request widget creation at the last right click position"""
+        text = None
+
         if widget_type == WidgetType.LABEL:
             text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
             if text is None:
                 return
-
-            bg = self.app_state.project.theme["label"]["bg"]
-            fg = self.app_state.project.theme["label"]["fg"]
-            model = LabelWidgetData(x=desired_x, y=desired_y, bg=bg, fg=fg, text=text)
-        elif widget_type == WidgetType.ENTRY:
-            bg = self.app_state.project.theme["entry"]["bg"]
-            fg = self.app_state.project.theme["entry"]["fg"]
-            model = EntryWidgetData(x=desired_x, y=desired_y, bg=bg, fg=fg)
         elif widget_type == WidgetType.BUTTON:
             text = simpledialog.askstring("Button text", "Enter button text:", parent=self.top)
             if text is None:
                 return
 
-            bg = self.app_state.project.theme["button"]["bg"]
-            fg = self.app_state.project.theme["button"]["fg"]
-            model = ButtonWidgetData(x=desired_x, y=desired_y, bg=bg, fg=fg, text=text)
-        else:
-            raise ValueError(f"Designer - widget creation failed: unsupported type \"{widget_type}\"")
-
-        model.create_id(self.app_state.project.id_counters)
-
-        #create a temporary preview widget to measure dimensions and clamp coordinates
-        preview_widget, preview_widget_id = self.widget_view.create_preview_widget(model)
-
-        #update widget's text and colors (can influence dimensions)
-        if widget_type in (WidgetType.LABEL, WidgetType.BUTTON):
-            preview_widget.config(text=model.text)
-        preview_widget.config(bg=model.bg, fg=model.fg)
-
-        #measure the preview widget's dimensions
-        preview_widget.update_idletasks()
-        widget_width, widget_height = preview_widget.winfo_reqwidth(), preview_widget.winfo_reqheight()
-
-        #calculate clamped x and y to prevent the widget from being created (partially) outside the canvas
-        min_x, max_x = allowed_x_range(self.canvas.winfo_width(), widget_width, model.anchor)
-        min_y, max_y = allowed_y_range(self.canvas.winfo_height(), widget_height, model.anchor)
-        clamped_x = clamp(model.x, min_x, max_x)
-        clamped_y = clamp(model.y, min_y, max_y)
-
-        #delete preview widget
-        self.canvas.delete(preview_widget_id)   #delete the widget from canvas
-        preview_widget.destroy()                #delete the tk widget instance
-
-        #update model position and dimensions
-        model.x = clamped_x
-        model.y = clamped_y
-        model.width = widget_width
-        model.height = widget_height
-
-        #add new model to AppState
-        self.app_state.add_model(model)
+        self.actions.widget.add(
+            widget_type=widget_type,
+            coordinates=self._last_right_click_coordinates,
+            text=text
+        )
 
     def _handle_attribute_panel_change(self, model_id: str, attribute: str, value):
         """handle an attribute change from the attributes panel by updating the model and spinbox limits"""
@@ -631,8 +593,8 @@ class Designer:
         )
 
     #Internals----------------------------------------------------------------------------------------------------------
-    def _add_widget_menu(self):
-        """construct the context menu for adding widgets"""
+    def _create_context_menu(self):
+        """create the context menu for adding widgets"""
         self.menu = tk.Menu(
             self.top,
             bg=self.program_theme["toolbar"]["bg"],
@@ -640,23 +602,17 @@ class Designer:
             tearoff=0
         )
 
-        def _pos():
-            if self._last_right_click_coordinates is None:
-                return 100, 100
-            else:
-                return self._last_right_click_coordinates
-
         self.menu.add_command(
             label="Add Label",
-            command=lambda: self._add_widget(WidgetType.LABEL, *_pos())
+            command=lambda: self._request_add_widget_from_context_menu(WidgetType.LABEL)
         )
         self.menu.add_command(
             label="Add Entry",
-            command=lambda: self._add_widget(WidgetType.ENTRY, *_pos())
+            command=lambda: self._request_add_widget_from_context_menu(WidgetType.ENTRY)
         )
         self.menu.add_command(
             label="Add Button",
-            command=lambda: self._add_widget(WidgetType.BUTTON, *_pos())
+            command=lambda: self._request_add_widget_from_context_menu(WidgetType.BUTTON)
         )
 
     def _confirm_delete(self, count: int) -> bool:
