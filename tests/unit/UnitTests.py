@@ -62,7 +62,6 @@ class TestAddWidgetFromModel(unittest.TestCase):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
         from view import WidgetView
-        from controller import WidgetController
 
         root = tk.Tk()
         root.withdraw()
@@ -72,11 +71,6 @@ class TestAddWidgetFromModel(unittest.TestCase):
 
         widget_view = WidgetView(
             canvas=canvas
-        )
-
-        widget_controller = WidgetController(
-            app_state=app_state,
-            widget_view=widget_view
         )
 
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
@@ -90,7 +84,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
         model.height = preview_widget.winfo_reqheight()
         canvas.delete(preview_widget_id)
 
-        widget_controller.render_soft(model.id)
+        widget_view.update_widget_for(model)
         widget_id = widget_view.get_widget_id_from_model_id(model.id)
 
         self.assertIn(widget_id, widget_view.widget_map)
@@ -104,7 +98,6 @@ class TestMoveWidget(unittest.TestCase):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
         from view import WidgetView
-        from controller import WidgetController
 
         root = tk.Tk()
         root.withdraw()
@@ -116,27 +109,22 @@ class TestMoveWidget(unittest.TestCase):
             canvas=canvas
         )
 
-        widget_controller = WidgetController(
-            app_state=app_state,
-            widget_view=widget_view
-        )
-
         model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
         model.create_id(project_document.id_counters)
         app_state.add_model(model)
 
-        widget_controller.render_soft(model.id)
+        widget_view.update_widget_for(model)
         widget_id = widget_view.get_widget_id_from_model_id(model.id)
 
         #offset position by a delta
         app_state.offset_model_position(model, 50, 50)
-        widget_controller.render_soft(model.id)
+        widget_view.update_widget_for(model)
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
         #set absolute position
         app_state.set_model_position(model, 150, 150)
-        widget_controller.render_soft(model.id)
+        widget_view.update_widget_for(model)
         self.assertEqual(model.x, 150)
         self.assertEqual(model.y, 150)
 
@@ -161,7 +149,7 @@ class TestUndoRedoDeleteWidget(unittest.TestCase):
         command_stack = CommandStack()
 
         #delete model
-        command_stack.execute(DeleteWidgets(frozenset({model.id}), app_state))
+        command_stack.execute(DeleteWidgets(tuple([model]), app_state))
         self.assertEqual(len(project_document.widget_models), 0)
 
         #undo
@@ -188,7 +176,7 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         command_stack = CommandStack()
 
         #move by a delta
-        command_stack.execute(MoveWidgets(frozenset({model.id}), 50, 50, app_state))
+        command_stack.execute(MoveWidgets(tuple([model]), 50, 50, app_state))
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
@@ -214,15 +202,15 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         app_state.add_model(model)
 
         command_stack = CommandStack()
-        command = MoveWidgetsTo(frozenset({model.id}), app_state)
+        command = MoveWidgetsTo(tuple([model]), app_state)
 
-        #simulate drag preview
-        command.preview_move(50, 50)
+        #simulate live dragging
+        command.apply_drag_delta(50, 50)
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
         #commit
-        command.freeze_final_positions()
+        command.record_final_positions()
         command_stack.execute(command)
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)

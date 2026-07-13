@@ -18,72 +18,60 @@ class WidgetView:
         self.widget_id_to_model_id: dict[int, str] = {} #widget ID → model ID
 
     #Rendering API------------------------------------------------------------------------------------------------------
-    def render_soft(self, model):
-        """update an existing widget’s attributes to match the model"""
-        #validate model position
+    def update_widget_for(self, model):
+        """create or update the tk widget for the given model"""
         if model.x is None or model.y is None:
             raise ValueError(f"WidgetView - widget rendering failed: missing position for model \"{model.id}\"")
 
-        #get the widget ID of this model
         widget_id = self.get_widget_id_from_model_id(model.id)
 
         if widget_id is None:
-            #widget does not exist yet → render it fully
-            self._render_widget(model)
+            """
+            widget_id refers to the canvas window item ID returned by
+            canvas.create_window(...), not the Tk widget instance itself.
+
+            Tkinter represents an embedded widget using:
+               1. a Tk widget instance (Label, Entry, Button...)
+               2. a canvas window item that owns the widget's placement
+
+            Both objects are required:
+               widget    → appearance/configuration
+               widget_id → canvas positioning and canvas item configuration
+            """
+            widget, widget_id = self._create_widget_for(model)
+        else:
+            entry = self.widget_map.get(widget_id)
+            if not entry:
+                raise ValueError(f"WidgetView - widget rendering failed: unknown widget ID \"{widget_id}\"")
+            widget = entry["widget"]
+
+        self._update_widget(widget, widget_id, model)
+
+    def delete_widget_for(self, model_id: str):
+        """delete the widget associated with the given model ID"""
+        widget_id = self.get_widget_id_from_model_id(model_id)
+
+        if widget_id not in self.widget_map:
             return
 
-        #validate widget with the given widget ID exists
-        entry = self.widget_map.get(widget_id)
-        if not entry:
-            raise ValueError(f"WidgetView - widget rendering failed: unknown widget ID \"{widget_id}\"")
-        widget = entry["widget"]
+        widget_map_entry = self.widget_map.pop(widget_id)
 
-        #update widget's position
-        self.canvas.coords(widget_id, model.x, model.y)
+        #delete the widget from canvas
+        self.canvas.delete(widget_id)
 
-        #update widget's colors
-        widget.config(
-            bg=model.bg,
-            fg=model.fg
-        )
+        #delete the tk widget instance
+        if widget_map_entry:
+            widget = widget_map_entry["widget"]
+            widget.destroy()
 
-        #update widget's text
-        if model.type in (WidgetType.LABEL, WidgetType.BUTTON):
-            widget.config(text=model.text)
-
-        #update canvas owned attributes (anchor, dimensions)
-        self.canvas.itemconfig(
-            widget_id,
-            anchor=model.anchor,
-            width=model.width,
-            height=model.height
-        )
-
-    def render_full(self, models):
-        """fully rebuild all widgets from the project models"""
-        #clear all widgets tracked in widget_map
-        for widget_id, widget_map_entry in list(self.widget_map.items()):
-            #delete the widget from canvas
-            self.canvas.delete(widget_id)
-
-            #delete the tk widget instance
-            if widget_map_entry:
-                widget = widget_map_entry["widget"]
-                widget.destroy()
-
-        #clear widget_map and model ID <> widget ID mappings
-        self.widget_map.clear()
-        self.model_id_to_widget_id.clear()
-        self.widget_id_to_model_id.clear()
-
-        #rebuild widgets from models
-        for model in models:
-            self._render_widget(model)
+        #remove from mappings
+        self.model_id_to_widget_id.pop(model_id, None)
+        self.widget_id_to_model_id.pop(widget_id, None)
 
     def create_preview_widget(self, model):
         """create a temporary tk widget to measure size & clamp coordinates"""
         #create the correct Tk widget
-        widget = self._create_widget_from_model(model)
+        widget = self._instantiate_widget(model.type)
 
         #insert widget into canvas
         widget_id = self._insert_widget_into_canvas(widget, model.x, model.y, model.anchor)
@@ -91,15 +79,39 @@ class WidgetView:
         return widget, widget_id
 
     #Internals----------------------------------------------------------------------------------------------------------
-    def _create_widget_from_model(self, model):
-        """create a tk widget based on the model.type"""
-        if model.type == WidgetType.LABEL:
+    def _create_widget_for(self, model):
+        widget = self._instantiate_widget(model.type)
+        widget_id = self._insert_widget_into_canvas(widget, model.x, model.y, model.anchor)
+        self._register_widget_mappings(model, widget, widget_id)
+        self._bind_widget_events(widget)
+        return widget, widget_id
+
+    def _update_widget(self, widget, widget_id, model):
+        self.canvas.coords(widget_id, model.x, model.y)
+        widget.config(
+            bg=model.bg,
+            fg=model.fg
+        )
+
+        if model.type in (WidgetType.LABEL, WidgetType.BUTTON):
+            widget.config(text=model.text)
+
+        self.canvas.itemconfig(
+            widget_id,
+            anchor=model.anchor,
+            width=model.width,
+            height=model.height
+        )
+
+    def _instantiate_widget(self, widget_type):
+        """instantiate a tk widget instance based on the widget type"""
+        if widget_type == WidgetType.LABEL:
             return tk.Label(self.canvas)
-        elif model.type == WidgetType.ENTRY:
+        elif widget_type == WidgetType.ENTRY:
             return tk.Entry(self.canvas)
-        elif model.type == WidgetType.BUTTON:
+        elif widget_type == WidgetType.BUTTON:
             return tk.Button(self.canvas)
-        raise ValueError(f"WidgetView - widget creation failed: unsupported type \"{model.type}\"")
+        raise ValueError(f"WidgetView - widget creation failed: unsupported type \"{widget_type}\"")
 
     def _insert_widget_into_canvas(self, widget, x, y, anchor):
         """place widget on canvas and return resulting widget ID"""
@@ -136,29 +148,12 @@ class WidgetView:
         widget.bind("<B1-Motion>", lambda event: forward_to_canvas(event, "<B1-Motion>"))
         widget.bind("<ButtonRelease-1>", lambda event: forward_to_canvas(event, "<ButtonRelease-1>"))
 
-    def _render_widget(self, model):
-        """create, map and render a tk widget for a given model and bind widget events"""
-        #create the correct Tk widget
-        widget = self._create_widget_from_model(model)
-
-        #insert widget into canvas
-        widget_id = self._insert_widget_into_canvas(widget, model.x, model.y, model.anchor)
-
-        #insert widget into widget_map and register widget_id <> model_id mappings
-        self._register_widget_mappings(model, widget, widget_id)
-
-        #bind events
-        self._bind_widget_events(widget)
-
-        #apply attributes from model to the widget
-        self.render_soft(model)
-
     #Helpers------------------------------------------------------------------------------------------------------------
     def get_widget_id_from_model_id(self, model_id: str) -> int | None:
         """return the widget ID mapped to a model ID"""
         return self.model_id_to_widget_id.get(model_id)
 
-    def get_widget_from_model_id(self, model_id: str) -> object | None:
+    def get_widget_from_model_id(self, model_id: str) -> tk.Label | tk.Entry | tk.Button | None:
         """return the widget associated with a given model ID"""
         widget_id = self.get_widget_id_from_model_id(model_id)
         if widget_id is None:

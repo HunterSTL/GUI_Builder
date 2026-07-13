@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
-from model import ProjectDocument, BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData
+from model import ProjectDocument, LabelWidgetData, EntryWidgetData, ButtonWidgetData
 from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
 from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
 from events import EventBus, EventRouter
@@ -19,7 +19,7 @@ class Designer:
     *Building and owning the Designer window layout and scrollable work area
     *Creating and connecting all major views (attributes panel, canvas, selection, toolbar, widget)
     *Routing user input via the EventBus into edit, widget, grid and UI actions
-    *Managing rendering in response to AppState mutations (full and soft renders)
+    *Managing incremental rendering in response to AppState mutations
     *Executing domain specific editor logic (widget creation, alignment, snapping)
     *Reflecting dirty state in the window title
     """
@@ -38,34 +38,19 @@ class Designer:
         self.constants = constants
 
         #Event system---------------------------------------------------------------------------------------------------
-        #application events live for the entire application lifetime (owned by AppController)
-        self.app_event_bus = app_event_bus
-
-        #designer events are local to this Designer instance and are discarded when the Designer window is destroyed
-        self.designer_event_bus = EventBus()
-
-        #EventRouter: provides a single interface for emitting events and routes events to the correct EventBus
-        self.event_router = EventRouter(
+        self.app_event_bus = app_event_bus          #lives for the entire application lifetime (owned by AppController)
+        self.designer_event_bus = EventBus()        #discarded when the Designer window is destroyed
+        self.event_router = EventRouter(            #provides a single interface for emitting events and routes events to the correct EventBus
             app_event_bus=self.app_event_bus,
             designer_event_bus=self.designer_event_bus
         )
-
-        #this split prevents callbacks from referencing destroyed Tk widgets
         #----------------------------------------------------------------------------------------------------------------
+        self.app_state = AppState(project_document) #central model mutation engine
+        self.command_stack = CommandStack()         #provides undo and redo functionality
+        self.clipboard = []                         #stores a copy of the model for every copied widget
 
-        #AppState: central model mutation engine
-        self.app_state = AppState(project_document)
-
-        #CommandStack: provides undo/redo functionality
-        self.command_stack = CommandStack()
-
-        #stores a copy of the model for every copied widget
-        self.clipboard = []
-
-        #variable to represent grid state from ProjectDocument
-        self.grid_visible_variable = tk.BooleanVar(value=self.app_state.project.grid.visible)
-
-        self._last_right_click_coordinates = None
+        self.grid_visible_variable = tk.BooleanVar(value=self.app_state.project.grid.visible)   #represents grid state from ProjectDocument
+        self._last_right_click_coordinates: tuple[int, int] | None = None
 
         #build designer UI
         self._build_designer_ui()
@@ -199,11 +184,10 @@ class Designer:
         #create context menu (right click) for creating new widgets
         self._add_widget_menu()
 
-        #do full render to create widgets for the existing models in the ProjectDocument and to render grid
-        self._do_full_render()
-
         #subscribe the function "_on_changed_state" as a listener for state changes
         self.app_state.subscribe(self._on_changed_state)
+
+        self._initial_render()
 
     def _build_designer_ui(self):
         """construct the full Designer UI layout and its components"""
@@ -424,30 +408,36 @@ class Designer:
 
     #Rendering----------------------------------------------------------------------------------------------------------
     def _on_changed_state(self, state: AppState):
-        """respond to AppState mutations by performing full or soft rendering"""
+        """respond to AppState mutations by performing incremental updates to widgets and selection outlines as well as updating the grid and the attributes panel"""
         if state.is_dirty():
             self.titlebar_label.configure(text=self.app_state.project.title + "*")
         else:
             self.titlebar_label.configure(text=self.app_state.project.title)
 
-        #query dirty models
+        #delete widgets and outlines for removed models
+        for model_id in state.get_removed_model_ids():
+            self.widget_view.delete_widget_for(model_id)
+            self.selection_view.delete_outline_for(model_id)
+
+        #update widgets and outlines for dirty models
         dirty_models = state.get_dirty_models()
-
-        #determine if full render is required
-        if state.structural_change or len(dirty_models) > self.constants["full_render_threshold"]:
-            self._do_full_render()
-            return
-
-        #only update dirty models
         for model in dirty_models:
-            self._do_soft_render(model)
+            self.widget_view.update_widget_for(model)
+            if state.is_selected(model):
+                self.selection_controller.update_outline_for(model) #controller derives required data from model and AppState
 
-        #re-render selection outlines and build or clear the attributes panel if selection changed
+        #show or hide the attributes panel and refresh outlines based on the selection
         if state.selection_change:
-            self.selection_controller.render_all_outlines()
             self._update_attributes_panel_visibility()
+            self.selection_view.clear_all_outlines()
+            for model in state.get_selected_models():
+                self.selection_controller.update_outline_for(model)
 
-        #refresh attributes panel values if the single selected model changed
+        #update grid
+        if state.grid_change:
+            self.canvas_controller.render_grid()
+
+        #update attributes panel values if the single selected model changed
         if len(dirty_models) == 1:
             dirty_model = dirty_models[0]
             selected_models = state.get_selected_models()
@@ -455,41 +445,25 @@ class Designer:
             if len(selected_models) == 1 and selected_models[0].id == dirty_model.id:   #prevents undo and redo from refreshing the attributes panel with values from an unselected dirty model
                 self.attributes_panel_view.update_variables_from_model(dirty_model)
 
-    def _do_full_render(self):
-        """perform a full re-render of widgets, selection outlines and grid"""
-        call_tracer.log_event(f"full render\n{'#'*150}")
-        #render widgets
-        self.widget_controller.render_full()
-
-        #render grid
-        self.canvas_controller.render_grid()
-
-        #render selection outlines
-        self.selection_controller.render_all_outlines()
-
-    def _do_soft_render(self, model: BaseWidgetData):
-        """perform a soft re-render of a widget and its selection outline"""
-        self.widget_controller.render_soft(model)
-        self.selection_controller.render_outline_for(model)
-
     def _update_attributes_panel_visibility(self):
         """update attributes panel visibility when selection changes"""
-        selected_models = self.app_state.selection_currently_selected()
-        call_tracer.log_event(f"Selection: {selected_models}")
-        call_tracer.log_event(f"Last Selected: {self.app_state.selection_last_selected()}")
+        selected_models = self.app_state.get_selected_models()
 
         if len(selected_models) == 1:
-            model = self.app_state.get_model_from_model_id(next(iter(selected_models)))
+            model = next(iter(selected_models))
             self.attributes_panel_controller.refresh(model)
         else:
             self.attributes_panel_controller.clear()
 
+    def _initial_render(self):
+        for model in self.app_state.get_all_models():
+            self.widget_view.update_widget_for(model)
+        self.canvas_controller.render_grid()
+
     #Grid actions-------------------------------------------------------------------------------------------------------
     def _toggle_grid(self):
         """toggle grid visibility"""
-        #flip grid visible variable
         self.grid_visible_variable.set(not self.grid_visible_variable.get())
-        #apply grid visible state
         self._apply_grid_from_variable()
 
     def _change_grid_size(self):

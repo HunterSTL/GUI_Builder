@@ -23,52 +23,40 @@ class SelectionView:
         self.selection_dash = selection_dash
         self.selection_padding = selection_padding
 
-        self._selection_rectangle_id = None     #stores the ID of the selection rectangle
-        self._selection_outlines = {}           #maps model IDs to the ID of selection outline rectangles
+        self._selection_rectangle_id: int | None = None
+        self._selection_outlines: dict[str, int] = {}   #{model.id: rectangle_id}
 
     #Rendering API------------------------------------------------------------------------------------------------------
-    def clear_selection_outlines(self):
-        """delete all selection outlines and clear the dictionary mapping them to model IDs"""
-        for rect_id in self.canvas.find_withtag("selection_outline"):
-            self.canvas.delete(rect_id)
+    def update_outline_for(self, model_id: str, bounding_box: BoundingBox, is_last_selected: bool):
+        """create or update the selection outline for a model ID using the given bounding box"""
+        x1, y1 = bounding_box.left - self.selection_padding, bounding_box.top - self.selection_padding      #top-left corner of selection outline
+        x2, y2 = bounding_box.right + self.selection_padding, bounding_box.bottom + self.selection_padding  #bottom-right corner of selection outline
+
+        outline_color = self.last_selected_color if is_last_selected else self.selection_color
+        rectangle_id = self._selection_outlines.get(model_id)
+
+        if rectangle_id is None:
+            rectangle_id = self._create_outline_for(model_id)
+
+        self._update_outline(rectangle_id, x1, y1, x2, y2, outline_color)
+
+    def delete_outline_for(self, model_id: str):
+        """delete the selection outline for the given model ID"""
+        if model_id not in self._selection_outlines:
+            return
+
+        rectangle_id = self._selection_outlines.pop(model_id)
+        self.canvas.delete(rectangle_id)
+
+    def clear_all_outlines(self):
+        self.canvas.delete("selection_outline")
         self._selection_outlines.clear()
 
-    def render_outline_for(self, model_id: str, bounding_box: BoundingBox, is_last_selected: bool):
-        """render or update the selection outline for a model ID using the given bounding box"""
-        #compute top-left corner of selection outline
-        x1 = bounding_box.left - self.selection_padding
-        y1 = bounding_box.top - self.selection_padding
-
-        #compute bottom-right corner of selection outline
-        x2 = bounding_box.right + self.selection_padding
-        y2 = bounding_box.bottom + self.selection_padding
-
-        #determine color
-        outline_color = self.last_selected_color if is_last_selected else self.selection_color
-
-        rectangle_id = self._selection_outlines.get(model_id)
-        if rectangle_id and self.canvas.type(rectangle_id) == "rectangle":
-            #update existing selection outline
-            self.canvas.coords(rectangle_id, x1, y1, x2, y2)
-            self.canvas.itemconfig(rectangle_id, outline=outline_color)
-        else:
-            #create new selection outline
-            rectangle_id = self.canvas.create_rectangle(
-                x1, y1, x2, y2,
-                outline=outline_color,
-                width=self.selection_width,
-                dash=self.selection_dash,
-                fill="",
-                tags="selection_outline"
-            )
-            self._selection_outlines[model_id] = rectangle_id
-        self.canvas.tag_raise(rectangle_id)
-
-    def draw_selection_rectangle(self, x0: int, y0: int):
+    def draw_selection_rectangle(self, x1: int, y1: int):
         """begin drawing the selection rectangle (UI-element) used for the rectangle selection (gesture)"""
         if self._selection_rectangle_id is None:
             self._selection_rectangle_id = self.canvas.create_rectangle(
-                x0, y0, x0, y0,
+                x1, y1, x1, y1,
                 outline=self.selection_color,
                 width=self.selection_width,
                 dash=self.selection_dash,
@@ -77,19 +65,19 @@ class SelectionView:
         else:
             self.canvas.coords(
                 self._selection_rectangle_id,
-                x0,
-                y0,
-                x0,
-                y0
+                x1,
+                y1,
+                x1,
+                y1
             )
 
         #ensure outline is on top
         self.canvas.tag_raise(self._selection_rectangle_id)
 
-    def update_selection_rectangle(self, x0: int, y0: int, x1: int, y1: int):
+    def update_selection_rectangle(self, x1: int, y1: int, x2: int, y2: int):
         """update the selection rectangle while dragging"""
         if self._selection_rectangle_id is not None:
-            self.canvas.coords(self._selection_rectangle_id, x0, y0, x1, y1)
+            self.canvas.coords(self._selection_rectangle_id, x1, y1, x2, y2)
             self.canvas.tag_raise(self._selection_rectangle_id)
 
     def clear_selection_rectangle(self):
@@ -97,3 +85,23 @@ class SelectionView:
         if self._selection_rectangle_id is not None:
             self.canvas.delete(self._selection_rectangle_id)
             self._selection_rectangle_id = None
+
+    #Internals----------------------------------------------------------------------------------------------------------
+    def _create_outline_for(self, model_id: str) -> int:
+        rectangle_id = self.canvas.create_rectangle(
+            0, 0, 0, 0,
+            tags="selection_outline"
+        )
+        self._selection_outlines[model_id] = rectangle_id
+        return rectangle_id
+
+    def _update_outline(self, rectangle_id: int, x1: int, y1: int, x2: int, y2: int, outline_color: str):
+        self.canvas.coords(rectangle_id, x1, y1, x2, y2)
+        self.canvas.itemconfig(
+            rectangle_id,
+            outline=outline_color,
+            width=self.selection_width,
+            dash=self.selection_dash,
+            fill="",
+            tags="selection_outline"
+        )

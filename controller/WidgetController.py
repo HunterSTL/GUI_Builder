@@ -4,8 +4,8 @@ from AppState import AppState
 
 class WidgetController:
     """
-    Controller that manages widget rendering and propagates
-    widget mutation (deletion, attribute changes through attributes panel) to the model.
+    Controller that applies widget related model mutations,
+    including attribute changes that require measurement from rendered Tk widgets.
     """
     #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
@@ -16,15 +16,6 @@ class WidgetController:
         """store AppState (model) and WidgetView references"""
         self.app_state = app_state
         self.widget_view = widget_view
-
-    #Rendering API------------------------------------------------------------------------------------------------------
-    def render_soft(self, model: BaseWidgetData):
-        """re-render an existing model"""
-        self.widget_view.render_soft(model)
-
-    def render_full(self):
-        """rebuild all widgets from models"""
-        self.widget_view.render_full(self.app_state.get_all_models())
 
     #Domain logic-------------------------------------------------------------------------------------------------------
     def update_widget_attribute(self, model_id: str, attribute: str, value):

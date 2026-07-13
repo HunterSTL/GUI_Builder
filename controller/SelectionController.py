@@ -42,23 +42,13 @@ class SelectionController:
         self._rectangle_selection_state = RectangleSelectionState()
 
     #Rendering API------------------------------------------------------------------------------------------------------
-    def render_outline_for(self, model: BaseWidgetData):
-        """render or update the selection outline for the given model using its bounding box"""
-        self.selection_view.render_outline_for(
+    def update_outline_for(self, model: BaseWidgetData):
+        """create or update the selection outline for the given model based on selection state"""
+        self.selection_view.update_outline_for(
             model_id=model.id,  #used to map selection outline rectangles to models
             bounding_box=self.app_state.get_model_bounding_box(model),
             is_last_selected=model.id == self.app_state.get_last_selected_model_id()
         )
-
-    def render_all_outlines(self):
-        """clear and render selection outlines for all selected models"""
-        #clear existing outlines
-        self.selection_view.clear_selection_outlines()
-
-        #render outlines for all selected widgets
-        selected_models = self.app_state.get_selected_models()
-        for model in selected_models:
-            self.render_outline_for(model)
 
     #Event handling-----------------------------------------------------------------------------------------------------
     def handle_canvas_press(self, event):

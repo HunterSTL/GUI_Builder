@@ -8,29 +8,30 @@ class AppState:
         self,
         project_document: ProjectDocument
     ):
-        self.project = project_document         #must only be mutated using AppState API (add_model, set_grid_visible, set_title...)
+        self.project = project_document                     #must only be mutated using AppState API (add_model, set_grid_visible, set_title...)
 
         #Persistent project state (survives across notifications)-------------------------------------------------------
-        self._is_dirty = False                  #signals whether unsaved changes exist
+        self._is_dirty = False                              #signals whether unsaved changes exist
 
         #Transient change flags (reset after each notification)---------------------------------------------------------
-        self._dirty_model_ids: set[str] = set() #stores the IDs of models that changed
-        self.structural_change = False          #signals whether a full re-render is necessary
-        self.selection_change = False           #signals whether the selection outlines need to be redrawn
+        self._dirty_model_ids: set[str] = set()             #IDs of models that changed
+        self._removed_model_ids: set[str] = set()           #IDs of models that were removed
+        self.selection_change = False                       #signals whether the selection outlines need to be re-rendered
+        self.grid_change = False                            #signals whether the grid needs to be re-rendered
 
         #Notification system--------------------------------------------------------------------------------------------
-        self._subscribers = []                  #functions that get called when any mutation happens
-        self._batch_depth = 0                   #keeps track of batch depth so only the outer most batch calls _notify (batches can be nested)
-        self._pending_notify = False            #signals whether _notify will be called at the end of the batch
+        self._subscribers = []                              #functions that get called when any mutation happens
+        self._batch_depth = 0                               #keeps track of batch depth so only the outer most batch calls _notify (batches can be nested)
+        self._pending_notify = False                        #signals whether _notify will be called at the end of the batch
 
         #Model dictionary-----------------------------------------------------------------------------------------------
-        self._model_by_id = {}                  #{model.id: model} for O(1) lookup; maintained in add_/remove_model()
+        self._model_by_id: dict[str, BaseWidgetData] = {}   #{model.id: model} for O(1) lookup; maintained in add_/remove_model()
 
         #Selection------------------------------------------------------------------------------------------------------
-        self._selected_model_ids = set()        #stores the IDs of selected models
-        self._last_selected_model_id = None     #stores the ID of the last selected model
+        self._selected_model_ids: set[str] = set()          #IDs of selected models
+        self._last_selected_model_id = None                 #ID of the last selected model
 
-        #add existing models in ProjectDocument to the dictionary
+        #add existing models in the project document to the dictionary
         for model in self.project.widget_models:
             self._model_by_id[model.id] = model
 
@@ -50,10 +51,11 @@ class AppState:
         for function in self._subscribers:
             function(self)
 
-        #reset flags and clear dirty model IDs after all subscribers have been called
-        self.structural_change = False
+        #reset flags and clear sets after all subscribers have been called
         self.selection_change = False
+        self.grid_change = False
         self._dirty_model_ids.clear()
+        self._removed_model_ids.clear()
 
     def batch(self):
         class _Batch:
@@ -87,27 +89,41 @@ class AppState:
 
     #Model API----------------------------------------------------------------------------------------------------------
     def add_model(self, model):
-        """append a new model to the ProjectDocument"""
+        """add a new model to the project document"""
         if not model.id:
             raise ValueError("AppState - model addition failed: missing ID")
 
         if model.id in self._model_by_id:
             raise ValueError(f"AppState - model addition failed: duplicate ID \"{model.id}\"")
 
-        self._model_by_id[model.id] = model
         self.project.widget_models.append(model)
-        self.structural_change = True
+        self._model_by_id[model.id] = model
+        self._dirty_model_ids.add(model.id)
+
+        #select the created widget without notifying
+        self._selected_model_ids = {model.id}
+        self._last_selected_model_id = model.id
+        self.selection_change = True
+
         self._mark_dirty()
 
     def remove_model(self, model):
-        """remove an existing model from the ProjectDocument"""
+        """remove an existing model from the project document"""
         if model.id not in self._model_by_id:
             raise ValueError(f"AppState - model removal failed: unknown ID \"{model.id}\"")
 
         model = self.get_model_from_model_id(model.id)  #prevents removing a stale model
-        self._model_by_id.pop(model.id, None)
         self.project.widget_models.remove(model)
-        self.structural_change = True
+        self._model_by_id.pop(model.id, None)
+        self._removed_model_ids.add(model.id)
+
+        if model.id in self._selected_model_ids:
+            self._selected_model_ids.remove(model.id)
+            self.selection_change = True
+
+        if self._last_selected_model_id == model.id:
+            self._last_selected_model_id = None
+
         self._mark_dirty()
 
     def set_model_position(self, model, x: int, y: int):
@@ -159,7 +175,7 @@ class AppState:
             return
 
         self.project.grid.visible = visible
-        self.structural_change = True
+        self.grid_change = True
         self._mark_dirty()
 
     def set_grid_size(self, size: int):
@@ -167,7 +183,7 @@ class AppState:
             return
 
         self.project.grid.size = size
-        self.structural_change = True
+        self.grid_change = True
         self._mark_dirty()
 
     def set_grid_color(self, color: str):
@@ -175,7 +191,7 @@ class AppState:
             return
 
         self.project.grid.color = color
-        self.structural_change = True
+        self.grid_change = True
         self._mark_dirty()
 
     #Project API--------------------------------------------------------------------------------------------------------
@@ -218,7 +234,7 @@ class AppState:
         self._mark_selection_change()
 
     def selection_select_all(self):
-        """select all model IDs in the ProjectDocument then notify subscribers"""
+        """select all model IDs in the project document then notify subscribers"""
         if self._selected_model_ids == {model.id for model in self.project.widget_models}:
             return
 
@@ -271,8 +287,13 @@ class AppState:
             if model.id in self._dirty_model_ids
         )
 
+    def get_removed_model_ids(self) -> frozenset[str]:
+        """return the IDs of removed models"""
+        return frozenset(self._removed_model_ids)
+
+
     def get_all_models(self) -> tuple[BaseWidgetData, ...]:
-        """return all models in the ProjectDocument"""
+        """return all models in the project document"""
         return tuple(self.project.widget_models)
 
     @staticmethod
@@ -313,17 +334,14 @@ class AppState:
         )
 
     #Selection query API------------------------------------------------------------------------------------------------
-    def selection_currently_selected(self) -> frozenset[str]:
-        return self.get_selected_model_ids()
-
-    def selection_last_selected(self) -> str | None:
-        return self.get_last_selected_model_id()
-
     def selection_is_empty(self) -> bool:
         return len(self._selected_model_ids) == 0
 
     def selection_contains(self, model_id: str) -> bool:
         return model_id in self._selected_model_ids
+
+    def is_selected(self, model: BaseWidgetData) -> bool:
+        return model.id in self._selected_model_ids
 
     def get_selected_models(self) -> tuple[BaseWidgetData, ...]:
         return tuple(

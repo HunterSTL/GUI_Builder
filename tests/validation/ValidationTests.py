@@ -1,6 +1,6 @@
 import tkinter as tk
 from model import ProjectDocument, LabelWidgetData, BaseWidgetData
-from view import AttributesPanelView, WidgetView
+from view import WidgetView
 from controller import AttributesPanelController, WidgetController
 from events import EventBus
 from utility import WidgetType, Geometry
@@ -41,14 +41,14 @@ def test_subscribe_uncallable_to_app_state():
     app_state.subscribe(uncallable)
 
 def test_add_model_with_missing_id():
-    model = LabelWidgetData()
+    model = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
 
     #add model with missing ID to AppState
     app_state.add_model(model)
 
 def test_add_model_with_duplicate_id():
-    model1 = LabelWidgetData(x=0, y=0, anchor="sw")
-    model2 = LabelWidgetData()
+    model1 = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
+    model2 = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
     model1.id = "label_1"
     model2.id = "label_1"
 
@@ -61,32 +61,37 @@ def test_add_model_with_duplicate_id():
         app_state.remove_model(model1)
 
 def test_remove_model_with_unknown_id():
-    model = LabelWidgetData()
+    model = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
     model.id = "UNKNOWN_ID"
 
     #remove model with unknown ID from AppState
     app_state.remove_model(model)
 
 def test_update_model_position_absolute_with_unknown_id():
-    model = LabelWidgetData()
+    model = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
     model.id = "UNKNOWN_ID"
 
     #update model position with unknown ID (absolute)
     app_state.set_model_position(model, 10, 10)
 
 def test_update_model_position_relative_with_unknown_id():
-    model = LabelWidgetData()
+    model = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
     model.id = "UNKNOWN_ID"
 
     #update model position with unknown ID (relative)
     app_state.offset_model_position(model, 10, 10)
 
 def test_update_unknown_model_attribute():
-    model = LabelWidgetData()
+    model = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
     model.id = "label_1"
 
-    #update unknown model attribute
-    app_state.set_model_attribute(model, "UNKNOWN_ATTRIBUTE", 123)
+    try:
+        app_state.add_model(model)
+        #update unknown model attribute
+        app_state.set_model_attribute(model, "UNKNOWN_ATTRIBUTE", 123)
+    finally:
+        #restore AppState so other tests are not affected
+        app_state.remove_model(model)
 
 def test_update_selection_with_unknown_id():
     #update selection with unknown ID
@@ -115,16 +120,17 @@ def test_refresh_attributes_panel_unsupported_type():
 
 #WidgetController tests-------------------------------------------------------------------------------------------------
 def test_update_text_missing_widget():
-    model = LabelWidgetData(x=0, y=0)
+    model = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
     model.id = "label_1"
-    app_state.add_model(model)
 
-    #delete widget map entry manually (adding model to AppState causes reactive rendering)
-    widget_id = widget_view.get_widget_id_from_model_id(model.id)
-    widget_view.widget_map[widget_id] = None
-
-    #update the text of a widget that doesn't exist
-    widget_controller.update_widget_attribute(model.id, "text", "value")
+    try:
+        app_state.add_model(model)
+        widget_view.delete_widget_for(model.id)
+        #update the text of a widget that doesn't exist
+        widget_controller.update_widget_attribute(model.id, "text", "value")
+    finally:
+        #restore AppState so other tests are not affected
+        app_state.remove_model(model)
 
 #EventBus tests---------------------------------------------------------------------------------------------------------
 def test_subscribe_uncallable_to_event_bus():
@@ -208,48 +214,68 @@ def test_deserialize_widget_invalid_attribute_set():
     BaseWidgetData.from_dict(data)
 
 #Geometry tests---------------------------------------------------------------------------------------------------------
+def test_compute_bounding_box_missing_x():
+    #compute bounding box with missing x coordinate
+    Geometry.compute_model_bounding_box(None, 0, 50, 20, "sw")
+
+def test_compute_bounding_box_missing_y():
+    #compute bounding box with missing y coordinate
+    Geometry.compute_model_bounding_box(0, None, 50, 20, "sw")
+
+def test_compute_bounding_box_missing_width():
+    #compute bounding box with missing width
+    Geometry.compute_model_bounding_box(0, 0, None, 20, "sw")
+
+def test_compute_bounding_box_missing_height():
+    #compute bounding box with missing height
+    Geometry.compute_model_bounding_box(0, 0, 50, None, "sw")
+
 def test_compute_bounding_box_invalid_anchor():
     #compute bounding box with invalid anchor
     Geometry.compute_model_bounding_box(0, 0, 50, 20, "INVALID_ANCHOR")
 
 #WidgetView tests-------------------------------------------------------------------------------------------------------
-def test_render_widget_missing_position():
-    model = LabelWidgetData()
-    model.id = "label_1"
-
-    #render a widget with missing position attributes
-    widget_view.render_soft(model)
-
-def test_render_widget_unknown_widget_id():
-    model = LabelWidgetData(x=0, y=0)
-    model.id = "label_1"
-    widget_view.render_soft(model)
-
-    #delete widget map entry manually
-    widget_id = widget_view.get_widget_id_from_model_id(model.id)
-    widget_view.widget_map[widget_id] = None
-
-    #render widget with unknown widget ID (no entry in widget_map)
-    widget_view.render_soft(model)
-
-def test_render_widget_unsupported_type():
-    model = LabelWidgetData()
+def test_create_widget_unsupported_type():
+    model = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
     model.type = "UNSUPPORTED_TYPE"
 
-    #render widget with unsupported type
-    widget_view.render_soft(model)
+    #create widget with unsupported type
+    widget_view.update_widget_for(model)
+
+def test_update_widget_missing_position():
+    model = LabelWidgetData()
+    model.id = "label_1"
+
+    #update a widget with missing position attributes
+    widget_view.update_widget_for(model)
+
+def test_update_widget_unknown_widget_id():
+    model = LabelWidgetData(x=0, y=0)
+    model.id = "label_1"
+
+    try:
+        widget_view.update_widget_for(model)
+        widget_id = widget_view.get_widget_id_from_model_id(model.id)
+        widget_view.widget_map[widget_id] = None
+        #update widget with unknown widget ID (no entry in widget_map)
+        widget_view.update_widget_for(model)
+    finally:
+        #restore WidgetView so other tests are not affected
+        widget_view.delete_widget_for(model.id)
 
 def test_look_up_widget_unknown_widget_id():
     model = LabelWidgetData(x=0, y=0)
     model.id = "label_1"
-    widget_view.render_soft(model)
 
-    #delete widget map entry manually
-    widget_id = widget_view.get_widget_id_from_model_id(model.id)
-    widget_view.widget_map[widget_id] = None
-
-    #look up widget with unknown widget ID
-    widget_view.get_widget_from_model_id(model.id)
+    try:
+        widget_view.update_widget_for(model)
+        widget_id = widget_view.get_widget_id_from_model_id(model.id)
+        widget_view.widget_map[widget_id] = None
+        #look up widget with unknown widget ID
+        widget_view.get_widget_from_model_id(model.id)
+    finally:
+        #restore WidgetView so other tests are not affected
+        widget_view.delete_widget_for(model.id)
 
 #Testing----------------------------------------------------------------------------------------------------------------
 def compute_max_test_case_name_length() -> int:
@@ -333,13 +359,17 @@ WIDGET_MODELS_TESTS = {
 }
 
 GEOMETRY_TESTS = {
+    "Computing bounding box with missing x coordinate": test_compute_bounding_box_missing_x,
+    "Computing bounding box with missing y coordinate": test_compute_bounding_box_missing_y,
+    "Computing bounding box with missing width": test_compute_bounding_box_missing_width,
+    "Computing bounding box with missing height": test_compute_bounding_box_missing_height,
     "Computing bounding box with invalid anchor": test_compute_bounding_box_invalid_anchor
 }
 
 WIDGET_VIEW_TESTS = {
-    "Rendering widget with missing position": test_render_widget_missing_position,
-    "Rendering widget with unknown widget ID": test_render_widget_unknown_widget_id,
-    "Rendering widget with unsupported type": test_render_widget_unsupported_type,
+    "Creating widget with unsupported type": test_create_widget_unsupported_type,
+    "Rendering widget with missing position": test_update_widget_missing_position,
+    "Rendering widget with unknown widget ID": test_update_widget_unknown_widget_id,
     "Looking up widget with unknown widget ID": test_look_up_widget_unknown_widget_id
 }
 

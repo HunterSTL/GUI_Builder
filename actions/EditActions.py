@@ -40,9 +40,6 @@ class EditActions:
             )
         )
 
-        #clear selection
-        self.app_state.selection_clear()
-
     def copy(self):
         """copy selected widgets to clipboard"""
         #query selection
@@ -87,9 +84,6 @@ class EditActions:
                 app_state=self.app_state
             )
         )
-
-        #clear selection
-        self.app_state.selection_clear()
 
     def undo(self):
         """undo last command"""
