@@ -116,7 +116,7 @@ If a widget is wider than the canvas (e.g. a very long label), `allowed_x_range`
 
 ---
 
-## 15. `AttributesPanelController._compute_spinbox_limits` returns `None` implicitly for unknown attributes
+## 15. [Done] `AttributesPanelController._compute_spinbox_limits` returns `None` implicitly for unknown attributes
 
 ```python
 def _compute_spinbox_limits(self, attribute, model) -> tuple[int, int]:

@@ -1,7 +1,8 @@
 import tkinter as tk
 from model import ProjectDocument, LabelWidgetData, BaseWidgetData
 from view import WidgetView
-from controller import AttributesPanelController, WidgetController
+from controller import WidgetController
+from components import AttributesPanel
 from events import EventBus
 from utility import WidgetType, Geometry
 from AppState import AppState
@@ -28,9 +29,9 @@ designer = Designer(
 )
 
 app_state: AppState = designer.app_state
-attributes_panel_controller: AttributesPanelController = designer.attributes_panel_controller
 widget_view: WidgetView = designer.widget_view
 widget_controller: WidgetController = designer.widget_controller
+attributes_panel: AttributesPanel = designer.attributes_panel
 event_bus = EventBus()
 
 #AppState tests---------------------------------------------------------------------------------------------------------
@@ -110,13 +111,19 @@ def test_create_widget_with_unsupported_type():
         text=None
     )
 
-#AttributesPanelController tests----------------------------------------------------------------------------------------
-def test_refresh_attributes_panel_unsupported_type():
+#AttributesPanel tests----------------------------------------------------------------------------------------
+def test_render_attributes_panel_unsupported_type():
     model = LabelWidgetData()
     model.type = "UNSUPPORTED_TYPE"
 
-    #refresh the panel for a model with unsupported type
-    attributes_panel_controller.refresh(model)
+    #render the panel for a model with unsupported type
+    attributes_panel.set_selection(tuple([model]))
+
+def test_compute_spinbox_limits_unsupported_attribute():
+    model = LabelWidgetData()
+
+    #compute spinbox limits for an unsupported attribute
+    attributes_panel._compute_spinbox_limits(model, "UNSUPPORTED ATTRIBUTE")
 
 #WidgetController tests-------------------------------------------------------------------------------------------------
 def test_update_text_missing_widget():
@@ -332,8 +339,9 @@ WIDGET_ACTIONS_TESTS = {
     "Adding widget with unsupported type": test_create_widget_with_unsupported_type
 }
 
-ATTRIBUTES_PANEL_CONTROLLER_TESTS = {
-    "Refreshing attributes panel for a model with unsupported type": test_refresh_attributes_panel_unsupported_type
+ATTRIBUTES_PANEL_TESTS = {
+    "Rendering attributes panel for a model with unsupported type": test_render_attributes_panel_unsupported_type,
+    "Computing spinbox limits for an unsupported attribute": test_compute_spinbox_limits_unsupported_attribute
 }
 
 WIDGET_CONTROLLER_TESTS = {
@@ -376,7 +384,7 @@ WIDGET_VIEW_TESTS = {
 TEST_GROUPS = {
     "AppState": APP_STATE_TESTS,
     "WidgetActions": WIDGET_ACTIONS_TESTS,
-    "AttributesPanelController": ATTRIBUTES_PANEL_CONTROLLER_TESTS,
+    "AttributesPanelController": ATTRIBUTES_PANEL_TESTS,
     "WidgetController": WIDGET_CONTROLLER_TESTS,
     "EventBus": EVENT_BUS_TESTS,
     "ProjectDocument": PROJECT_DOCUMENT_TESTS,

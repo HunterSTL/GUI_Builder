@@ -116,7 +116,6 @@ MAXIMUM_CANVAS_HEIGHT = 5000
 TITLEBAR_HEIGHT = 25
 TOOLBAR_HEIGHT = 25
 ATTRIBUTES_PANEL_WIDTH = 200
-ATTRIBUTES_PANEL_HEIGHT = 500
 NUDGE_SMALL = 1
 NUDGE_BIG = 10
 SELECTION_WIDTH = 2
@@ -141,10 +140,7 @@ CONSTANTS = {
     },
     "titlebar_height": TITLEBAR_HEIGHT,
     "toolbar_height": TOOLBAR_HEIGHT,
-    "attributes_panel": {
-        "width": ATTRIBUTES_PANEL_WIDTH,
-        "height": ATTRIBUTES_PANEL_HEIGHT
-    },
+    "attributes_panel_width": ATTRIBUTES_PANEL_WIDTH,
     "nudge": {
         "small": NUDGE_SMALL,
         "big": NUDGE_BIG

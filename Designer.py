@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
 from model import ProjectDocument
-from view import AttributesPanelView, CanvasView, SelectionView, ToolbarView, WidgetView
-from controller import AttributesPanelController, CanvasController, SelectionController, ToolbarController, WidgetController
+from view import CanvasView, SelectionView, ToolbarView, WidgetView
+from controller import CanvasController, SelectionController, ToolbarController, WidgetController
+from components import AttributesPanel
 from events import EventBus, EventRouter
 from actions import Actions, EditActions, WidgetActions
 from commands import CommandStack
@@ -116,22 +117,6 @@ class Designer:
             widget_view=self.widget_view
         )
 
-        #create AttributePanelView to render the attributes and bind tk variables---------------------------------------
-        self.attributes_panel_view = AttributesPanelView(
-            frame=self.attributes_panel_frame,
-            panel_color=self.program_theme["attributes_panel"]["color"],
-            widget_color=self.program_theme["attributes_panel"]["widget_color"],
-            text_color=self.program_theme["attributes_panel"]["text_color"],
-            on_attribute_changed_callback=self._emit_attribute_changed_event
-        )
-
-        #create AttributesPanelController to provide refresh/clear API and to compute spinbox limits--------------------
-        self.attributes_panel_controller = AttributesPanelController(
-            attribute_panel_view=self.attributes_panel_view,
-            canvas_width=self.app_state.project.width,
-            canvas_height=self.app_state.project.height
-        )
-
         #create ToolbarView to provide the API for building the toolbar-------------------------------------------------
         self.toolbar_view = ToolbarView(
             parent=self.top,
@@ -192,13 +177,9 @@ class Designer:
 
     def _build_designer_ui(self):
         """construct the full Designer UI layout and its components"""
-        #create window
         self.top = tk.Toplevel(self.parent)
+        self.top.wm_minsize(self.constants["window"]["min_width"], self.constants["window"]["min_height"])  #enforces minimum window size
 
-        #enforce minimum window size
-        self.top.wm_minsize(self.constants["window"]["min_width"], self.constants["window"]["min_height"])
-
-        #create title bar
         titlebar = CustomTitlebar(
             parent=self.top,
             title=self.app_state.project.title,
@@ -211,19 +192,30 @@ class Designer:
         titlebar.frame.pack(fill="x")
         self.titlebar_label = titlebar.label
 
-        #create main frame that hosts work area (column 0) and attributes panel (column 1)
-        self.main_frame = tk.Frame(self.top, bg=self.app_state.project.theme["background"]["color"])
-
-        #define column/row growth
+        self.main_frame = tk.Frame(                     #hosts work area (column 0) and attributes panel (column 1)
+            self.top,
+            bg=self.app_state.project.theme["background"]["color"]
+        )
         self.main_frame.columnconfigure(0, weight=1)    #work area expands
         self.main_frame.columnconfigure(1, weight=0)    #attributes panel fixed width
         self.main_frame.rowconfigure(0, weight=1)
 
-        #create work area
         self.work_area = tk.Frame(self.main_frame, bg=self.app_state.project.theme["background"]["color"])
         self.work_area.grid(row=0, column=0, sticky="nsew")
         self.work_area.columnconfigure(0, weight=1)
         self.work_area.rowconfigure(0, weight=1)
+
+        self.attributes_panel = AttributesPanel(
+            parent=self.main_frame,
+            canvas_width=self.app_state.project.width,
+            canvas_height=self.app_state.project.height,
+            panel_width=self.constants["attributes_panel_width"],
+            panel_color=self.program_theme["attributes_panel"]["color"],
+            widget_color=self.program_theme["attributes_panel"]["widget_color"],
+            text_color=self.program_theme["attributes_panel"]["text_color"],
+            on_attribute_changed_callback=self._emit_attribute_changed_event
+        )
+        self.attributes_panel.frame.grid(row=0, column=1, sticky="ns")
 
         #create viewer for scrolling
         self.viewer = tk.Canvas(
@@ -256,16 +248,6 @@ class Designer:
         window_width, window_height = self._compute_initial_window_dimensions()
         self.top.geometry(f"{window_width}x{window_height}")
 
-        #create attributes panel frame
-        self.attributes_panel_frame = tk.Frame(
-            self.main_frame,
-            width=self.constants["attributes_panel"]["width"],
-            bg=self.program_theme["attributes_panel"]["color"]
-        )
-        self.attributes_panel_frame.grid(row=0, column=1, sticky="ns")
-        self.attributes_panel_frame.pack_propagate(False)   #fixed width
-        self.attributes_panel_frame.grid_propagate(False)   #fixed width
-
         #recompute when viewer's size changes
         self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
 
@@ -281,7 +263,7 @@ class Designer:
         canvas_height = self.app_state.project.height
 
         #dimensions of UI elements
-        panel_width = self.constants["attributes_panel"]["width"]
+        panel_width = self.constants["attributes_panel_width"]
         titlebar_height = self.constants["titlebar_height"]
         toolbar_height = self.constants["toolbar_height"]
         vertical_scrollbar_thickness = self.vertical_scrollbar.winfo_reqwidth()
@@ -429,9 +411,10 @@ class Designer:
 
         #show or hide the attributes panel and refresh outlines based on the selection
         if state.selection_change:
-            self._update_attributes_panel_visibility()
+            selected_models = state.get_selected_models()
+            self.attributes_panel.set_selection(selected_models)
             self.selection_view.clear_all_outlines()
-            for model in state.get_selected_models():
+            for model in selected_models:
                 self.selection_controller.update_outline_for(model)
 
         #update grid
@@ -444,17 +427,7 @@ class Designer:
             selected_models = state.get_selected_models()
 
             if len(selected_models) == 1 and selected_models[0].id == dirty_model.id:   #prevents undo and redo from refreshing the attributes panel with values from an unselected dirty model
-                self.attributes_panel_view.update_variables_from_model(dirty_model)
-
-    def _update_attributes_panel_visibility(self):
-        """update attributes panel visibility when selection changes"""
-        selected_models = self.app_state.get_selected_models()
-
-        if len(selected_models) == 1:
-            model = next(iter(selected_models))
-            self.attributes_panel_controller.refresh(model)
-        else:
-            self.attributes_panel_controller.clear()
+                self.attributes_panel.update_variables_from_model(dirty_model)
 
     def _initial_render(self):
         for model in self.app_state.get_all_models():
@@ -581,7 +554,7 @@ class Designer:
         #update spinbox limits
         if attribute in ("anchor", "width", "height"):
             model = self.app_state.get_model_from_model_id(model_id)
-            self.attributes_panel_controller.update_spinbox_limits(model)
+            self.attributes_panel.update_spinbox_limits_from_model(model)
 
     def _emit_attribute_changed_event(self, model_id: str, attribute: str, value):
         """emit an event for attribute changes originating from the attributes panel"""
