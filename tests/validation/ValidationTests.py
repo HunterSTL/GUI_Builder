@@ -1,7 +1,6 @@
 import tkinter as tk
 from model import ProjectDocument, LabelWidgetData, BaseWidgetData
 from view import WidgetView
-from controller import WidgetController
 from components import AttributesPanel
 from events import EventBus
 from utility import WidgetType, Geometry
@@ -30,7 +29,6 @@ designer = Designer(
 
 app_state: AppState = designer.app_state
 widget_view: WidgetView = designer.widget_view
-widget_controller: WidgetController = designer.widget_controller
 attributes_panel: AttributesPanel = designer.attributes_panel
 event_bus = EventBus()
 
@@ -124,20 +122,6 @@ def test_compute_spinbox_limits_unsupported_attribute():
 
     #compute spinbox limits for an unsupported attribute
     attributes_panel._compute_spinbox_limits(model, "UNSUPPORTED ATTRIBUTE")
-
-#WidgetController tests-------------------------------------------------------------------------------------------------
-def test_update_text_missing_widget():
-    model = LabelWidgetData(x=0, y=0, anchor="sw", width=50, height=20)
-    model.id = "label_1"
-
-    try:
-        app_state.add_model(model)
-        widget_view.delete_widget_for(model.id)
-        #update the text of a widget that doesn't exist
-        widget_controller.update_widget_attribute(model.id, "text", "value")
-    finally:
-        #restore AppState so other tests are not affected
-        app_state.remove_model(model)
 
 #EventBus tests---------------------------------------------------------------------------------------------------------
 def test_subscribe_uncallable_to_event_bus():
@@ -344,10 +328,6 @@ ATTRIBUTES_PANEL_TESTS = {
     "Computing spinbox limits for an unsupported attribute": test_compute_spinbox_limits_unsupported_attribute
 }
 
-WIDGET_CONTROLLER_TESTS = {
-    "Updating the text of a widget that doesn't exist": test_update_text_missing_widget
-}
-
 EVENT_BUS_TESTS = {
     "Subscribing uncallable to EventBus": test_subscribe_uncallable_to_event_bus,
     "Failing handler execution": test_fail_handler_execution
@@ -385,7 +365,6 @@ TEST_GROUPS = {
     "AppState": APP_STATE_TESTS,
     "WidgetActions": WIDGET_ACTIONS_TESTS,
     "AttributesPanelController": ATTRIBUTES_PANEL_TESTS,
-    "WidgetController": WIDGET_CONTROLLER_TESTS,
     "EventBus": EVENT_BUS_TESTS,
     "ProjectDocument": PROJECT_DOCUMENT_TESTS,
     "WidgetModels": WIDGET_MODELS_TESTS,

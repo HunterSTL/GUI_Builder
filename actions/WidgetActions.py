@@ -1,12 +1,19 @@
+from copy import copy
 from collections.abc import Callable
 from model import BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData
-from commands import CommandStack, MoveWidgets, MoveWidgetsTo, SnapWidgetsToGrid, AlignWidgets, AddWidget
+from commands import CommandStack, MoveWidgets, MoveWidgetsTo, SnapWidgetsToGrid, AlignWidgets, AddWidget, EditWidget
 from utility import Direction, Edge, WidgetType, clamped_delta, allowed_x_range, allowed_y_range, clamp
 from AppState import AppState
 
 class WidgetActions:
     """
-    Encapsulates the editor's widget semantics: nudge, drag (start, apply delta, commit), snap to grid and align.
+    Encapsulates the editor's widget semantics:
+        *nudge
+        *drag (start, apply delta, commit)
+        *snap to grid
+        *align
+        *add
+        *edit (start, apply attribute change, commit)
 
     This class uses AppState for model access and mutation and a CommandStack for undo and redo support.
     """
@@ -21,7 +28,11 @@ class WidgetActions:
         self._measure_preview_widget_callback = measure_preview_widget_callback
 
         self._active_drag_command: MoveWidgetsTo | None = None              #MoveWidgetsTo command used for live dragging
-        self._active_drag_models: tuple[BaseWidgetData, ...] | None = None  #models used for bounding box lookup during live dragging
+        self._active_drag_models: tuple[BaseWidgetData, ...] | None = None  #live reference to models used for bounding box lookup during live dragging
+
+        self._active_edit_command: EditWidget | None = None                 #EditWidget command used for attribute edits
+        self._active_edit_model: BaseWidgetData | None = None               #live reference to the model being edited
+
 
     def nudge(self, direction: Direction, amount: int):
         """nudge selected widgets in the given direction by a fixed amount"""
@@ -97,16 +108,14 @@ class WidgetActions:
         if not cmd:
             return
 
-        if cmd and cmd.has_effect():
-            #record final widget positions
+        try:
             cmd.record_final_positions()
 
-            #execute the actual command
-            self._command_stack.execute(cmd)
-
-        #reset active_drag_models and active_widget_drag_command
-        self._active_drag_models = None
-        self._active_drag_command = None
+            if cmd.has_effect():
+                self._command_stack.execute(cmd)
+        finally:
+            self._active_drag_models = None
+            self._active_drag_command = None
 
     def snap_to_grid(self):
         """snap selected widgets to the nearest in bound grid positions"""
@@ -158,7 +167,7 @@ class WidgetActions:
 
         if widget_type == WidgetType.LABEL:
             if text is None:
-                raise ValueError("WidgetActions - widget creation failed: missing required label text")
+                raise ValueError("WidgetActions - label creation failed: missing required attribute \"text\"")
 
             model = LabelWidgetData(
                 x=coordinates[0],
@@ -176,7 +185,7 @@ class WidgetActions:
             )
         elif widget_type == WidgetType.BUTTON:
             if text is None:
-                raise ValueError("WidgetActions - widget creation failed: missing required button text")
+                raise ValueError("WidgetActions - button creation failed: missing required attribute \"text\"")
 
             model = ButtonWidgetData(
                 x=coordinates[0],
@@ -203,3 +212,95 @@ class WidgetActions:
         )
 
         self._command_stack.execute(cmd)
+
+    def start_edit(self) -> None:
+        """create EditWidget command to snapshot original attribute values if one widget is selected"""
+        if self._active_edit_command is not None:
+            return
+
+        #query selection
+        selected_models = self._app_state.get_selected_models()
+        if len(selected_models) != 1:
+            return
+
+        #store model used for dimension recomputation on text changes
+        self._active_edit_model = selected_models[0]
+
+        #create EditWidget command to snapshot original attribute values
+        self._active_edit_command = EditWidget(
+            model=selected_models[0],
+            app_state=self._app_state
+        )
+
+    def apply_attribute_change(self, attribute: str, value: str | int) -> None:
+        """apply attribute changes to the selected widget"""
+        if self._active_edit_command is None or self._active_edit_model is None:
+            return
+
+        if attribute == "text":     #text updates require measurement to update model dimensions
+            #compute new dimensions
+            measurement_model = copy(self._active_edit_model)
+            measurement_model.text = value
+            width, height = self._measure_preview_widget_callback(measurement_model)
+
+            #compute allowed x and y range and clamp model coordinates
+            min_x, max_x = allowed_x_range(self._app_state.project.width, width, self._active_edit_model.anchor)
+            min_y, max_y = allowed_y_range(self._app_state.project.height, height, self._active_edit_model.anchor)
+            x = clamp(self._active_edit_model.x, min_x, max_x)
+            y = clamp(self._active_edit_model.y, min_y, max_y)
+
+            attribute_changes = {
+                "text": value,
+                "width": width,
+                "height": height,
+                "x": x,
+                "y": y
+            }
+        elif attribute == "width":  #width updates require recomputation of allowed x range
+            min_x, max_x = allowed_x_range(self._app_state.project.width, value, self._active_edit_model.anchor)
+            x = clamp(self._active_edit_model.x, min_x, max_x)
+
+            attribute_changes = {
+                "width": value,
+                "x": x
+            }
+        elif attribute == "height": #height updates require recomputation of allowed y range
+            min_y, max_y = allowed_y_range(self._app_state.project.height, value, self._active_edit_model.anchor)
+            y = clamp(self._active_edit_model.y, min_y, max_y)
+
+            attribute_changes = {
+                "height": value,
+                "y": y
+            }
+        elif attribute == "anchor": #anchor updates require recomputation of allowed x and y range
+            min_x, max_x = allowed_x_range(self._app_state.project.width, self._active_edit_model.width, value)
+            min_y, max_y = allowed_y_range(self._app_state.project.height, self._active_edit_model.height, value)
+            x = clamp(self._active_edit_model.x, min_x, max_x)
+            y = clamp(self._active_edit_model.y, min_y, max_y)
+
+            attribute_changes = {
+                "anchor": value,
+                "x": x,
+                "y": y
+            }
+        else:
+            attribute_changes = {
+                attribute: value
+            }
+
+        self._active_edit_command.apply_attribute_changes(attribute_changes)
+
+    def commit_edit(self) -> None:
+        """commit the attribute edit"""
+        cmd = self._active_edit_command
+        if not cmd:
+            return
+
+        try:
+            cmd.record_final_snapshot()
+
+            if cmd.has_effect():
+                self._command_stack.execute(cmd)
+        finally:
+            self._active_edit_model = None
+            self._active_edit_command = None

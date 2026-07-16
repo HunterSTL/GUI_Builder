@@ -20,7 +20,7 @@ class AttributesPanel:
         panel_color: str,
         widget_color: str,
         text_color: str,
-        on_attribute_changed_callback
+        on_attribute_panel_edit_callback
     ) -> None:
         """initialize the panel layout, styling and registries"""
         self._canvas_width = canvas_width
@@ -29,12 +29,12 @@ class AttributesPanel:
         self._panel_color = panel_color
         self._widget_color = widget_color
         self._text_color = text_color
-        self._on_attribute_changed_callback = on_attribute_changed_callback
+        self._on_attribute_panel_edit_callback = on_attribute_panel_edit_callback
 
-        self._spinboxes: dict[str, tk.Spinbox] = {}
         self._variables: dict[str, tk.Variable] = {}
-        self._active_model_id: str | None = None
-        self._silent_model: bool = False
+        self._spinboxes: dict[str, tk.Spinbox] = {}
+        self._silent_mode: bool = False
+        self._edit_in_progress: bool = False
 
         self._frame = tk.Frame(
             parent,
@@ -101,42 +101,22 @@ class AttributesPanel:
         """build the panel when exactly one widget is selected, otherwise clear the panel"""
         if len(selection) == 1:
             model = selection[0]
-            self._active_model_id = model.id
             self._build(model)
         else:
-            self._active_model_id = None
             self._clear()
 
-    def update_variables_from_model(self, model: BaseWidgetData) -> None:
-        """update variable values from the model"""
-        self._silent_model = True
+    def refresh_from_model(self, model: BaseWidgetData) -> None:
+        """refresh the panel from the model by updating variable values and spinbox limits without producing user edit events"""
+        self._silent_mode = True
         try:
-            for attribute, variable in self._variables.items():
-                try:
-                    variable.set(getattr(model, attribute))
-                except Exception:
-                    variable.set(str(getattr(model, attribute)))
+            self._update_variables_from_model(model)
+            self._update_spinbox_limits_from_model(model)
         finally:    #ensures silent mode is reset even if an error occurs
-            self._silent_model = False
+            self._silent_mode = False
 
-    def update_spinbox_limits_from_model(self, model: BaseWidgetData) -> None:
-        """update spinbox limits from the model"""
-        spinbox_limits = {}
-
-        if "x" in self._spinboxes:
-            spinbox_limits["x"] = self._compute_spinbox_limits(model, "x")
-        if "y" in self._spinboxes:
-            spinbox_limits["y"] = self._compute_spinbox_limits(model, "y")
-
-        for attribute, (min_value, max_value) in spinbox_limits.items():
-            self._spinboxes[attribute].config(  #tk normally clamps out of range values and the configuration of the spinbox causes the correction to propagate to the model
-                from_=min_value,
-                to=max_value
-            )
-
-            if min_value == max_value:          #tk does not clamp when the range collapses to a single value
-                variable = self._variables[attribute]
-                variable.set(min_value)
+    def commit_active_edit(self) -> None:
+        """commit the active attribute edit if one is in progress"""
+        self._end_attribute_edit()
 
     #Internals----------------------------------------------------------------------------------------------------------
     def _build(self, model: BaseWidgetData) -> None:
@@ -155,11 +135,41 @@ class AttributesPanel:
             row_index += 1
 
     def _clear(self) -> None:
-        """destroy all widgets inside the frame and clear variable and spinbox mappings"""
+        """end the active edit, destroy all widgets inside the frame and clear variable and spinbox mappings"""
+        self._end_attribute_edit()
+
         for widget in self._frame.winfo_children():
             widget.destroy()
+
         self._variables.clear()
         self._spinboxes.clear()
+
+    def _update_variables_from_model(self, model: BaseWidgetData) -> None:
+        """update variable values from the model"""
+        for attribute, variable in self._variables.items():
+            try:
+                variable.set(getattr(model, attribute))
+            except Exception:
+                variable.set(str(getattr(model, attribute)))
+
+    def _update_spinbox_limits_from_model(self, model: BaseWidgetData) -> None:
+        """update spinbox limits from the model"""
+        spinbox_limits = {}
+
+        if "x" in self._spinboxes:
+            spinbox_limits["x"] = self._compute_spinbox_limits(model, "x")
+        if "y" in self._spinboxes:
+            spinbox_limits["y"] = self._compute_spinbox_limits(model, "y")
+
+        for attribute, (min_value, max_value) in spinbox_limits.items():
+            self._spinboxes[attribute].config(
+                from_=min_value,
+                to=max_value
+            )
+
+            if min_value == max_value:  #tk does not automatically clamp when the range collapses to a single value
+                variable = self._variables[attribute]
+                variable.set(min_value)
 
     def _compute_spinbox_limits(self, model: BaseWidgetData, attribute: str) -> tuple[int, int]:
         """return numeric minimum and maximum values of the spinbox for a given attribute"""
@@ -204,7 +214,7 @@ class AttributesPanel:
         ).grid(column=0, row=row, sticky="W")
 
     def _create_label(self, model: BaseWidgetData, attribute: str, row: int) -> None:
-        """create a static text label for read-only attributes"""
+        """create a static text label for read only attributes"""
         tk.Label(
             self._frame,
             text=getattr(model, attribute),
@@ -215,13 +225,15 @@ class AttributesPanel:
     def _create_entry(self, model: BaseWidgetData, attribute: str, row: int) -> None:
         """create a text entry for string attributes"""
         variable = tk.StringVar(value=str(getattr(model, attribute)))
-        tk.Entry(
+        entry = tk.Entry(
             self._frame,
             bg=self._widget_color,
             fg=self._text_color,
             width=18,
             textvariable=variable
-        ).grid(column=1, row=row)
+        )
+        entry.grid(column=1, row=row)
+        entry.bind("<FocusOut>", lambda *_: self._end_attribute_edit())
 
         self._bind_variable(attribute, variable)
 
@@ -251,6 +263,8 @@ class AttributesPanel:
             wrap=False
         )
         spinbox.grid(column=1, row=row, sticky="W")
+        spinbox.bind("<FocusOut>", lambda *_: self._end_attribute_edit())
+        spinbox.bind("<Leave>", lambda *_: self._end_attribute_edit())  #arrow button clicks do not trigger focus events
 
         self._spinboxes[attribute] = spinbox    #store spinbox so the limits can be adjusted later if size or anchor change
         self._bind_variable(attribute, variable)
@@ -278,26 +292,58 @@ class AttributesPanel:
                 textvariable=variable
             )
             spinbox.grid(column=1, row=row, sticky="W")
+            spinbox.bind("<FocusOut>", lambda *_: self._end_attribute_edit())
+            spinbox.bind("<Leave>", lambda *_: self._end_attribute_edit())  #arrow button clicks do not trigger focus events
 
             self._bind_variable(attribute, variable)
 
     #Propagation--------------------------------------------------------------------------------------------------------
     def _bind_variable(self, attribute: str, variable: tk.Variable) -> None:
         """bind tk.Variable writes to a callback so attribute changes can propagate to the model"""
-        def _on_write(*_):
-            if self._silent_model:
+        self._variables[attribute] = variable
+        variable.trace_add(
+            "write",
+            lambda *_, attr=attribute, var=variable: self._handle_attribute_edit(attr, var)
+        )
+
+    def _start_attribute_edit(self) -> None:
+        """start an edit if one is not already in progress"""
+        if self._edit_in_progress:
+            return
+
+        self._edit_in_progress = True
+        self._on_attribute_panel_edit_callback(
+            phase="start"
+        )
+
+    def _handle_attribute_edit(self, attribute: str, variable: tk.Variable) -> None:
+        """propagate live changes to the model"""
+        if self._silent_mode:           #prevents propagating variable writes back to the model when refreshing the panel from the model
+            return
+
+        if not self._edit_in_progress:  #allows the first write to start the edit because spinbox button presses don't trigger FocusIn
+            self._start_attribute_edit()
+
+        value = variable.get()
+
+        if attribute in ["x", "y", "width", "height"]:
+            try:
+                value = int(value)
+            except ValueError:
                 return
 
-            value = variable.get()
+        self._on_attribute_panel_edit_callback(
+            phase="apply_change",
+            attribute=attribute,
+            value=value
+        )
 
-            if attribute in ["x", "y", "width", "height"]:
-                try:
-                    value = int(value)
-                except ValueError:
-                    return
+    def _end_attribute_edit(self) -> None:
+        """commit the active attribute edit if one is in progress"""
+        if not self._edit_in_progress:
+            return
 
-            #invoke callback to forward attribute changes
-            self._on_attribute_changed_callback(self._active_model_id, attribute, value)
-
-        self._variables[attribute] = variable
-        variable.trace_add("write", _on_write)
+        self._edit_in_progress = False
+        self._on_attribute_panel_edit_callback(
+            phase="commit"
+        )

@@ -98,7 +98,7 @@ After a `set_model_attribute` call (e.g. changing text from the panel), `dirty_m
 
 ---
 
-## 12. `WidgetController.update_widget_attribute` bypasses the command stack
+## 12. [Done] `WidgetController.update_widget_attribute` bypasses the command stack
 
 Attribute changes from the attributes panel call `WidgetController.update_widget_attribute`, which calls `app_state.set_model_attribute` directly. These changes are not wrapped in a `Command` and are therefore not undoable. The user can undo a drag (MoveWidgets) but cannot undo a color change or text change made via the panel. This is a significant usability gap.
 
@@ -164,7 +164,7 @@ The threshold of 10 is hardcoded with no explanation or constant. This means wit
 
 ---
 
-## 19. The `attribute.changed` event namespace is missing from the allowed namespaces
+## 19. [Done] The `attribute.changed` event namespace is missing from the allowed namespaces
 
 The conventions document lists these allowed namespaces: `app.*`, `project.*`, `selection.*`, `edit.*`, `widget.*`, `grid.*`, `debug.*`. The event `attribute.changed` is subscribed in `Designer._subscribe_functions_to_events` but `attribute` is not a defined namespace. The `EventRouter` routes it to the designer bus (correct), but it violates the namespace contract in the conventions.
 

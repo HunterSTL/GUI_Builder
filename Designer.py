@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
 from model import ProjectDocument
 from view import CanvasView, SelectionView, ToolbarView, WidgetView
-from controller import CanvasController, SelectionController, ToolbarController, WidgetController
+from controller import CanvasController, SelectionController, ToolbarController
 from components import AttributesPanel
 from events import EventBus, EventRouter
 from actions import Actions, EditActions, WidgetActions
@@ -111,12 +111,6 @@ class Designer:
             canvas=self.canvas
         )
 
-        #create WidgetController to handle widget mutations-------------------------------------------------------------
-        self.widget_controller = WidgetController(
-            app_state=self.app_state,
-            widget_view=self.widget_view
-        )
-
         #create ToolbarView to provide the API for building the toolbar-------------------------------------------------
         self.toolbar_view = ToolbarView(
             parent=self.top,
@@ -140,7 +134,8 @@ class Designer:
             app_state=self.app_state,
             command_stack=self.command_stack,
             clipboard=self.clipboard,
-            confirm_delete_callback=self._confirm_delete
+            confirm_delete_callback=self._confirm_delete,
+            commit_active_attributes_panel_edit_callback=self._commit_active_attributes_panel_edit
         )
 
         #create WidgetActions to provide widget semantics (nudge, drag, snap to grid, align)---------------------------
@@ -213,7 +208,7 @@ class Designer:
             panel_color=self.program_theme["attributes_panel"]["color"],
             widget_color=self.program_theme["attributes_panel"]["widget_color"],
             text_color=self.program_theme["attributes_panel"]["text_color"],
-            on_attribute_changed_callback=self._emit_attribute_changed_event
+            on_attribute_panel_edit_callback=self._handle_attribute_panel_edit_phase
         )
         self.attributes_panel.frame.grid(row=0, column=1, sticky="ns")
 
@@ -421,13 +416,13 @@ class Designer:
         if state.grid_change:
             self.canvas_controller.render_grid()
 
-        #update attributes panel values if the single selected model changed
+        #refresh attributes panel if the single selected model changed
         if len(dirty_models) == 1:
             dirty_model = dirty_models[0]
             selected_models = state.get_selected_models()
 
             if len(selected_models) == 1 and selected_models[0].id == dirty_model.id:   #prevents undo and redo from refreshing the attributes panel with values from an unselected dirty model
-                self.attributes_panel.update_variables_from_model(dirty_model)
+                self.attributes_panel.refresh_from_model(dirty_model)
 
     def _initial_render(self):
         for model in self.app_state.get_all_models():
@@ -498,12 +493,19 @@ class Designer:
 
         #widget events
         self.designer_event_bus.subscribe("widget.nudge", self.actions.widget.nudge)
-        self.designer_event_bus.subscribe("widget.drag.start", self.actions.widget.start_drag)
-        self.designer_event_bus.subscribe("widget.drag.apply_delta", self.actions.widget.apply_drag_delta)
-        self.designer_event_bus.subscribe("widget.drag.commit", self.actions.widget.commit_drag)
         self.designer_event_bus.subscribe("widget.snap_to_grid", self.actions.widget.snap_to_grid)
         self.designer_event_bus.subscribe("widget.align", self.actions.widget.align)
         self.designer_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
+
+        #widget drag lifecycle events
+        self.designer_event_bus.subscribe("widget.drag.start", self.actions.widget.start_drag)
+        self.designer_event_bus.subscribe("widget.drag.apply_delta", self.actions.widget.apply_drag_delta)
+        self.designer_event_bus.subscribe("widget.drag.commit", self.actions.widget.commit_drag)
+
+        #widget edit lifecycle events
+        self.designer_event_bus.subscribe("widget.edit.start", self.actions.widget.start_edit)
+        self.designer_event_bus.subscribe("widget.edit.apply_change", self.actions.widget.apply_attribute_change)
+        self.designer_event_bus.subscribe("widget.edit.commit", self.actions.widget.commit_edit)
 
         #grid events
         self.designer_event_bus.subscribe("grid.toggle", self._toggle_grid)
@@ -519,9 +521,6 @@ class Designer:
         self.designer_event_bus.subscribe("debug.print_selection", self._print_selection)
         self.designer_event_bus.subscribe("debug.print_bounding_boxes", self._print_bounding_boxes)
         self.designer_event_bus.subscribe("debug.print_id_counters", self._print_id_counters)
-
-        #attribute events
-        self.designer_event_bus.subscribe("attribute.changed", self._handle_attribute_panel_change)
 
     #Domain logic-------------------------------------------------------------------------------------------------------
     def _request_add_widget_from_context_menu(self, widget_type: WidgetType):
@@ -543,27 +542,20 @@ class Designer:
             text=text
         )
 
-    def _handle_attribute_panel_change(self, model_id: str, attribute: str, value):
-        """handle an attribute change from the attributes panel by updating the model and spinbox limits"""
-        if model_id is None:
-            return
+    def _handle_attribute_panel_edit_phase(self, phase: str, **kwargs) -> None:
+        """handle an attributes panel edit phase by emitting the corresponding widget edit lifecycle event"""
+        if phase == "start":
+            self.event_router.emit("widget.edit.start")
+        elif phase == "apply_change":
+            self.event_router.emit("widget.edit.apply_change", **kwargs)
+        elif phase == "commit":
+            self.event_router.emit("widget.edit.commit")
+        else:
+            raise ValueError(f"Designer - attribute panel edit failed: unsupported edit phase \"{phase}\"")
 
-        #apply change to the model through WidgetController
-        self.widget_controller.update_widget_attribute(model_id, attribute, value)  #handles special cases requiring measurement from the rendered widget (text updates → dimension recomputation)
-
-        #update spinbox limits
-        if attribute in ("anchor", "width", "height"):
-            model = self.app_state.get_model_from_model_id(model_id)
-            self.attributes_panel.update_spinbox_limits_from_model(model)
-
-    def _emit_attribute_changed_event(self, model_id: str, attribute: str, value):
-        """emit an event for attribute changes originating from the attributes panel"""
-        self.event_router.emit(
-            "attribute.changed",
-            model_id=model_id,
-            attribute=attribute,
-            value=value
-        )
+    def _commit_active_attributes_panel_edit(self) -> None:
+        """commit the active attributes panel edit if one is in progress"""
+        self.attributes_panel.commit_active_edit()
 
     #Internals----------------------------------------------------------------------------------------------------------
     def _create_context_menu(self):
