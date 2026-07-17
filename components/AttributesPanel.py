@@ -147,10 +147,7 @@ class AttributesPanel:
     def _update_variables_from_model(self, model: BaseWidgetData) -> None:
         """update variable values from the model"""
         for attribute, variable in self._variables.items():
-            try:
-                variable.set(getattr(model, attribute))
-            except Exception:
-                variable.set(str(getattr(model, attribute)))
+            variable.set(str(getattr(model, attribute)))
 
     def _update_spinbox_limits_from_model(self, model: BaseWidgetData) -> None:
         """update spinbox limits from the model"""
@@ -169,7 +166,7 @@ class AttributesPanel:
 
             if min_value == max_value:  #tk does not automatically clamp when the range collapses to a single value
                 variable = self._variables[attribute]
-                variable.set(min_value)
+                variable.set(str(min_value))
 
     def _compute_spinbox_limits(self, model: BaseWidgetData, attribute: str) -> tuple[int, int]:
         """return numeric minimum and maximum values of the spinbox for a given attribute"""
@@ -225,6 +222,7 @@ class AttributesPanel:
     def _create_entry(self, model: BaseWidgetData, attribute: str, row: int) -> None:
         """create a text entry for string attributes"""
         variable = tk.StringVar(value=str(getattr(model, attribute)))
+
         entry = tk.Entry(
             self._frame,
             bg=self._widget_color,
@@ -279,23 +277,38 @@ class AttributesPanel:
         ).grid(column=1, row=row, sticky="W")
 
     def _create_combobox(self, model: BaseWidgetData, attribute: str, row: int) -> None:
-        """create a combobox for enumerated attributes"""
+        """create a menu based selector for enumerated attributes"""
         if attribute == "anchor":
             variable = tk.StringVar(value=str(getattr(model, attribute)))
-            spinbox = tk.Spinbox(
+            menu_button = tk.Menubutton(
                 self._frame,
-                values=("n", "ne", "e", "se", "s", "sw", "w", "nw", "center"),
-                width=6,
+                textvariable=variable,
                 bg=self._widget_color,
                 fg=self._text_color,
-                buttonbackground=self._widget_color,
-                textvariable=variable
+                relief="raised",
+                width=5
             )
-            spinbox.grid(column=1, row=row, sticky="W")
-            spinbox.bind("<FocusOut>", lambda *_: self._end_attribute_edit())
-            spinbox.bind("<Leave>", lambda *_: self._end_attribute_edit())  #arrow button clicks do not trigger focus events
+            menu = tk.Menu(
+                menu_button,
+                bg=self._widget_color,
+                fg=self._text_color,
+                tearoff=0
+            )
+            menu_button.config(menu=menu)
+            menu_button.grid(column=1, row=row, pady=2, sticky="W")
+
+            for anchor in ["n", "ne", "e", "se", "s", "sw", "w", "nw", "center"]:
+                menu.add_command(
+                    label=anchor,
+                    command=lambda value=anchor: self._handle_combobox_selection(
+                        variable=variable,
+                        value=value
+                    )
+                )
 
             self._bind_variable(attribute, variable)
+        else:
+            raise ValueError(f"AttributesPanel - combobox creation failed: unsupported attribute \"{attribute}\"")
 
     #Propagation--------------------------------------------------------------------------------------------------------
     def _bind_variable(self, attribute: str, variable: tk.Variable) -> None:
@@ -321,8 +334,7 @@ class AttributesPanel:
         if self._silent_mode:           #prevents propagating variable writes back to the model when refreshing the panel from the model
             return
 
-        if not self._edit_in_progress:  #allows the first write to start the edit because spinbox button presses don't trigger FocusIn
-            self._start_attribute_edit()
+        self._start_attribute_edit()
 
         value = variable.get()
 
@@ -347,3 +359,12 @@ class AttributesPanel:
         self._on_attribute_panel_edit_callback(
             phase="commit"
         )
+
+    def _handle_combobox_selection(self, variable: tk.Variable, value: str) -> None:
+        """apply a combobox selection as a complete edit"""
+        if value == variable.get():
+            return
+
+        self._start_attribute_edit()
+        variable.set(value)
+        self._end_attribute_edit()
