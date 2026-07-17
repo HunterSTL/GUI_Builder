@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import colorchooser
 from model import BaseWidgetData
 from utility import allowed_x_range, allowed_y_range, WidgetType
 
@@ -33,6 +34,7 @@ class AttributesPanel:
 
         self._variables: dict[str, tk.Variable] = {}
         self._spinboxes: dict[str, tk.Spinbox] = {}
+        self._colorpickers: dict[str, tk.Button] = {}
         self._silent_mode: bool = False
         self._edit_in_progress: bool = False
 
@@ -106,11 +108,12 @@ class AttributesPanel:
             self._clear()
 
     def refresh_from_model(self, model: BaseWidgetData) -> None:
-        """refresh the panel from the model by updating variable values and spinbox limits without producing user edit events"""
+        """refresh the panel from the model by updating variable values, spinbox limits and colorpicker previews without producing user edit events"""
         self._silent_mode = True
         try:
             self._update_variables_from_model(model)
             self._update_spinbox_limits_from_model(model)
+            self._update_colorpicker_previews_from_model(model)
         finally:    #ensures silent mode is reset even if an error occurs
             self._silent_mode = False
 
@@ -135,7 +138,7 @@ class AttributesPanel:
             row_index += 1
 
     def _clear(self) -> None:
-        """end the active edit, destroy all widgets inside the frame and clear variable and spinbox mappings"""
+        """end the active edit, destroy all widgets inside the frame and clear editor mappings"""
         self._end_attribute_edit()
 
         for widget in self._frame.winfo_children():
@@ -143,6 +146,7 @@ class AttributesPanel:
 
         self._variables.clear()
         self._spinboxes.clear()
+        self._colorpickers.clear()
 
     def _update_variables_from_model(self, model: BaseWidgetData) -> None:
         """update variable values from the model"""
@@ -164,9 +168,14 @@ class AttributesPanel:
                 to=max_value
             )
 
-            if min_value == max_value:  #tk does not automatically clamp when the range collapses to a single value
+            if min_value == max_value:  #tk does not clamp when the range collapses to a single value
                 variable = self._variables[attribute]
                 variable.set(str(min_value))
+
+    def _update_colorpicker_previews_from_model(self, model: BaseWidgetData) -> None:
+        """update the colorpicker previews from the model"""
+        for attribute, colorpicker in self._colorpickers.items():
+            colorpicker.config(bg=getattr(model, attribute))
 
     def _compute_spinbox_limits(self, model: BaseWidgetData, attribute: str) -> tuple[int, int]:
         """return numeric minimum and maximum values of the spinbox for a given attribute"""
@@ -199,6 +208,18 @@ class AttributesPanel:
         max_value = spinbox.cget("to")
         return min_value <= value <= max_value
 
+    def _change_color(self, variable: tk.Variable) -> None:
+        """prompt for a color then apply it as a complete edit"""
+        _, color = colorchooser.askcolor(
+            color=variable.get(),
+            parent=self._frame.winfo_toplevel() #disables interaction with the designer while the dialog is shown
+        )
+
+        if color is None:
+            return
+
+        self._apply_complete_edit(variable, color)
+
     #Widgets------------------------------------------------------------------------------------------------------------
     def _create_display_name_label(self, attribute: str, row: int) -> None:
         """create a display name label for an attribute in the left column"""
@@ -222,7 +243,6 @@ class AttributesPanel:
     def _create_entry(self, model: BaseWidgetData, attribute: str, row: int) -> None:
         """create a text entry for string attributes"""
         variable = tk.StringVar(value=str(getattr(model, attribute)))
-
         entry = tk.Entry(
             self._frame,
             bg=self._widget_color,
@@ -264,17 +284,26 @@ class AttributesPanel:
         spinbox.bind("<FocusOut>", lambda *_: self._end_attribute_edit())
         spinbox.bind("<Leave>", lambda *_: self._end_attribute_edit())  #arrow button clicks do not trigger focus events
 
-        self._spinboxes[attribute] = spinbox    #store spinbox so the limits can be adjusted later if size or anchor change
+        self._spinboxes[attribute] = spinbox    #store spinbox so its limits can be adjusted when size or anchor change
         self._bind_variable(attribute, variable)
 
     def _create_colorpicker(self, model: BaseWidgetData, attribute: str, row: int) -> None:
-        """create a color preview box for color attributes (not fully implemented)"""
-        tk.Label(
-            self._frame,
-            bg=getattr(model, attribute),
-            width=5,
-            relief="raised"
-        ).grid(column=1, row=row, sticky="W")
+        """create a button with color preview for color attributes"""
+        if attribute in ["bg", "fg"]:
+            variable = tk.StringVar(value=str(getattr(model, attribute)))
+            colorpicker = tk.Button(
+                self._frame,
+                bg=getattr(model, attribute),
+                relief="raised",
+                width=3,
+                command=lambda: self._change_color(variable)
+            )
+            colorpicker.grid(column=1, row=row, pady=2, sticky="W")
+
+            self._colorpickers[attribute] = colorpicker #store colorpicker so its preview can be updated
+            self._bind_variable(attribute, variable)
+        else:
+            raise ValueError(f"AttributesPanel - colorpicker creation failed: unsupported attribute \"{attribute}\"")
 
     def _create_combobox(self, model: BaseWidgetData, attribute: str, row: int) -> None:
         """create a menu based selector for enumerated attributes"""
@@ -300,7 +329,7 @@ class AttributesPanel:
             for anchor in ["n", "ne", "e", "se", "s", "sw", "w", "nw", "center"]:
                 menu.add_command(
                     label=anchor,
-                    command=lambda value=anchor: self._handle_combobox_selection(
+                    command=lambda value=anchor: self._apply_complete_edit(
                         variable=variable,
                         value=value
                     )
@@ -313,11 +342,11 @@ class AttributesPanel:
     #Propagation--------------------------------------------------------------------------------------------------------
     def _bind_variable(self, attribute: str, variable: tk.Variable) -> None:
         """bind tk.Variable writes to a callback so attribute changes can propagate to the model"""
+        def handle_write(_name: str, _index: str, _mode: str) -> None:
+            self._handle_attribute_edit(attribute, variable)
+
         self._variables[attribute] = variable
-        variable.trace_add(
-            "write",
-            lambda *_, attr=attribute, var=variable: self._handle_attribute_edit(attr, var)
-        )
+        variable.trace_add("write", handle_write)
 
     def _start_attribute_edit(self) -> None:
         """start an edit if one is not already in progress"""
@@ -360,8 +389,8 @@ class AttributesPanel:
             phase="commit"
         )
 
-    def _handle_combobox_selection(self, variable: tk.Variable, value: str) -> None:
-        """apply a combobox selection as a complete edit"""
+    def _apply_complete_edit(self, variable: tk.Variable, value: str) -> None:
+        """apply a value using the complete edit lifecycle"""
         if value == variable.get():
             return
 

@@ -104,7 +104,7 @@ Attribute changes from the attributes panel call `WidgetController.update_widget
 
 ---
 
-## 13. Color picker in `AttributesPanelView.create_colorpicker` is a static label, not interactive
+## 13. [Done] Color picker in `AttributesPanelView.create_colorpicker` is a static label, not interactive
 
 The method is named `create_colorpicker` and the `AttributesPanelController` routes `"colorpicker"` attributes (bg, fg) to it, but it only creates a `tk.Label` showing the current color with no click handler. Colors cannot be changed from the panel at all. The only way to set initial colors is in the SetupWizard. The comment in the code itself says "not fully implemented."
 
