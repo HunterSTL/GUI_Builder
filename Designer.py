@@ -438,7 +438,13 @@ class Designer:
     def _change_grid_size(self):
         """prompt for and apply a new grid size"""
         #prompt for new grid size
-        new_grid_size = simpledialog.askinteger("Grid size", "Enter new grid size:", minvalue=5, maxvalue=100, parent=self.parent)
+        new_grid_size = simpledialog.askinteger(
+            "Grid size",
+            "Enter new grid size:",
+            minvalue=5,
+            maxvalue=100,
+            parent=self.top
+        )
         if new_grid_size is None:
             return
 
@@ -447,7 +453,7 @@ class Designer:
 
     def _change_grid_color(self):
         """prompt for and apply a new grid color"""
-        color = colorchooser.askcolor()[1]
+        color = colorchooser.askcolor(parent=self.top)[1]
 
         #abort if user didn't select a color
         if color is None:

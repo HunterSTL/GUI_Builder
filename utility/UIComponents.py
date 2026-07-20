@@ -1,17 +1,21 @@
+import os
 import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk
 from typing import Union
 
-def load_icon(path: str, size: tuple[int, int]):
-    import os
-    from PIL import Image, ImageTk
-    from tkinter import messagebox
+def load_icon(path: str, size: tuple[int, int], parent: tk.Misc | None = None) -> ImageTk.PhotoImage | None:
     try:
         if path and os.path.exists(path):
             icon = Image.open(path).convert("RGBA")
             icon = icon.resize(size, Image.Resampling.LANCZOS)
             return ImageTk.PhotoImage(icon)
     except Exception as e:
-        messagebox.showerror("File error", f"File not supported: {e}")
+        messagebox.showerror(
+            "File error",
+            f"File not supported: {e}",
+            parent=parent
+        )
         return None
 
 class CustomTitlebar:
@@ -53,7 +57,11 @@ class CustomTitlebar:
 
         #add icon
         if icon_path:
-            self.icon = load_icon(icon_path, (20, 20))
+            self.icon = load_icon(
+                path=icon_path,
+                size=(20, 20),
+                parent=self.parent
+            )
 
             if self.icon:
                 self.icon_label = tk.Label(

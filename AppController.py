@@ -131,7 +131,11 @@ class AppController:
         if not self.designer or not self.designer.app_state.is_dirty():
             return "PROCEED"    #no unsaved changes exist
 
-        choice = messagebox.askyesnocancel("Unsaved changes", "There are still unsaved changes.\nDo you want to save them?")
+        choice = messagebox.askyesnocancel(
+            "Unsaved changes",
+            "There are still unsaved changes.\nDo you want to save them?",
+            parent=self.designer.top
+        )
 
         if choice is None:          #user pressed cancel
             return "CANCEL"
@@ -142,6 +146,10 @@ class AppController:
                 return "CANCEL"
         else:                       #user pressed discard
             return "PROCEED"
+
+    def _dialog_parent(self):
+        """return the designer window if open, otherwise the startup window, for use as a dialog parent"""
+        return self.designer.top if self.designer else self.root
 
     def new_project(self):
         """start a new project using the SetupWizard, prompting for intent when unsaved changes exist"""
@@ -178,7 +186,10 @@ class AppController:
             return
 
         #prompt for file path
-        file_path = filedialog.askopenfilename(filetypes=[("Tk user interface file", "*.tkui")])
+        file_path = filedialog.askopenfilename(
+            parent=self._dialog_parent(),
+            filetypes=[("Tk user interface file", "*.tkui")]
+        )
 
         if not file_path:
             return
@@ -201,14 +212,26 @@ class AppController:
             #launch designer
             self._launch_designer_from_project_document(project_document)
         except (ValueError, json.JSONDecodeError) as e:
-            messagebox.showerror("File error", f"Invalid or corrupted file:\n{e}")
+            messagebox.showerror(
+                "File error",
+                f"Invalid or corrupted file:\n{e}",
+                parent=self._dialog_parent()
+            )
         except OSError as e:
-            messagebox.showerror("File error", f"Could not read file:\n{e}")
+            messagebox.showerror(
+                "File error",
+                f"Could not read file:\n{e}",
+                parent=self._dialog_parent()
+            )
 
     def save_project(self) -> bool:
         """save the project to the last used .tkui file, returning True on success"""
         if not self.designer:
-            messagebox.showerror("Error", "No project is currently open.")
+            messagebox.showerror(
+                "Error",
+                "No project is currently open.",
+                parent=self._dialog_parent()
+            )
             return False
 
         #use save_project_as() on first save to prompt for save location
@@ -225,18 +248,27 @@ class AppController:
             #mark project clean
             self.designer.app_state.mark_clean()
         except Exception as e:
-            messagebox.showerror("File error", f"Could not save file:\n{self._save_path}\n\n{e}")
+            messagebox.showerror(
+                "File error",
+                f"Could not save file:\n{self._save_path}\n\n{e}",
+                parent=self._dialog_parent()
+            )
             return False
         return True
 
     def save_project_as(self) -> bool:
         """prompt for a save location and save the project as a .tkui file, returning True on success"""
         if not self.designer:
-            messagebox.showerror("Error", "No project is currently open.")
+            messagebox.showerror(
+                "Error",
+                "No project is currently open.",
+                parent=self._dialog_parent()
+            )
             return False
 
         #prompt for save location for .tkui file
         save_path = filedialog.asksaveasfilename(
+            parent=self._dialog_parent(),
             title="Save as",
             filetypes=[("Tk user interface file", "*.tkui")],
             defaultextension=".tkui",
@@ -261,7 +293,11 @@ class AppController:
             #mark project clean
             self.designer.app_state.mark_clean()
         except Exception as e:
-            messagebox.showerror("File error", f"Could not save file:\n{save_path}\n\n{e}")
+            messagebox.showerror(
+                "File error",
+                f"Could not save file:\n{save_path}\n\n{e}",
+                parent=self._dialog_parent()
+            )
             return False
         return True
 

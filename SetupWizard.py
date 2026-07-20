@@ -126,7 +126,11 @@ class SetupWizard:
         label_icon.grid(row=7, column=0, padx=5, sticky="W")
 
         self.icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
-        self.icon = load_icon(self.icon_path, (20, 20))
+        self.icon = load_icon(
+            path=self.icon_path,
+            size=(20, 20),
+            parent=self.root
+        )
         if self.icon:
             self.label_icon_preview = tk.Label(self.root, image=self.icon, bg=self.program_theme["label"]["bg"])
             self.label_icon_preview.grid(row=7, column=1, sticky="W")
@@ -145,7 +149,7 @@ class SetupWizard:
 
     #actions
     def choose_color(self, element_type: str, attribute: str):
-        color = colorchooser.askcolor()[1]
+        color = colorchooser.askcolor(parent=self.root)[1]
         if not color:
             return
 
@@ -160,12 +164,19 @@ class SetupWizard:
             example_widget.config({attribute: color})
 
     def select_icon(self):
-        file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg *.ico")])
+        file_path = filedialog.askopenfilename(
+            parent=self.root,
+            filetypes=[("Image files", "*.png *.jpg *.jpeg *.ico")]
+        )
 
         if not file_path:
             return
 
-        icon = load_icon(file_path, (20, 20))
+        icon = load_icon(
+            path=file_path,
+            size=(20, 20),
+            parent=self.root
+        )
         if icon:
             self.icon = icon
             self.icon_path = file_path
@@ -176,7 +187,11 @@ class SetupWizard:
         height_str = self.entry_window_height.get()
 
         if not width_str.isdigit() or not height_str.isdigit():
-            messagebox.showerror("Input Error", "Enter an integer value for window width and height!")
+            messagebox.showerror(
+                "Input Error",
+                "Enter an integer value for window width and height!",
+                parent=self.root
+            )
             return
 
         minimum_canvas_width = self.constants["canvas"]["min_width"]
@@ -187,10 +202,18 @@ class SetupWizard:
         height = int(height_str)
 
         if width < minimum_canvas_width or height < minimum_canvas_height:
-            messagebox.showerror("Input Error", f"Minimum canvas size: {minimum_canvas_width} x {minimum_canvas_height} pixels!")
+            messagebox.showerror(
+                "Input Error",
+                f"Minimum canvas size: {minimum_canvas_width} x {minimum_canvas_height} pixels!",
+                parent=self.root
+            )
             return
         elif width > maximum_canvas_width or height > maximum_canvas_height:
-            messagebox.showerror("Input Error", f"Maximum canvas size: {maximum_canvas_width} x {maximum_canvas_height} pixels!")
+            messagebox.showerror(
+                "Input Error",
+                f"Maximum canvas size: {maximum_canvas_width} x {maximum_canvas_height} pixels!",
+                parent=self.root
+            )
             return
 
         title = self.entry_window_title.get()
