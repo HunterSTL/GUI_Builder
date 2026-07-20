@@ -76,13 +76,13 @@ def nearest_in_bounds_grid_step(value: int, grid_size: int, min_value: int, max_
 def compute_model_bounding_box(x: int, y: int, width: int, height: int, anchor: str) -> BoundingBox:
     """compute the model's bounding box based on position, size and anchor"""
     if x is None:
-        raise ValueError(f"Geometry - computation failed: invalid x coordinate \"{x}\"")
+        raise ValueError("Geometry - computation failed: missing x coordinate")
     if y is None:
-        raise ValueError(f"Geometry - computation failed: invalid y coordinate \"{y}\"")
+        raise ValueError("Geometry - computation failed: missing y coordinate")
     if width is None:
-        raise ValueError(f"Geometry - computation failed: invalid width \"{width}\"")
+        raise ValueError("Geometry - computation failed: missing width")
     if height is None:
-        raise ValueError(f"Geometry - computation failed: invalid height \"{height}\"")
+        raise ValueError("Geometry - computation failed: missing height")
 
     if anchor == "sw":
         left, right = x, x + width

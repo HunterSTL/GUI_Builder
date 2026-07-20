@@ -243,7 +243,7 @@ A typo in menu name in `ToolbarController.build_toolbar` produces a raw `KeyErro
 
 ---
 
-## 29. `ValidationTests.py` is not a test runner — it runs at import time and has global side effects
+## 29. [Done] `ValidationTests.py` is not a test runner — it runs at import time and has global side effects
 
 The validation tests file executes `run_all_test_groups()` at module level. Importing this file triggers UI creation, a `Designer` window, and all test cases. The `test_add_model_with_missing_id` test mutates shared state without cleanup. Several tests leave behind widget state in the shared `app_state`. The file is designed to be run as a script, but its design (global `app_state`, `designer` variables at module scope) makes it fragile and impossible to integrate with a normal test runner like pytest.
 

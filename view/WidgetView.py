@@ -21,7 +21,7 @@ class WidgetView:
     def update_widget_for(self, model):
         """create or update the tk widget for the given model"""
         if model.x is None or model.y is None:
-            raise ValueError(f"WidgetView - widget rendering failed: missing position for model \"{model.id}\"")
+            raise ValueError(f"WidgetView - widget update failed: missing position for model \"{model.id}\"")
 
         widget_id = self.get_widget_id_from_model_id(model.id)
 
@@ -42,7 +42,7 @@ class WidgetView:
         else:
             entry = self.widget_map.get(widget_id)
             if not entry:
-                raise ValueError(f"WidgetView - widget rendering failed: unknown widget ID \"{widget_id}\"")
+                raise ValueError(f"WidgetView - widget update failed: unknown widget ID \"{widget_id}\"")
             widget = entry["widget"]
 
         self._update_widget(widget, widget_id, model)

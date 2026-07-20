@@ -54,4 +54,4 @@ class EventBus:
                 reason = f"{count_errors} handlers raised an error:\n"
             reason += "\n".join(errors)
 
-            raise ValueError(f"EventBus - dispatch failed for event \"{event_name}\": {reason}")
+            raise ValueError(f"EventBus - handler execution failed for event \"{event_name}\": {reason}")

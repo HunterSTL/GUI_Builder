@@ -551,7 +551,7 @@ class Designer:
         elif phase == "commit":
             self.event_router.emit("widget.edit.commit")
         else:
-            raise ValueError(f"Designer - attribute panel edit failed: unsupported edit phase \"{phase}\"")
+            raise ValueError(f"Designer - attributes panel edit failed: unsupported edit phase \"{phase}\"")
 
     def _commit_active_attributes_panel_edit(self) -> None:
         """commit the active attributes panel edit if one is in progress"""

@@ -250,7 +250,7 @@ class AppState:
     def selection_handle_click(self, model_id: str, is_additive: bool):
         """toggle the selection for the given model ID if selection is additive, otherwise select only that model ID"""
         if model_id not in self._model_by_id:
-            raise ValueError(f"AppState - selection update failed: unknown ID \"{model_id}\"")
+            raise ValueError(f"AppState - model selection failed: unknown ID \"{model_id}\"")
 
         if is_additive:
             self.selection_toggle(model_id)
