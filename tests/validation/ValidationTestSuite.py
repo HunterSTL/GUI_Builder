@@ -16,6 +16,22 @@ from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS, MINIMUM_CANVAS_WIDTH, MI
 FIRST_WIDGET_ID = 2
 
 #Setup------------------------------------------------------------------------------------------------------------------
+def _create_valid_model(**overrides) -> LabelWidgetData:
+    model_data = {
+        "type": WidgetType.LABEL,
+        "id": "ID",
+        "x": 50,
+        "y": 50,
+        "bg": "#000000",
+        "fg": "#ffffff",
+        "width": 100,
+        "height": 20,
+        "anchor": "sw",
+        "text": "TEXT"
+    }
+    model_data.update(overrides)
+    return LabelWidgetData(**model_data)
+
 def setup_app_state() -> dict:
     return {
         "app_state": AppState(ProjectDocument())
@@ -55,7 +71,7 @@ def setup_designer() -> dict:
 def setup_edit_widget_command() -> dict:
     return {
         "command": EditWidget(
-            model=LabelWidgetData(),
+            model=_create_valid_model(),
             app_state=AppState(ProjectDocument())
         )
     }
@@ -63,7 +79,7 @@ def setup_edit_widget_command() -> dict:
 def setup_move_widgets_to_command() -> dict:
     return {
         "command": MoveWidgetsTo(
-            models=(LabelWidgetData(),),
+            models=(_create_valid_model(),),
             app_state=AppState(ProjectDocument())
         )
     }
@@ -83,58 +99,38 @@ def action_subscribe_uncallable_to_app_state(app_state: AppState) -> None:
     app_state.subscribe("UNCALLABLE")
 
 def action_add_model_with_missing_id(app_state: AppState) -> None:
-    app_state.add_model(
-        LabelWidgetData()
-    )
+    model = _create_valid_model(id=None)
+    app_state.add_model(model)
 
 def action_add_model_with_duplicate_id(app_state: AppState) -> None:
-    app_state.add_model(
-        LabelWidgetData(id="DUPLICATE_ID")
-    )
-    app_state.add_model(
-        LabelWidgetData(id="DUPLICATE_ID")
-    )
+    model_1 = _create_valid_model(id="DUPLICATE_ID")
+    model_2 = _create_valid_model(id="DUPLICATE_ID")
+    app_state.add_model(model_1)
+    app_state.add_model(model_2)
 
 def action_remove_model_with_unknown_id(app_state: AppState) -> None:
-    app_state.remove_model(
-        LabelWidgetData(id="UNKNOWN_ID")
-    )
+    model = _create_valid_model(id="UNKNOWN_ID")
+    app_state.remove_model(model)
 
 def action_update_model_position_absolute_with_unknown_id(app_state: AppState) -> None:
-    app_state.set_model_position(
-        LabelWidgetData(id="UNKNOWN_ID"),
-        x=0,
-        y=0
-    )
+    model = _create_valid_model(id="UNKNOWN_ID")
+    app_state.set_model_position(model, 100, 100)
 
 def action_update_model_position_relative_with_unknown_id(app_state: AppState) -> None:
-    app_state.offset_model_position(
-        LabelWidgetData(id="UNKNOWN_ID"),
-        dx=1,
-        dy=1
-    )
+    model = _create_valid_model(id="UNKNOWN_ID")
+    app_state.offset_model_position(model, 10, 10)
 
 def action_update_model_attribute_with_unknown_id(app_state: AppState) -> None:
-    app_state.set_model_attribute(
-        LabelWidgetData(id="UNKNOWN_ID"),
-        attribute="x",
-        value=0
-    )
+    model = _create_valid_model(id="UNKNOWN_ID")
+    app_state.set_model_attribute(model, "x", 0)
 
 def action_update_unknown_model_attribute(app_state: AppState) -> None:
-    model = LabelWidgetData(id="ID")
+    model = _create_valid_model()
     app_state.add_model(model)
-    app_state.set_model_attribute(
-        model,
-        attribute="UNKNOWN_ATTRIBUTE",
-        value=" "
-    )
+    app_state.set_model_attribute(model, "UNKNOWN_ATTRIBUTE", "VALUE")
 
 def action_select_model_with_unknown_id(app_state: AppState) -> None:
-    app_state.selection_handle_click(
-        model_id="UNKNOWN_ID",
-        is_additive=False
-    )
+    app_state.selection_handle_click(model_id="UNKNOWN_ID", is_additive=False)
 
 def action_look_up_model_with_unknown_id(app_state: AppState) -> None:
     app_state.get_model_from_model_id("UNKNOWN_ID")
@@ -188,24 +184,25 @@ def action_execute_move_widget_to_command_without_recording_final_positions(comm
 
 #AttributesPanel tests--------------------------------------------------------------------------------------------------
 def action_render_attributes_panel_for_model_with_unsupported_type(designer: Designer) -> None:
-    designer.attributes_panel.set_selection((LabelWidgetData(type="UNSUPPORTED_TYPE"),))
+    model = _create_valid_model(type="UNSUPPORTED_TYPE")
+    designer.attributes_panel.set_selection((model,))
 
 def action_compute_spinbox_limits_for_unsupported_attribute(designer: Designer) -> None:
     designer.attributes_panel._compute_spinbox_limits(
-        model=LabelWidgetData(),
+        model=_create_valid_model(),
         attribute="UNSUPPORTED_ATTRIBUTE"
     )
 
 def action_create_colorpicker_for_unsupported_attribute(designer: Designer) -> None:
     designer.attributes_panel._create_colorpicker(
-        model=LabelWidgetData(),
+        model=_create_valid_model(),
         attribute="UNSUPPORTED_ATTRIBUTE",
         row=0
     )
 
 def action_create_combobox_for_unsupported_attribute(designer: Designer) -> None:
     designer.attributes_panel._create_combobox(
-        model=LabelWidgetData(),
+        model=_create_valid_model(),
         attribute="UNSUPPORTED_ATTRIBUTE",
         row=0
     )
@@ -224,28 +221,22 @@ def action_fail_handler_execution(event_bus: EventBus) -> None:
 
 #ProjectDocument tests--------------------------------------------------------------------------------------------------
 def action_deserialize_project_with_invalid_width() -> None:
-    data = {"width": "INVALID_WIDTH"}
-    ProjectDocument.from_json(data)
+    ProjectDocument.from_json({"width": "INVALID_WIDTH"})
 
 def action_deserialize_project_with_invalid_height() -> None:
-    data = {"height": "INVALID_HEIGHT"}
-    ProjectDocument.from_json(data)
+    ProjectDocument.from_json({"height": "INVALID_HEIGHT"})
 
 def action_deserialize_project_with_width_below_minimum() -> None:
-    data = {"width": MINIMUM_CANVAS_WIDTH - 1}
-    ProjectDocument.from_json(data)
+    ProjectDocument.from_json({"width": MINIMUM_CANVAS_WIDTH - 1})
 
 def action_deserialize_project_with_width_above_maximum() -> None:
-    data = {"width": MAXIMUM_CANVAS_WIDTH + 1}
-    ProjectDocument.from_json(data)
+    ProjectDocument.from_json({"width": MAXIMUM_CANVAS_WIDTH + 1})
 
 def action_deserialize_project_with_height_below_minimum() -> None:
-    data = {"height": MINIMUM_CANVAS_HEIGHT - 1}
-    ProjectDocument.from_json(data)
+    ProjectDocument.from_json({"height": MINIMUM_CANVAS_HEIGHT - 1})
 
 def action_deserialize_project_with_height_above_maximum() -> None:
-    data = {"height": MAXIMUM_CANVAS_HEIGHT + 1}
-    ProjectDocument.from_json(data)
+    ProjectDocument.from_json({"height": MAXIMUM_CANVAS_HEIGHT + 1})
 
 #WidgetModel tests------------------------------------------------------------------------------------------------------
 def action_instantiate_base_type() -> None:
@@ -270,12 +261,7 @@ def action_deserialize_widget_with_unsupported_type() -> None:
         _WIDGET_CLASSES[WidgetType.LABEL] = label_type
 
 def action_deserialize_widget_with_invalid_attribute_set() -> None:
-    BaseWidgetData.from_dict(
-        {
-            "type": "Label",
-            "INVALID_ATTRIBUTE": 0
-        }
-    )
+    BaseWidgetData.from_dict({"type": "Label", "INVALID_ATTRIBUTE": 0})
 
 #Geometry tests---------------------------------------------------------------------------------------------------------
 def action_compute_bounding_box_with_missing_x() -> None:
@@ -295,20 +281,22 @@ def action_compute_bounding_box_with_invalid_anchor() -> None:
 
 #WidgetView tests-------------------------------------------------------------------------------------------------------
 def action_update_widget_with_missing_position(designer: Designer) -> None:
-    designer.widget_view.update_widget_for(LabelWidgetData(id="ID"))
+    model = _create_valid_model(x=None, y=None)
+    designer.widget_view.update_widget_for(model)
 
 def action_update_widget_with_unknown_widget_id(designer: Designer) -> None:
-    model = LabelWidgetData(x=0, y=0)
+    model = _create_valid_model()
     designer.widget_view.update_widget_for(model)
     widget_id = designer.widget_view.get_widget_id_from_model_id(model.id)
     designer.widget_view.widget_map[widget_id] = None
     designer.widget_view.update_widget_for(model)
 
 def action_create_widget_with_unsupported_type(designer: Designer) -> None:
-    designer.widget_view.update_widget_for(LabelWidgetData(type="UNSUPPORTED_TYPE", x=0, y=0))
+    model = _create_valid_model(type="UNSUPPORTED_TYPE")
+    designer.widget_view.update_widget_for(model)
 
 def action_look_up_widget_with_unknown_widget_id(designer: Designer) -> None:
-    model = LabelWidgetData(x=0, y=0)
+    model = _create_valid_model()
     designer.widget_view.update_widget_for(model)
     widget_id = designer.widget_view.get_widget_id_from_model_id(model.id)
     designer.widget_view.widget_map[widget_id] = None
