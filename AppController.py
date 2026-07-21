@@ -31,6 +31,7 @@ class AppController:
         self._save_path = None
         self._last_directory = None
 
+        self._setup_wizard_window = None
         self._build_startup_ui()
 
     def _center_window(self):
@@ -143,26 +144,35 @@ class AppController:
         """return the designer window if open, otherwise the startup window, for use as a dialog parent"""
         return self.designer.top if self.designer else self.root
 
+    def _cancel_new_project_creation(self) -> None:
+        """cancel new project creation and restore the previous window"""
+        self._setup_wizard_window.destroy()
+        self._setup_wizard_window = None
+
+        if self.designer:
+            self.designer.top.deiconify()
+        else:
+            self.root.deiconify()
+
     def new_project(self):
         """start a new project using the SetupWizard, prompting for intent when unsaved changes exist"""
         if self._handle_unsaved_changes() == "CANCEL":
             return
 
         if self.designer:
-            self.designer.top.destroy()
-            self.designer = None
+            self.designer.top.withdraw()
 
         self.root.withdraw()
         self._save_path = None
 
-        setup_wizard_window = tk.Toplevel(self.root)
+        self._setup_wizard_window = tk.Toplevel(self.root)
         SetupWizard(
-            root=setup_wizard_window,
+            root=self._setup_wizard_window,
             user_theme=self._copy_user_theme(),
             program_theme=self.program_theme,
             constants=self.constants,
             on_done_callback=self._launch_designer_from_project_document,
-            exit_callback=self.exit_app
+            exit_callback=self._cancel_new_project_creation
         )
 
     def open_project(self):

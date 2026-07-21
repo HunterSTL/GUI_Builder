@@ -17,7 +17,7 @@ In `AppController.save_project`, there is no guard for `self.designer` being `No
 
 ---
 
-## 3. The `SetupWizard` does not close or re-show the startup window on cancel/close
+## 3. [Done] The `SetupWizard` does not close or re-show the startup window on cancel/close
 
 When `new_project` is called, `self.root.withdraw()` hides the startup window, then the wizard is created. If the user closes the wizard via the X button, `exit_callback` (`exit_app`) destroys `self.root` entirely. There is no path where the user cancels the wizard and returns to the startup window. Closing the wizard quits the whole application, which is unexpected and non-standard. A "Cancel" button or a wizard-close handler that calls `self.root.deiconify()` is needed.
 
