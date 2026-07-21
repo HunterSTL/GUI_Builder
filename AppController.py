@@ -20,11 +20,13 @@ class AppController:
         self.constants = CONSTANTS
         self.designer = None
 
-        self.app_event_bus = EventBus() #owns project and application events and persists across multiple Designer instances during the lifetime of the application
+        self.app_event_bus = EventBus() #owns project and application events and persists across multiple Designer instances
         self._register_event_handlers()
 
-        #copy user theme from Theme.py to prevent mutation
-        self._user_theme = {key: value.copy() for key, value in USER_THEME.items()}
+        self._user_theme = {            #prevents mutation
+            key: value.copy()
+            for key, value in USER_THEME.items()
+        }
 
         self._save_path = None
         self._last_directory = None
@@ -44,11 +46,9 @@ class AppController:
 
     def _build_startup_ui(self):
         """build the startup UI with [New], [Open] and [Exit] buttons"""
-        #set bg color and enforce minimum window size
         self.root.config(bg=self.program_theme["background"]["color"])
         self.root.wm_minsize(200, 100)
 
-        #create title bar
         titlebar = CustomTitlebar(
             parent=self.root,
             title="Tkinter GUI Builder – Startup",
@@ -60,7 +60,6 @@ class AppController:
         )
         titlebar.frame.pack(fill="x")
 
-        #open project button
         button_open_project = tk.Button(
             self.root,
             text="Open project",
@@ -71,7 +70,6 @@ class AppController:
         )
         button_open_project.pack()
 
-        #new project button
         button_new_project = tk.Button(
             self.root,
             text="New project",
@@ -82,7 +80,6 @@ class AppController:
         )
         button_new_project.pack()
 
-        #exit button
         button_exit = tk.Button(
             self.root,
             text="Exit",
@@ -101,12 +98,10 @@ class AppController:
 
     def _launch_designer_from_project_document(self, project_document):
         """destroy any existing Designer and launch a new one from a ProjectDocument"""
-        #destroy old designer
         if self.designer:
             self.designer.top.destroy()
             self.designer = None
 
-        #launch new designer
         self.designer = Designer(
             parent=self.root,
             project_document=project_document,
@@ -117,19 +112,16 @@ class AppController:
 
     def _register_event_handlers(self):
         """subscribe handlers to project and app events"""
-        #project events
         self.app_event_bus.subscribe("project.new", self.new_project)
         self.app_event_bus.subscribe("project.open", self.open_project)
         self.app_event_bus.subscribe("project.save", self.save_project)
         self.app_event_bus.subscribe("project.save_as", self.save_project_as)
-
-        #app events
         self.app_event_bus.subscribe("app.exit", self.exit_app)
 
     def _handle_unsaved_changes(self) -> str:
         """prompt the user to save, discard or cancel if unsaved changes exist, returning PROCEED or CANCEL"""
         if not self.designer or not self.designer.app_state.is_dirty():
-            return "PROCEED"    #no unsaved changes exist
+            return "PROCEED"        #no unsaved changes exist
 
         choice = messagebox.askyesnocancel(
             "Unsaved changes",
@@ -153,22 +145,16 @@ class AppController:
 
     def new_project(self):
         """start a new project using the SetupWizard, prompting for intent when unsaved changes exist"""
-        #prompt the user to save, discard or cancel if unsaved changes exist
         if self._handle_unsaved_changes() == "CANCEL":
             return
 
-        #destroy existing designer window
         if self.designer:
             self.designer.top.destroy()
             self.designer = None
 
-        #hide startup window
         self.root.withdraw()
-
-        #reset save path
         self._save_path = None
 
-        #create SetupWizard as a child
         setup_wizard_window = tk.Toplevel(self.root)
         SetupWizard(
             root=setup_wizard_window,
@@ -181,11 +167,9 @@ class AppController:
 
     def open_project(self):
         """open an existing .tkui file and launch the Designer, prompting for intent when unsaved changes exist"""
-        #prompt the user to save, discard or cancel if unsaved changes exist
         if self._handle_unsaved_changes() == "CANCEL":
             return
 
-        #prompt for file path
         file_path = filedialog.askopenfilename(
             parent=self._dialog_parent(),
             filetypes=[("Tk user interface file", "*.tkui")]
@@ -195,21 +179,14 @@ class AppController:
             return
 
         try:
-            #read file contents
             with open(file_path, "r", encoding="utf-8") as file:
                 file_contents = json.load(file)
 
-            #build a ProjectDocument from the file contents
             project_document = ProjectDocument.from_json(file_contents)
 
-            #hide startup window
             self.root.withdraw()
-
-            #keep track of save path and last directory
             self._save_path = file_path
             self._last_directory = os.path.dirname(file_path)
-
-            #launch designer
             self._launch_designer_from_project_document(project_document)
         except (ValueError, json.JSONDecodeError) as e:
             messagebox.showerror(
@@ -234,18 +211,12 @@ class AppController:
             )
             return False
 
-        #use save_project_as() on first save to prompt for save location
         if not self._save_path:
             return self.save_project_as()
 
         try:
-            #export project data
             project_data = self.designer.app_state.project.to_json()
-
-            #overwrite file at save path with project data as formatted JSON
             atomic_write_json(self._save_path, project_data)    #atomic prevents corruption on error
-
-            #mark project clean
             self.designer.app_state.mark_clean()
         except Exception as e:
             messagebox.showerror(
@@ -266,7 +237,6 @@ class AppController:
             )
             return False
 
-        #prompt for save location for .tkui file
         save_path = filedialog.asksaveasfilename(
             parent=self._dialog_parent(),
             title="Save as",
@@ -275,22 +245,14 @@ class AppController:
             initialdir=self._last_directory
         )
 
-        #abort if cancel was pressed
-        if not save_path:
+        if not save_path:   #user pressed cancel
             return False
 
         try:
-            #export project data
             project_data = self.designer.app_state.project.to_json()
-
-            #write file at save path with project data as formatted JSON
             atomic_write_json(save_path, project_data)  #atomic prevents corruption on error
-
-            #keep track of save path and last directory
             self._save_path = save_path                 #only update save path after successful write
             self._last_directory = os.path.dirname(save_path)
-
-            #mark project clean
             self.designer.app_state.mark_clean()
         except Exception as e:
             messagebox.showerror(
@@ -303,9 +265,7 @@ class AppController:
 
     def exit_app(self):
         """exit application, prompting for intent when unsaved changes exist"""
-        #prompt the user to save, discard or cancel if unsaved changes exist
         if self._handle_unsaved_changes() == "CANCEL":
             return
 
-        #destroy startup window
         self.root.destroy()
