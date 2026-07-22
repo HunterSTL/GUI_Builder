@@ -401,7 +401,7 @@ class Designer:
         dirty_models = state.get_dirty_models()
         for model in dirty_models:
             self.widget_view.update_widget_for(model)
-            if state.is_selected(model):
+            if state.selection_contains(model.id):
                 self.selection_controller.update_outline_for(model) #controller derives required data from model and AppState
 
         #show or hide the attributes panel and refresh outlines based on the selection
@@ -615,9 +615,10 @@ class Designer:
         print(self.command_stack)
 
     def _print_selection(self):
+        selected_models = self.app_state.get_selected_models()
         print("#"*150)
         print(f"Selection:")
-        print(f"Selected model IDs: {self.app_state.get_selected_model_ids()}")
+        print(f"Selected model IDs: {[model.id for model in selected_models]}")
         print(f"Last selected model ID: {self.app_state.get_last_selected_model_id()}")
 
     def _print_bounding_boxes(self):

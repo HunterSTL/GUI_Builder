@@ -213,10 +213,10 @@ class SelectionController:
         ]
 
         #convert canvas item IDs (int) to model IDs (str)
-        enclosed_model_ids = {
+        enclosed_model_ids = [
             self.resolve_widget_to_model(widget_id)
             for widget_id in enclosed_widget_ids
-        }
+        ]
 
         #update selection
         if not rss.is_dragging:

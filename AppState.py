@@ -28,8 +28,7 @@ class AppState:
         self._model_by_id: dict[str, BaseWidgetData] = {}   #{model.id: model} for O(1) lookup; maintained in add_/remove_model()
 
         #Selection------------------------------------------------------------------------------------------------------
-        self._selected_model_ids: set[str] = set()          #IDs of selected models
-        self._last_selected_model_id = None                 #ID of the last selected model
+        self._selected_model_ids: list[str] = []            #IDs of models in the order they were selected (newest is last)
 
         #add existing models in the project document to the dictionary
         for model in self.project.widget_models:
@@ -101,8 +100,7 @@ class AppState:
         self._dirty_model_ids.add(model.id)
 
         #select the created widget without notifying
-        self._selected_model_ids = {model.id}
-        self._last_selected_model_id = model.id
+        self._selected_model_ids = [model.id]
         self.selection_change = True
 
         self._mark_dirty()
@@ -120,9 +118,6 @@ class AppState:
         if model.id in self._selected_model_ids:
             self._selected_model_ids.remove(model.id)
             self.selection_change = True
-
-        if self._last_selected_model_id == model.id:
-            self._last_selected_model_id = None
 
         self._mark_dirty()
 
@@ -209,41 +204,31 @@ class AppState:
             return
 
         self._selected_model_ids.clear()
-        self._last_selected_model_id = None
         self._mark_selection_change()
 
     def selection_select_only(self, model_id: str):
         """replace the current selection with the given model ID then notify subscribers"""
-        if self._selected_model_ids == {model_id}:
+        if self._selected_model_ids == [model_id]:
             return
 
-        self._selected_model_ids = {model_id}
-        self._last_selected_model_id = model_id
+        self._selected_model_ids = [model_id]
         self._mark_selection_change()
 
     def selection_toggle(self, model_id: str):
         """add the given model ID to the selection or remove it if it's already selected then notify subscribers"""
         if self.selection_contains(model_id):   #already selected → remove from selection
             self._selected_model_ids.remove(model_id)
-            if self._last_selected_model_id == model_id:
-                self._last_selected_model_id = None
         else:                                   #not yet selected → add to selection
-            self._selected_model_ids.add(model_id)
-            self._last_selected_model_id = model_id
+            self._selected_model_ids.append(model_id)
 
         self._mark_selection_change()
 
     def selection_select_all(self):
         """select all model IDs in the project document then notify subscribers"""
-        if self._selected_model_ids == {model.id for model in self.project.widget_models}:
+        if self._selected_model_ids == [model.id for model in self.project.widget_models]:
             return
 
-        self._selected_model_ids = {model.id for model in self.project.widget_models}
-
-        if not self.selection_is_empty():
-            self._last_selected_model_id = self.project.widget_models[0].id
-        else:
-            self._last_selected_model_id = None
+        self._selected_model_ids = [model.id for model in self.project.widget_models]
 
         self._mark_selection_change()
 
@@ -258,15 +243,14 @@ class AppState:
             if not self.selection_contains(model_id):
                 self.selection_select_only(model_id)
 
-    def apply_rectangle_selection(self, enclosed_model_ids: set[str], is_additive):
+    def apply_rectangle_selection(self, enclosed_model_ids: list[str], is_additive: bool) -> None:
         """add model IDs of enclosed widgets to selection if selection is additive, otherwise replace selection entirely, then notify subscribers"""
         if not is_additive:
             self.selection_clear()
 
         for model_id in enclosed_model_ids: #add models to selection if they are not already selected
             if model_id not in self._selected_model_ids:
-                self._selected_model_ids.add(model_id)
-                self._last_selected_model_id = model_id
+                self._selected_model_ids.append(model_id)
                 self.selection_change = True
 
         self._notify()
@@ -340,27 +324,16 @@ class AppState:
     def selection_contains(self, model_id: str) -> bool:
         return model_id in self._selected_model_ids
 
-    def is_selected(self, model: BaseWidgetData) -> bool:
-        return model.id in self._selected_model_ids
-
     def get_selected_models(self) -> tuple[BaseWidgetData, ...]:
         return tuple(
-            model
-            for model in self.project.widget_models #iterate all models for stable order
-            if model.id in self._selected_model_ids
+            self.get_model_from_model_id(model_id)
+            for model_id in self._selected_model_ids
         )
 
-    def get_selected_model_ids(self) -> frozenset[str]:
-        return frozenset(self._selected_model_ids)
-
-    def get_last_selected_model(self) -> BaseWidgetData | None:
-        last_selected_model_id = self._last_selected_model_id
-        if last_selected_model_id is None:
-            return None
-        return self.get_model_from_model_id(last_selected_model_id)
-
     def get_last_selected_model_id(self) -> str | None:
-        return self._last_selected_model_id
+        if not self._selected_model_ids:
+            return None
+        return self._selected_model_ids[-1]
 
     #Internals----------------------------------------------------------------------------------------------------------
     def _mark_dirty(self):
