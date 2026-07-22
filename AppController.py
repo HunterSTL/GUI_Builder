@@ -13,7 +13,7 @@ class AppController:
     def __init__(
         self,
         root: tk.Tk
-    ):
+    ) -> None:
         """initialize the main application controller"""
         self._root = root
 
@@ -34,7 +34,7 @@ class AppController:
         self._setup_wizard_window = None
         self._build_startup_ui()
 
-    def _center_window(self):
+    def _center_window(self) -> None:
         """center the startup window on the screen"""
         self._root.update_idletasks()
         x_offset, y_offset = screen_offset_to_center_window(
@@ -45,7 +45,7 @@ class AppController:
         )
         self._root.geometry(f"+{x_offset}+{y_offset}")
 
-    def _build_startup_ui(self):
+    def _build_startup_ui(self) -> None:
         """build the startup UI with [New], [Open] and [Exit] buttons"""
         self._root.config(bg=self._program_theme["background"]["color"])
         self._root.wm_minsize(200, 100)
@@ -93,11 +93,11 @@ class AppController:
 
         self._center_window()
 
-    def _copy_user_theme(self):
+    def _copy_user_theme(self) -> dict[str, dict[str, str]]:
         """return a copy of the user theme"""
         return {key: value.copy() for key, value in self._user_theme.items()}
 
-    def _launch_designer_from_project_document(self, project_document):
+    def _launch_designer_from_project_document(self, project_document: ProjectDocument) -> None:
         """destroy any existing Designer and launch a new one from a ProjectDocument"""
         if self._designer:
             self._designer.top.destroy()
@@ -111,7 +111,7 @@ class AppController:
             app_event_bus=self._app_event_bus
         )
 
-    def _register_event_handlers(self):
+    def _register_event_handlers(self) -> None:
         """subscribe handlers to project and app events"""
         self._app_event_bus.subscribe("project.new", self._new_project)
         self._app_event_bus.subscribe("project.open", self._open_project)
@@ -140,7 +140,7 @@ class AppController:
         else:                           #user pressed discard
             return "PROCEED"
 
-    def _dialog_parent(self):
+    def _dialog_parent(self) -> tk.Tk | tk.Toplevel:
         """return the designer window if open, otherwise the startup window, for use as a dialog parent"""
         return self._designer.top if self._designer else self._root
 
@@ -154,7 +154,7 @@ class AppController:
         else:
             self._root.deiconify()
 
-    def _new_project(self):
+    def _new_project(self) -> None:
         """start a new project using the SetupWizard, prompting for intent when unsaved changes exist"""
         if self._handle_unsaved_changes() == "CANCEL":
             return
@@ -175,7 +175,7 @@ class AppController:
             exit_callback=self._cancel_new_project_creation
         )
 
-    def _open_project(self):
+    def _open_project(self) -> None:
         """open an existing .tkui file and launch the Designer, prompting for intent when unsaved changes exist"""
         if self._handle_unsaved_changes() == "CANCEL":
             return
@@ -273,7 +273,7 @@ class AppController:
             return False
         return True
 
-    def _exit_app(self):
+    def _exit_app(self) -> None:
         """exit application, prompting for intent when unsaved changes exist"""
         if self._handle_unsaved_changes() == "CANCEL":
             return
