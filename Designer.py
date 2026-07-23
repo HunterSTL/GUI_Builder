@@ -368,6 +368,17 @@ class Designer:
         #update scroll region (always content size)
         self.viewer.configure(scrollregion=(0, 0, canvas_width, canvas_height))
 
+    def _get_pointer_coordinates(self) -> tuple[int, int] | None:
+        """return the current pointer coordinates relative to the canvas or None if the pointer is outside the canvas"""
+        x = self.canvas.winfo_pointerx() - self.canvas.winfo_rootx()
+        y = self.canvas.winfo_pointery() - self.canvas.winfo_rooty()
+
+        if x < 0 or x > self.canvas.winfo_width():
+            return None
+        if y < 0 or y > self.canvas.winfo_height():
+            return None
+        return x, y
+
     def _bind_mousewheel(self, widget):
         """bind mousewheel scrolling behavior to a widget (in this case the Toplevel)"""
         widget.bind("<MouseWheel>", lambda e: self.viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
@@ -492,7 +503,7 @@ class Designer:
         #edit events
         self.designer_event_bus.subscribe("edit.delete", self.actions.edit.delete)
         self.designer_event_bus.subscribe("edit.copy", self.actions.edit.copy)
-        self.designer_event_bus.subscribe("edit.paste", self.actions.edit.paste)
+        self.designer_event_bus.subscribe("edit.paste", lambda: self.actions.edit.paste(self._get_pointer_coordinates()))
         self.designer_event_bus.subscribe("edit.cut", self.actions.edit.cut)
         self.designer_event_bus.subscribe("edit.undo", self.actions.edit.undo)
         self.designer_event_bus.subscribe("edit.redo", self.actions.edit.redo)

@@ -23,6 +23,8 @@ class EditActions:
         self.confirm_delete_callback = confirm_delete_callback
         self.commit_active_attributes_panel_edit_callback = commit_active_attributes_panel_edit_callback
 
+        self._copy_origin_coordinates: tuple[int, int] | None = None
+
     def delete(self):
         """commit the active attributes panel edit, if one is in progress, then delete selected widgets after user confirmation"""
         selected_models = self.app_state.get_selected_models()
@@ -41,7 +43,7 @@ class EditActions:
             )
         )
 
-    def copy(self):
+    def copy(self) -> None:
         """copy selected widgets to clipboard"""
         selected_models = self.app_state.get_selected_models()
         if not selected_models:
@@ -53,14 +55,26 @@ class EditActions:
             model_data = model.to_dict(include_id=False)    #exclude ID because pasting creates new IDs, except on redo
             self.clipboard.append(model_data)
 
-    def paste(self):
-        """paste widgets from clipboard"""
+        #store coordinates of the last selected model to compute the movement delta applied during paste
+        last_selected_model = selected_models[-1]
+        self._copy_origin_coordinates = last_selected_model.x, last_selected_model.y
+
+    def paste(self, pointer_coordinates: tuple[int, int] | None) -> None:
+        """paste widgets from clipboard, offsetting them so the last selected widget is positioned at the pointer (with clamping)"""
         if not self.clipboard:
             return
+
+        if pointer_coordinates is None or self._copy_origin_coordinates is None:
+            return
+
+        dx = pointer_coordinates[0] - self._copy_origin_coordinates[0]
+        dy = pointer_coordinates[1] - self._copy_origin_coordinates[1]
 
         self.command_stack.execute(
             PasteWidgetsFromClipboard(
                 clipboard=self.clipboard,
+                dx=dx,
+                dy=dy,
                 app_state=self.app_state
             )
         )

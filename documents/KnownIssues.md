@@ -66,7 +66,7 @@ For a widget with width=5: left = x-2, right = x+3. For width=6: left = x-3, rig
 
 ---
 
-## 8. Paste always places widgets at their copied coordinates — no offset
+## 8. [Done] Paste always places widgets at their copied coordinates — no offset
 
 `PasteWidgetsFromClipboard` restores widgets to their exact original x,y coordinates from the clipboard. Pasting multiple times results in all pastes stacking exactly on top of each other. There is no paste offset (e.g. +10/+10 per paste as is standard in most GUI editors). The user has no visual feedback that the paste happened at all.
 

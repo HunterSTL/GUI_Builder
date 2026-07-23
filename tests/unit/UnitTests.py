@@ -243,8 +243,8 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
-class TestUndoRedoPasteWidget(unittest.TestCase):
-    def test_undo_redo_paste_widget(self):
+class TestUndoRedoPasteWidgets(unittest.TestCase):
+    def test_undo_redo_paste_widgets(self):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
         from commands import CommandStack, PasteWidgetsFromClipboard
@@ -252,29 +252,74 @@ class TestUndoRedoPasteWidget(unittest.TestCase):
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
 
-        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Paste Widget Test")
-        model.create_id(project_document.id_counters)
-        app_state.add_model(model)
+        model_1 = LabelWidgetData(
+            x=50,
+            y=50,
+            width=100,
+            height=20,
+            bg="#111111",
+            fg="#aaaaaa",
+            text="Paste Widget Test"
+        )
+        model_2 = LabelWidgetData(
+            x=50,
+            y=100,
+            width=100,
+            height=20,
+            bg="#111111",
+            fg="#aaaaaa",
+            text="Paste Widget Test"
+        )
+        model_1.create_id(project_document.id_counters)
+        model_2.create_id(project_document.id_counters)
+        app_state.add_model(model_1)
+        app_state.add_model(model_2)
 
-        #copy model to clipboard
-        clipboard = []
-        model_data = model.to_dict(include_id=False)    #exclude ID because pasting creates new IDs, except on redo
-        clipboard.append(model_data)
+        #copy models to clipboard
+        clipboard = [model_1.to_dict(include_id=False), model_2.to_dict(include_id=False)]
 
         command_stack = CommandStack()
 
-        #paste model from clipboard
-        command_stack.execute(PasteWidgetsFromClipboard(clipboard, app_state))
-        self.assertEqual(len(project_document.widget_models), 2)
-        self.assertNotEqual(project_document.widget_models[0], project_document.widget_models[1])   #pasted widget has different ID
+        #paste models from clipboard
+        command_stack.execute(
+            PasteWidgetsFromClipboard(
+                clipboard=clipboard,
+                dx=50,
+                dy=50,
+                app_state=app_state
+            )
+        )
+
+        pasted_model_1 = project_document.widget_models[2]
+        pasted_model_2 = project_document.widget_models[3]
+
+        self.assertEqual(len(project_document.widget_models), 4)    #four models in ProjectDocument
+        self.assertNotEqual(model_1.id, pasted_model_1.id)          #pasted models have different IDs
+        self.assertNotEqual(model_2.id, pasted_model_2.id)
+        self.assertEqual(pasted_model_1.x, 100)                     #pasted models are at expected positions
+        self.assertEqual(pasted_model_1.y, 100)
+        self.assertEqual(pasted_model_2.x, 100)
+        self.assertEqual(pasted_model_2.y, 150)
+        self.assertEqual(                                           #pasted models are selected
+            app_state.get_selected_models(),
+            (pasted_model_1, pasted_model_2)
+        )
+        self.assertEqual(                                           #pasted model 2 is last selected
+            app_state.get_last_selected_model_id(),
+            pasted_model_2.id
+        )
 
         #undo
         command_stack.undo()
-        self.assertEqual(len(project_document.widget_models), 1)
+        self.assertEqual(len(project_document.widget_models), 2)    #two models in ProjectDocument
 
         #redo
         command_stack.redo()
-        self.assertEqual(len(project_document.widget_models), 2)
+        redone_model_1 = project_document.widget_models[2]
+        redone_model_2 = project_document.widget_models[3]
+        self.assertEqual(len(project_document.widget_models), 4)    #four models in ProjectDocument
+        self.assertEqual(redone_model_1.id, pasted_model_1.id)      #redone models reuse same IDs
+        self.assertEqual(redone_model_2.id, pasted_model_2.id)
 
 if __name__ == '__main__':
     unittest.main()
