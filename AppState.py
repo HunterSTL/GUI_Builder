@@ -21,7 +21,7 @@ class AppState:
 
         #Notification system--------------------------------------------------------------------------------------------
         self._subscribers = []                              #functions that get called when any mutation happens
-        self._batch_depth = 0                               #keeps track of batch depth so only the outer most batch calls _notify (batches can be nested)
+        self._batch_depth = 0                               #keeps track of batch depth so only the outermost batch calls _notify (batches can be nested)
         self._pending_notify = False                        #signals whether _notify will be called at the end of the batch
 
         #Model dictionary-----------------------------------------------------------------------------------------------
@@ -34,17 +34,21 @@ class AppState:
         for model in self.project.widget_models:
             self._model_by_id[model.id] = model
 
-    #State change notifications-----------------------------------------------------------------------------------------
-    def subscribe(self, function):
-        """register a function to be called when the state changes"""
+    #Notification system------------------------------------------------------------------------------------------------
+    def subscribe(self, function) -> None:
+        """subscribe a function to be called when the state changes"""
         if not callable(function):
             raise ValueError("AppState - subscription failed: subscriber must be callable")
         self._subscribers.append(function)
 
-    def _notify(self):
+    def batch(self) -> "_AppStateBatch":
+        """batch state change notifications so subscribers are notified once after the outermost batch exits"""
+        return _AppStateBatch(self)
+
+    def _notify(self) -> None:
         """notify all subscribers"""
         if self._batch_depth > 0:
-            self._pending_notify = True #defers notification to the outer most batch
+            self._pending_notify = True #defers notification to the outermost batch
             return
 
         for function in self._subscribers:
@@ -55,25 +59,6 @@ class AppState:
         self.grid_change = False
         self._dirty_model_ids.clear()
         self._removed_model_ids.clear()
-
-    def batch(self):
-        class _Batch:
-            def __init__(self, state: AppState):
-                self._state = state
-
-            def __enter__(self):
-                self._state._batch_depth += 1
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                state = self._state
-                state._batch_depth -= 1
-
-                if state._batch_depth == 0 and state._pending_notify:
-                    state._pending_notify = False
-                    state._notify()
-                return False #propagate exceptions
-
-        return _Batch(self)
 
     #Dirty state API----------------------------------------------------------------------------------------------------
     def is_dirty(self) -> bool:
@@ -275,7 +260,6 @@ class AppState:
         """return the IDs of removed models"""
         return frozenset(self._removed_model_ids)
 
-
     def get_all_models(self) -> tuple[BaseWidgetData, ...]:
         """return all models in the project document"""
         return tuple(self.project.widget_models)
@@ -343,3 +327,26 @@ class AppState:
     def _mark_selection_change(self):
         self.selection_change = True
         self._notify()
+
+
+# noinspection PyProtectedMember
+class _AppStateBatch:
+    """Context manager used by AppState to batch state change notifications"""
+
+    def __init__(self, app_state: AppState) -> None:
+        self._app_state = app_state
+
+    def __enter__(self) -> None:
+        """increment batch depth"""
+        self._app_state._batch_depth += 1
+
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> bool:
+        """decrement batch depth and notify subscribers if the outermost batch has pending changes"""
+        state = self._app_state
+        state._batch_depth -= 1
+
+        if state._batch_depth == 0 and state._pending_notify:
+            state._pending_notify = False
+            state._notify()
+
+        return False    #propagate exceptions
