@@ -1,41 +1,46 @@
-import os.path
 import json
+import os.path
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from model import ProjectDocument
+
 from events import EventBus
+from model import ProjectDocument
 from utility import screen_offset_to_center_window, CustomTitlebar, atomic_write_json
-from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
-from SetupWizard import SetupWizard
+
 from Designer import Designer
+from SetupWizard import SetupWizard
+from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
+
 
 class AppController:
+    """Manages application startup and exit, project files and Designer instances."""
     def __init__(
         self,
         root: tk.Tk
     ) -> None:
-        """initialize the main application controller"""
-        self._root = root
+        self._root: tk.Tk = root
 
-        self._constants = CONSTANTS
-        self._program_theme = PROGRAM_THEME
-        self._user_theme = {            #prevents mutation
+        self._constants: dict[str, int | dict[str, object]] = CONSTANTS
+        self._program_theme: dict[str, dict[str, str]] = PROGRAM_THEME
+        self._user_theme: dict[str, dict[str, str]] = { #prevents mutation of the global theme
             key: value.copy()
             for key, value in USER_THEME.items()
         }
 
-        self._app_event_bus = EventBus() #owns project and application events and persists across multiple Designer instances
+        self._app_event_bus: EventBus = EventBus()      #persists across Designer instances
         self._register_event_handlers()
 
-        self._save_path = None
-        self._last_directory = None
+        self._save_path: str | None = None
+        self._last_directory: str | None = None
+        self._designer: Designer | None = None
+        self._setup_wizard_window: tk.Toplevel | None = None
 
-        self._designer = None
-        self._setup_wizard_window = None
         self._build_startup_ui()
 
-    def _center_window(self) -> None:
-        """center the startup window on the screen"""
+    def _center_window(
+        self
+    ) -> None:
+        """Center the startup window on the screen."""
         self._root.update_idletasks()
         x_offset, y_offset = screen_offset_to_center_window(
             self._root.winfo_screenwidth(),
@@ -45,8 +50,10 @@ class AppController:
         )
         self._root.geometry(f"+{x_offset}+{y_offset}")
 
-    def _build_startup_ui(self) -> None:
-        """build the startup UI with [New], [Open] and [Exit] buttons"""
+    def _build_startup_ui(
+        self
+    ) -> None:
+        """Build the startup UI with [New], [Open] and [Exit] buttons."""
         self._root.config(bg=self._program_theme["background"]["color"])
         self._root.wm_minsize(200, 100)
 
@@ -93,12 +100,17 @@ class AppController:
 
         self._center_window()
 
-    def _copy_user_theme(self) -> dict[str, dict[str, str]]:
-        """return a copy of the user theme"""
+    def _copy_user_theme(
+        self
+    ) -> dict[str, dict[str, str]]:
+        """Return a copy of the user theme and its nested mappings."""
         return {key: value.copy() for key, value in self._user_theme.items()}
 
-    def _launch_designer_from_project_document(self, project_document: ProjectDocument) -> None:
-        """destroy any existing Designer and launch a new one from a ProjectDocument"""
+    def _launch_designer_from_project_document(
+        self,
+        project_document: ProjectDocument
+    ) -> None:
+        """Destroy any existing Designer and launch a new one from a ProjectDocument."""
         if self._designer:
             self._designer.top.destroy()
             self._designer = None
@@ -106,23 +118,27 @@ class AppController:
         self._designer = Designer(
             parent=self._root,
             project_document=project_document,
-            program_theme=self._program_theme,
             constants=self._constants,
+            program_theme=self._program_theme,
             app_event_bus=self._app_event_bus
         )
 
-    def _register_event_handlers(self) -> None:
-        """subscribe handlers to project and app events"""
+    def _register_event_handlers(
+        self
+    ) -> None:
+        """Subscribe handlers to project and app events."""
         self._app_event_bus.subscribe("project.new", self._new_project)
         self._app_event_bus.subscribe("project.open", self._open_project)
         self._app_event_bus.subscribe("project.save", self._save_project)
         self._app_event_bus.subscribe("project.save_as", self._save_project_as)
         self._app_event_bus.subscribe("app.exit", self._exit_app)
 
-    def _handle_unsaved_changes(self) -> str:
-        """prompt the user to save, discard or cancel if unsaved changes exist, returning PROCEED or CANCEL"""
+    def _handle_unsaved_changes(
+        self
+    ) -> str:
+        """Prompt for unsaved changes and return whether the pending operation may proceed."""
         if not self._designer or not self._designer.app_state.is_dirty():
-            return "PROCEED"        #no unsaved changes exist
+            return "PROCEED"
 
         choice = messagebox.askyesnocancel(
             "Unsaved changes",
@@ -130,22 +146,27 @@ class AppController:
             parent=self._designer.top
         )
 
-        if choice is None:              #user pressed cancel
+        if choice is None:
             return "CANCEL"
-        elif choice:                    #user pressed save
-            if self._save_project():    #save successful
-                return "PROCEED"
-            else:                       #save failed or aborted
-                return "CANCEL"
-        else:                           #user pressed discard
-            return "PROCEED"
 
-    def _dialog_parent(self) -> tk.Tk | tk.Toplevel:
-        """return the designer window if open, otherwise the startup window, for use as a dialog parent"""
+        if choice and not self._save_project():
+            return "CANCEL"
+
+        return "PROCEED"
+
+    def _dialog_parent(
+        self
+    ) -> tk.Tk | tk.Toplevel:
+        """Return the active window to use as the parent of a dialog."""
         return self._designer.top if self._designer else self._root
 
-    def _cancel_new_project_creation(self) -> None:
-        """cancel new project creation and restore the previous window"""
+    def _cancel_new_project_creation(
+        self
+    ) -> None:
+        """Cancel new project creation and restore the previous window."""
+        if self._setup_wizard_window is None:
+            return
+
         self._setup_wizard_window.destroy()
         self._setup_wizard_window = None
 
@@ -154,8 +175,10 @@ class AppController:
         else:
             self._root.deiconify()
 
-    def _new_project(self) -> None:
-        """start a new project using the SetupWizard, prompting for intent when unsaved changes exist"""
+    def _new_project(
+        self
+    ) -> None:
+        """Create a new project using the SetupWizard, prompting for unsaved changes."""
         if self._handle_unsaved_changes() == "CANCEL":
             return
 
@@ -175,8 +198,10 @@ class AppController:
             exit_callback=self._cancel_new_project_creation
         )
 
-    def _open_project(self) -> None:
-        """open an existing .tkui file and launch the Designer, prompting for intent when unsaved changes exist"""
+    def _open_project(
+        self
+    ) -> None:
+        """Open a .tkui file and launch the Designer, prompting for unsaved changes."""
         if self._handle_unsaved_changes() == "CANCEL":
             return
 
@@ -211,8 +236,10 @@ class AppController:
                 parent=self._dialog_parent()
             )
 
-    def _save_project(self) -> bool:
-        """save the project to the last used .tkui file, returning True on success"""
+    def _save_project(
+        self
+    ) -> bool:
+        """Save the project to the last used .tkui file, returning True on success."""
         if not self._designer:
             messagebox.showerror(
                 "Error",
@@ -226,7 +253,7 @@ class AppController:
 
         try:
             project_data = self._designer.app_state.project.to_json()
-            atomic_write_json(self._save_path, project_data)    #atomic prevents corruption on error
+            atomic_write_json(self._save_path, project_data)    #prevents file corruption if writing fails
             self._designer.app_state.mark_clean()
         except Exception as e:
             messagebox.showerror(
@@ -237,8 +264,10 @@ class AppController:
             return False
         return True
 
-    def _save_project_as(self) -> bool:
-        """prompt for a save location and save the project as a .tkui file, returning True on success"""
+    def _save_project_as(
+        self
+    ) -> bool:
+        """Prompt for a save location and save the project as a .tkui file, returning True on success."""
         if not self._designer:
             messagebox.showerror(
                 "Error",
@@ -255,13 +284,13 @@ class AppController:
             initialdir=self._last_directory
         )
 
-        if not save_path:   #user pressed cancel
+        if not save_path:
             return False
 
         try:
             project_data = self._designer.app_state.project.to_json()
-            atomic_write_json(save_path, project_data)  #atomic prevents corruption on error
-            self._save_path = save_path                 #only update save path after successful write
+            atomic_write_json(save_path, project_data)  #prevents file corruption if writing fails
+            self._save_path = save_path                 #only updates save path after successful write
             self._last_directory = os.path.dirname(save_path)
             self._designer.app_state.mark_clean()
         except Exception as e:
@@ -273,8 +302,10 @@ class AppController:
             return False
         return True
 
-    def _exit_app(self) -> None:
-        """exit application, prompting for intent when unsaved changes exist"""
+    def _exit_app(
+        self
+    ) -> None:
+        """Exit the application, prompting for unsaved changes."""
         if self._handle_unsaved_changes() == "CANCEL":
             return
 
