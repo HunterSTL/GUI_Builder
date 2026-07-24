@@ -15,7 +15,7 @@ class SelectionController:
         canvas: tk.Canvas,
         app_state: AppState,
         selection_view: SelectionView,
-        ctrl_key: str,
+        ctrl_key: int,
         drag_threshold: int,
         resolve_widget_to_model,
         event_router: EventRouter

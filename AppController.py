@@ -5,11 +5,11 @@ from tkinter import messagebox, filedialog
 
 from events import EventBus
 from model import ProjectDocument
-from utility import screen_offset_to_center_window, CustomTitlebar, atomic_write_json
+from utility import screen_offset_to_center_window, CustomTitlebar, atomic_write_json, CONSTANTS, ApplicationConstants
 
 from Designer import Designer
 from SetupWizard import SetupWizard
-from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS
+from Theme import USER_THEME, PROGRAM_THEME
 
 
 class AppController:
@@ -20,7 +20,7 @@ class AppController:
     ) -> None:
         self._root: tk.Tk = root
 
-        self._constants: dict[str, int | dict[str, object]] = CONSTANTS
+        self._constants: ApplicationConstants = CONSTANTS
         self._program_theme: dict[str, dict[str, str]] = PROGRAM_THEME
         self._user_theme: dict[str, dict[str, str]] = { #prevents mutation of the global theme
             key: value.copy()

@@ -12,7 +12,7 @@ class SelectionView:
         selection_color: str,
         last_selected_color: str,
         selection_width: int,
-        selection_dash: tuple[int],
+        selection_dash: tuple[int, int],
         selection_padding: int
     ):
         """store canvas and appearance settings"""

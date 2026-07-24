@@ -8,12 +8,17 @@ import tkinter as tk
 from commands import EditWidget, MoveWidgetsTo
 from events import EventBus
 from model import ProjectDocument, LabelWidgetData, BaseWidgetData
-from utility import WidgetType, Geometry
+from utility import WidgetType, Geometry, CONSTANTS
 from AppState import AppState
 from Designer import Designer
-from Theme import USER_THEME, PROGRAM_THEME, CONSTANTS, MINIMUM_CANVAS_WIDTH, MINIMUM_CANVAS_HEIGHT, MAXIMUM_CANVAS_WIDTH, MAXIMUM_CANVAS_HEIGHT
+from Theme import USER_THEME, PROGRAM_THEME
 
 FIRST_WIDGET_ID = 2
+
+MINIMUM_CANVAS_WIDTH = CONSTANTS["canvas"]["min_width"]
+MINIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["min_height"]
+MAXIMUM_CANVAS_WIDTH = CONSTANTS["canvas"]["max_width"]
+MAXIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["max_height"]
 
 #Setup------------------------------------------------------------------------------------------------------------------
 def _create_valid_model(**overrides) -> LabelWidgetData:
@@ -229,11 +234,11 @@ def action_deserialize_project_with_invalid_height() -> None:
 def action_deserialize_project_with_width_below_minimum() -> None:
     ProjectDocument.from_json({"width": MINIMUM_CANVAS_WIDTH - 1})
 
-def action_deserialize_project_with_width_above_maximum() -> None:
-    ProjectDocument.from_json({"width": MAXIMUM_CANVAS_WIDTH + 1})
-
 def action_deserialize_project_with_height_below_minimum() -> None:
     ProjectDocument.from_json({"height": MINIMUM_CANVAS_HEIGHT - 1})
+
+def action_deserialize_project_with_width_above_maximum() -> None:
+    ProjectDocument.from_json({"width": MAXIMUM_CANVAS_WIDTH + 1})
 
 def action_deserialize_project_with_height_above_maximum() -> None:
     ProjectDocument.from_json({"height": MAXIMUM_CANVAS_HEIGHT + 1})
@@ -478,14 +483,14 @@ VALIDATION_TESTS = (
         action=action_deserialize_project_with_width_below_minimum
     ),
     ValidationTest(
-        name="Deserializing project with width above maximum",
-        expected_error_message=f"ProjectDocument - deserialization failed: width above maximum of {MAXIMUM_CANVAS_WIDTH} [got {MAXIMUM_CANVAS_WIDTH + 1}]",
-        action=action_deserialize_project_with_width_above_maximum
-    ),
-    ValidationTest(
         name="Deserializing project with height below minimum",
         expected_error_message=f"ProjectDocument - deserialization failed: height below minimum of {MINIMUM_CANVAS_HEIGHT} [got {MINIMUM_CANVAS_HEIGHT - 1}]",
         action=action_deserialize_project_with_height_below_minimum
+    ),
+    ValidationTest(
+        name="Deserializing project with width above maximum",
+        expected_error_message=f"ProjectDocument - deserialization failed: width above maximum of {MAXIMUM_CANVAS_WIDTH} [got {MAXIMUM_CANVAS_WIDTH + 1}]",
+        action=action_deserialize_project_with_width_above_maximum
     ),
     ValidationTest(
         name="Deserializing project with height above maximum",

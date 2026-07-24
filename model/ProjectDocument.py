@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Any
 from model import GridConfig, IdCounters
-from Theme import MINIMUM_CANVAS_WIDTH, MAXIMUM_CANVAS_WIDTH, MINIMUM_CANVAS_HEIGHT, MAXIMUM_CANVAS_HEIGHT
+from utility import CONSTANTS
 
 @dataclass
 class ProjectDocument:
@@ -50,17 +50,22 @@ class ProjectDocument:
             raise ValueError(f"ProjectDocument - deserialization failed: height must be an integer [got \"{raw_height}\"]")
 
         #ensure width and height are within canvas limits
-        if width < MINIMUM_CANVAS_WIDTH:
-            raise ValueError(f"ProjectDocument - deserialization failed: width below minimum of {MINIMUM_CANVAS_WIDTH} [got {width}]")
+        min_width = CONSTANTS["canvas"]["min_width"]
+        min_height = CONSTANTS["canvas"]["min_height"]
+        max_width = CONSTANTS["canvas"]["max_width"]
+        max_height = CONSTANTS["canvas"]["max_height"]
 
-        if width > MAXIMUM_CANVAS_WIDTH:
-            raise ValueError(f"ProjectDocument - deserialization failed: width above maximum of {MAXIMUM_CANVAS_WIDTH} [got {width}]")
+        if width < min_width:
+            raise ValueError(f"ProjectDocument - deserialization failed: width below minimum of {min_width} [got {width}]")
 
-        if height < MINIMUM_CANVAS_HEIGHT:
-            raise ValueError(f"ProjectDocument - deserialization failed: height below minimum of {MINIMUM_CANVAS_HEIGHT} [got {height}]")
+        if height < min_height:
+            raise ValueError(f"ProjectDocument - deserialization failed: height below minimum of {min_height} [got {height}]")
 
-        if height > MAXIMUM_CANVAS_HEIGHT:
-            raise ValueError(f"ProjectDocument - deserialization failed: height above maximum of {MAXIMUM_CANVAS_HEIGHT} [got {height}]")
+        if width > max_width:
+            raise ValueError(f"ProjectDocument - deserialization failed: width above maximum of {max_width} [got {width}]")
+
+        if height > max_height:
+            raise ValueError(f"ProjectDocument - deserialization failed: height above maximum of {max_height} [got {height}]")
 
         return ProjectDocument(
             version=project_data.get("version", 1), #default to 1 if missing from data

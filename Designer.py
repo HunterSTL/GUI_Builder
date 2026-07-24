@@ -7,7 +7,7 @@ from components import AttributesPanel
 from events import EventBus, EventRouter
 from actions import Actions, EditActions, WidgetActions
 from commands import CommandStack
-from utility import call_tracer, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType
+from utility import call_tracer, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType, ApplicationConstants
 from AppState import AppState
 
 class Designer:
@@ -29,14 +29,14 @@ class Designer:
         self,
         parent: tk.Tk,
         project_document: ProjectDocument,
+        constants: ApplicationConstants,
         program_theme: dict,
-        constants: dict,
         app_event_bus: EventBus
     ):
         """initialize the Designer window, UI, managers, callbacks, and state"""
         self.parent = parent
+        self.constants: ApplicationConstants = constants
         self.program_theme = program_theme
-        self.constants = constants
 
         #Event system---------------------------------------------------------------------------------------------------
         self.app_event_bus = app_event_bus          #lives for the entire application lifetime (owned by AppController)
