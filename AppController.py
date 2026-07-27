@@ -33,7 +33,7 @@ class AppController:
         self._save_path: str | None = None
         self._last_directory: str | None = None
         self._designer: Designer | None = None
-        self._setup_wizard_window: tk.Toplevel | None = None
+        self._setup_wizard: SetupWizard | None = None
 
         self._build_startup_ui()
 
@@ -164,11 +164,11 @@ class AppController:
         self
     ) -> None:
         """Cancel new project creation and restore the previous window."""
-        if self._setup_wizard_window is None:
+        if self._setup_wizard is None:
             return
 
-        self._setup_wizard_window.destroy()
-        self._setup_wizard_window = None
+        self._setup_wizard.close()
+        self._setup_wizard = None
 
         if self._designer:
             self._designer.top.deiconify()
@@ -188,14 +188,13 @@ class AppController:
         self._root.withdraw()
         self._save_path = None
 
-        self._setup_wizard_window = tk.Toplevel(self._root)
-        SetupWizard(
-            root=self._setup_wizard_window,
+        self._setup_wizard = SetupWizard(
+            parent=self._root,
             user_theme=self._copy_user_theme(),
             program_theme=self._program_theme,
             constants=self._constants,
             on_done_callback=self._launch_designer_from_project_document,
-            exit_callback=self._cancel_new_project_creation
+            on_cancel_callback=self._cancel_new_project_creation
         )
 
     def _open_project(
