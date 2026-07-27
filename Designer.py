@@ -55,19 +55,14 @@ class Designer:
             parent=self._viewer,
             canvas_width=self.app_state.project.width,
             canvas_height=self.app_state.project.height,
-            background_color=self.app_state.project.theme["background"]["color"]
+            background_color=self.app_state.project.theme["background"]["color"],
+            boundary_color=self._program_theme["selection"]["color"]
         )
         self._canvas: tk.Canvas = self._canvas_view.canvas
-        self._canvas_window_id: int = self._viewer.create_window(    #embeds inner canvas into the scrollable viewer
+        self._viewer.create_window(     #embeds inner canvas into the scrollable viewer
             0, 0,
             window=self._canvas,
             anchor="nw"
-        )
-        self._canvas.create_rectangle(                              #draws boundary around the work area
-            1, 1, self.app_state.project.width - 1, self.app_state.project.height - 1,
-            outline=self._program_theme["selection"]["color"],
-            width=1,
-            dash=(2, 2)
         )
 
         self._selection_view: SelectionView = SelectionView(

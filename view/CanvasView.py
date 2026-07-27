@@ -11,7 +11,8 @@ class CanvasView:
         parent: tk.Canvas,
         canvas_width: int,
         canvas_height: int,
-        background_color: str
+        background_color: str,
+        boundary_color: str
     ):
         """initialize the canvas view and construct the drawing canvas"""
         self.parent = parent
@@ -26,6 +27,12 @@ class CanvasView:
             bg=background_color,
             highlightthickness=0,
             takefocus=1
+        )
+        self.canvas.create_rectangle(
+            1, 1, canvas_width - 1, canvas_height - 1,
+            outline=boundary_color,
+            width=1,
+            dash=(2, 2)
         )
 
     #Rendering API------------------------------------------------------------------------------------------------------
