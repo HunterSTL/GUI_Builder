@@ -1,391 +1,366 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
-from model import ProjectDocument
-from view import CanvasView, SelectionView, ToolbarView, WidgetView
-from controller import CanvasController, SelectionController, ToolbarController
-from components import AttributesPanel
-from events import EventBus, EventRouter
+
 from actions import Actions, EditActions, WidgetActions
 from commands import CommandStack
+from components import AttributesPanel
+from controller import CanvasController, SelectionController, ToolbarController
+from events import EventBus, EventRouter
+from model import ProjectDocument
 from utility import call_tracer, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType, ApplicationConstants
+from view import CanvasView, SelectionView, ToolbarView, WidgetView
+
 from AppState import AppState
 
-class Designer:
-    """
-    Responsible for constructing the editor window, wiring
-    together views, controllers and state and coordinating user interaction
-    with the underlying ProjectDocument via AppState.
 
-    Responsibilities include:
-    *Building and owning the Designer window layout and scrollable work area
-    *Creating and connecting all major views (attributes panel, canvas, selection, toolbar, widget)
-    *Routing user input via the EventBus into edit, widget, grid and UI actions
-    *Managing incremental rendering in response to AppState mutations
-    *Executing domain specific editor logic (widget creation, alignment, snapping)
-    *Reflecting dirty state in the window title
-    """
-    #Construction-------------------------------------------------------------------------------------------------------
+class Designer:
+    """Coordinates events, actions, application state and rendering."""
     def __init__(
         self,
         parent: tk.Tk,
         project_document: ProjectDocument,
         constants: ApplicationConstants,
-        program_theme: dict,
+        program_theme: dict[str, dict[str, str]],
         app_event_bus: EventBus
-    ):
-        """initialize the Designer window, UI, managers, callbacks, and state"""
-        self.parent = parent
-        self.constants: ApplicationConstants = constants
-        self.program_theme = program_theme
+    ) -> None:
+        self._parent: tk.Tk = parent
+        self._constants: ApplicationConstants = constants
+        self._program_theme: dict[str, dict[str, str]] = program_theme
 
         #Event system---------------------------------------------------------------------------------------------------
-        self.app_event_bus = app_event_bus          #lives for the entire application lifetime (owned by AppController)
-        self.designer_event_bus = EventBus()        #discarded when the Designer window is destroyed
-        self.event_router = EventRouter(            #provides a single interface for emitting events and routes events to the correct EventBus
-            app_event_bus=self.app_event_bus,
-            designer_event_bus=self.designer_event_bus
+        self._app_event_bus: EventBus = app_event_bus   #lives for the entire application lifetime (owned by AppController)
+        self._designer_event_bus: EventBus = EventBus() #discarded when the Designer window is destroyed
+        self._event_router: EventRouter = EventRouter(  #provides a single interface for emitting events
+            app_event_bus=self._app_event_bus,
+            designer_event_bus=self._designer_event_bus
         )
-        #----------------------------------------------------------------------------------------------------------------
-        self.app_state = AppState(project_document) #central model mutation engine
-        self.command_stack = CommandStack()         #provides undo and redo functionality
-        self.clipboard = []                         #stores a copy of the model for every copied widget
 
-        self.grid_visible_variable = tk.BooleanVar(value=self.app_state.project.grid.visible)   #represents grid state from ProjectDocument
+        #Application state----------------------------------------------------------------------------------------------
+        self.app_state: AppState = AppState(
+            project_document=project_document
+        )
+        self.app_state.subscribe(self._on_changed_state)
+
+        self._command_stack: CommandStack = CommandStack()
+        self._clipboard: list[dict[str, str | int | None]] = []
+        self._grid_visible_variable: tk.BooleanVar = tk.BooleanVar(value=self.app_state.project.grid.visible)
         self._last_right_click_coordinates: tuple[int, int] | None = None
 
-        #build designer UI
+        #UI construction------------------------------------------------------------------------------------------------
         self._build_designer_ui()
+        self._create_context_menu()
 
-        #create CanvasView to render the grid---------------------------------------------------------------------------
-        self.canvas_view = CanvasView(
-            parent=self.viewer,
+        #Views----------------------------------------------------------------------------------------------------------
+        self._canvas_view: CanvasView = CanvasView(
+            parent=self._viewer,
             canvas_width=self.app_state.project.width,
             canvas_height=self.app_state.project.height,
             background_color=self.app_state.project.theme["background"]["color"]
         )
-        self.canvas = self.canvas_view.canvas
-
-        #embed inner canvas into the scrollable viewer
-        self.canvas_window_id = self.viewer.create_window(0, 0, window=self.canvas, anchor="nw")
-
-        #draw boundary around the work area
-        self.canvas.create_rectangle(
+        self._canvas: tk.Canvas = self._canvas_view.canvas
+        self._canvas_window_id: int = self._viewer.create_window(    #embeds inner canvas into the scrollable viewer
+            0, 0,
+            window=self._canvas,
+            anchor="nw"
+        )
+        self._canvas.create_rectangle(                              #draws boundary around the work area
             1, 1, self.app_state.project.width - 1, self.app_state.project.height - 1,
-            outline=self.program_theme["selection"]["color"],
+            outline=self._program_theme["selection"]["color"],
             width=1,
             dash=(2, 2)
         )
 
-        #create CanvasController to create key binds--------------------------------------------------------------------
-        self.canvas_controller = CanvasController(
-            app_state=self.app_state,
-            canvas_view=self.canvas_view,
-            nudge_small=self.constants["nudge"]["small"],
-            nudge_big=self.constants["nudge"]["big"],
-            event_router=self.event_router
+        self._selection_view: SelectionView = SelectionView(
+            canvas=self._canvas,
+            selection_color=self._program_theme["selection"]["color"],
+            last_selected_color=self._program_theme["selection"]["last_selected_color"],
+            selection_width=self._constants["selection"]["width"],
+            selection_dash=self._constants["selection"]["dash"],
+            selection_padding=self._constants["selection"]["padding"]
         )
 
-        #create SelectionView to render selection rectangle and selection outlines--------------------------------------
-        self.selection_view = SelectionView(
-            canvas=self.canvas,
-            selection_color=self.program_theme["selection"]["color"],
-            last_selected_color=self.program_theme["selection"]["last_selected_color"],
-            selection_width=self.constants["selection"]["width"],
-            selection_dash=self.constants["selection"]["dash"],
-            selection_padding=self.constants["selection"]["padding"]
-        )
-
-        #create SelectionController to handle selection and drag gestures-----------------------------------------------
-        self.selection_controller = SelectionController(
-            canvas=self.canvas,
-            app_state=self.app_state,
-            selection_view=self.selection_view,
-            ctrl_key=self.constants["ctrl_key"],
-            drag_threshold=self.constants["drag_threshold"],
-            resolve_widget_to_model=lambda widget_id: self.widget_view.get_model_id_from_widget_id(widget_id),
-            event_router=self.event_router
-        )
-
-        #create WidgetView to render widget models and store mappings---------------------------------------------------
-        self.widget_view = WidgetView(
-            canvas=self.canvas
-        )
-
-        #create ToolbarView to provide the API for building the toolbar-------------------------------------------------
-        self.toolbar_view = ToolbarView(
+        self._toolbar_view: ToolbarView = ToolbarView(
             parent=self.top,
-            height=self.constants["toolbar_height"],
-            toolbar_color=self.program_theme["toolbar"]["bg"],
-            button_color=self.program_theme["button"]["bg"],
-            button_text_color=self.program_theme["button"]["fg"],
-            menu_color=self.program_theme["menu"]["bg"],
-            menu_text_color=self.program_theme["menu"]["fg"],
-            grid_visible_variable=self.grid_visible_variable
+            height=self._constants["toolbar_height"],
+            toolbar_color=self._program_theme["toolbar"]["bg"],
+            button_color=self._program_theme["button"]["bg"],
+            button_text_color=self._program_theme["button"]["fg"],
+            menu_color=self._program_theme["menu"]["bg"],
+            menu_text_color=self._program_theme["menu"]["fg"],
+            grid_visible_variable=self._grid_visible_variable
         )
 
-        #create ToolbarController to build the toolbar and wire the events----------------------------------------------
-        self.toolbar_controller = ToolbarController(
-            toolbar_view=self.toolbar_view,
-            event_router=self.event_router
+        self._widget_view: WidgetView = WidgetView(
+            canvas=self._canvas
         )
 
-        #create EditActions to provide edit semantics (delete, copy, paste, cut, undo and redo)-------------------------
-        edit_actions = EditActions(
+        #Controllers----------------------------------------------------------------------------------------------------
+        self._canvas_controller: CanvasController = CanvasController(
             app_state=self.app_state,
-            command_stack=self.command_stack,
-            clipboard=self.clipboard,
+            canvas_view=self._canvas_view,
+            nudge_small=self._constants["nudge"]["small"],
+            nudge_big=self._constants["nudge"]["big"],
+            event_router=self._event_router
+        )
+        self._canvas_controller.bind_events()
+
+        self._selection_controller: SelectionController = SelectionController(
+            canvas=self._canvas,
+            app_state=self.app_state,
+            selection_view=self._selection_view,
+            ctrl_key=self._constants["ctrl_key"],
+            drag_threshold=self._constants["drag_threshold"],
+            resolve_widget_to_model=lambda widget_id: self._widget_view.get_model_id_from_widget_id(widget_id),
+            event_router=self._event_router
+        )
+
+        self._toolbar_controller: ToolbarController = ToolbarController(
+            toolbar_view=self._toolbar_view,
+            event_router=self._event_router
+        )
+        self._toolbar_controller.build_toolbar()
+        self._main_frame.pack(side="top", fill="both", expand=True)
+
+        #Actions--------------------------------------------------------------------------------------------------------
+        edit_actions: EditActions = EditActions(
+            app_state=self.app_state,
+            command_stack=self._command_stack,
+            clipboard=self._clipboard,
             confirm_delete_callback=self._confirm_delete,
             commit_active_attributes_panel_edit_callback=self._commit_active_attributes_panel_edit
         )
 
-        #create WidgetActions to provide widget semantics (nudge, drag, snap to grid, align)---------------------------
-        widget_actions = WidgetActions(
+        widget_actions: WidgetActions = WidgetActions(
             app_state=self.app_state,
-            command_stack=self.command_stack,
-            measure_preview_widget_callback=self.widget_view.measure_preview_widget
+            command_stack=self._command_stack,
+            measure_preview_widget_callback=self._widget_view.measure_preview_widget
         )
 
-        #create Actions to provide a single access point for all actions------------------------------------------------
-        self.actions = Actions(
+        self._actions: Actions = Actions(
             edit_actions=edit_actions,
             widget_actions=widget_actions
         )
 
+        #Event wiring---------------------------------------------------------------------------------------------------
         self._subscribe_functions_to_events()
 
-        #create toolbar
-        self.toolbar_controller.build_toolbar()
-
-        #pack main frame after creating toolbar so toolbar is on top
-        self.main_frame.pack(side="top", fill="both", expand=True)
-
-        #bind events to canvas
-        self.canvas_controller.bind_events()
-
-        #create context menu (right click) for creating new widgets
-        self._create_context_menu()
-
-        #subscribe the function "_on_changed_state" as a listener for state changes
-        self.app_state.subscribe(self._on_changed_state)
-
+        #Startup--------------------------------------------------------------------------------------------------------
         self._initial_render()
 
-    def _build_designer_ui(self):
-        """construct the full Designer UI layout and its components"""
-        self.top = tk.Toplevel(self.parent)
-        self.top.wm_minsize(self.constants["window"]["min_width"], self.constants["window"]["min_height"])  #enforces minimum window size
+    def _build_designer_ui(
+        self
+    ) -> None:
+        """Construct the designer UI layout and its components."""
+        self.top: tk.Toplevel = tk.Toplevel(self._parent)
+        self.top.wm_minsize(
+            self._constants["window"]["min_width"],
+            self._constants["window"]["min_height"]
+        )
 
         titlebar = CustomTitlebar(
             parent=self.top,
             title=self.app_state.project.title,
-            height=self.constants["titlebar_height"],
-            bg_color=self.program_theme["titlebar"]["bg"],
-            fg_color=self.program_theme["titlebar"]["fg"],
+            height=self._constants["titlebar_height"],
+            bg_color=self._program_theme["titlebar"]["bg"],
+            fg_color=self._program_theme["titlebar"]["fg"],
             icon_path=self.app_state.project.icon_path,
-            on_close=lambda: self.app_event_bus.emit("app.exit")
+            on_close=lambda: self._event_router.emit("app.exit")
         )
         titlebar.frame.pack(fill="x")
-        self.titlebar_label = titlebar.label
+        self._titlebar_label: tk.Label = titlebar.label
 
-        self.main_frame = tk.Frame(                     #hosts work area (column 0) and attributes panel (column 1)
+        self._main_frame: tk.Frame = tk.Frame(           #hosts work area (column 0) and attributes panel (column 1)
             self.top,
             bg=self.app_state.project.theme["background"]["color"]
         )
-        self.main_frame.columnconfigure(0, weight=1)    #work area expands
-        self.main_frame.columnconfigure(1, weight=0)    #attributes panel fixed width
-        self.main_frame.rowconfigure(0, weight=1)
+        self._main_frame.columnconfigure(0, weight=1)    #work area expands
+        self._main_frame.columnconfigure(1, weight=0)    #attributes panel fixed width
+        self._main_frame.rowconfigure(0, weight=1)
 
-        self.work_area = tk.Frame(self.main_frame, bg=self.app_state.project.theme["background"]["color"])
-        self.work_area.grid(row=0, column=0, sticky="nsew")
-        self.work_area.columnconfigure(0, weight=1)
-        self.work_area.rowconfigure(0, weight=1)
+        self._work_area: tk.Frame = tk.Frame(
+            master=self._main_frame,
+            bg=self.app_state.project.theme["background"]["color"]
+        )
+        self._work_area.grid(row=0, column=0, sticky="nsew")
+        self._work_area.columnconfigure(0, weight=1)
+        self._work_area.rowconfigure(0, weight=1)
 
-        self.attributes_panel = AttributesPanel(
-            parent=self.main_frame,
+        self._attributes_panel: AttributesPanel = AttributesPanel(
+            parent=self._main_frame,
             canvas_width=self.app_state.project.width,
             canvas_height=self.app_state.project.height,
-            panel_width=self.constants["attributes_panel_width"],
-            panel_color=self.program_theme["attributes_panel"]["color"],
-            widget_color=self.program_theme["attributes_panel"]["widget_color"],
-            text_color=self.program_theme["attributes_panel"]["text_color"],
+            panel_width=self._constants["attributes_panel_width"],
+            panel_color=self._program_theme["attributes_panel"]["color"],
+            widget_color=self._program_theme["attributes_panel"]["widget_color"],
+            text_color=self._program_theme["attributes_panel"]["text_color"],
             on_attribute_panel_edit_callback=self._handle_attribute_panel_edit_phase
         )
-        self.attributes_panel.frame.grid(row=0, column=1, sticky="ns")
+        self._attributes_panel.frame.grid(row=0, column=1, sticky="ns")
 
-        #create viewer for scrolling
-        self.viewer = tk.Canvas(
-            self.work_area,
+        self._viewer: tk.Canvas = tk.Canvas(
+            master=self._work_area,
             bg=self.app_state.project.theme["background"]["color"],
             highlightthickness=0
         )
-        self.viewer.grid(row=0, column=0, sticky="nsew")
-
-        #bind mousewheel for scrolling
+        self._viewer.grid(row=0, column=0, sticky="nsew")
         self._bind_mousewheel(self.top)
 
         #create scrollbars
         self._configure_scrollbar_style()
-        self.vertical_scrollbar = ttk.Scrollbar(
-            self.work_area,
+        self._vertical_scrollbar: ttk.Scrollbar = ttk.Scrollbar(
+            self._work_area,
             orient="vertical",
-            command=self.viewer.yview,
+            command=self._viewer.yview,
             style="Designer.Vertical.TScrollbar"
         )
-        self.horizontal_scrollbar = ttk.Scrollbar(
-            self.work_area,
+        self._horizontal_scrollbar: ttk.Scrollbar = ttk.Scrollbar(
+            self._work_area,
             orient="horizontal",
-            command=self.viewer.xview,
+            command=self._viewer.xview,
             style="Designer.Horizontal.TScrollbar"
         )
-        self.viewer.configure(yscrollcommand=self.vertical_scrollbar.set, xscrollcommand=self.horizontal_scrollbar.set)
+        self._viewer.configure(
+            yscrollcommand=self._vertical_scrollbar.set,
+            xscrollcommand=self._horizontal_scrollbar.set
+        )
 
-        #compute initial window dimensions
         window_width, window_height = self._compute_initial_window_dimensions()
         self.top.geometry(f"{window_width}x{window_height}")
 
-        #recompute when viewer's size changes
-        self.viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
-
+        self._viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
         self._center_window()
 
-    def _compute_initial_window_dimensions(self):
-        """compute initial Designer window size based on canvas and constraints"""
-        #ensure geometry is up-to-date
-        self.top.update_idletasks()
+    def _compute_initial_window_dimensions(
+        self
+    ) -> tuple[int, int]:
+        """Compute initial designer window size based on canvas and constraints."""
+        self.top.update_idletasks()     #ensures geometry is up-to-date
 
-        #requested canvas dimensions
-        canvas_width = self.app_state.project.width
-        canvas_height = self.app_state.project.height
+        requested_canvas_width = self.app_state.project.width
+        requested_canvas_height = self.app_state.project.height
 
-        #dimensions of UI elements
-        panel_width = self.constants["attributes_panel_width"]
-        titlebar_height = self.constants["titlebar_height"]
-        toolbar_height = self.constants["toolbar_height"]
-        vertical_scrollbar_thickness = self.vertical_scrollbar.winfo_reqwidth()
-        horizontal_scrollbar_thickness = self.horizontal_scrollbar.winfo_reqheight()
+        panel_width = self._constants["attributes_panel_width"]
+        titlebar_height = self._constants["titlebar_height"]
+        toolbar_height = self._constants["toolbar_height"]
 
-        #minimum/maximum designer window dimensions
-        minimum_width = self.constants["window"]["min_width"]
-        maximum_width = self.constants["window"]["max_width"]
-        minimum_height = self.constants["window"]["min_height"]
-        maximum_height = self.constants["window"]["max_height"]
+        vertical_scrollbar_thickness = self._vertical_scrollbar.winfo_reqwidth()
+        horizontal_scrollbar_thickness = self._horizontal_scrollbar.winfo_reqheight()
 
-        #compute ideal designer window dimensions to fit the entire canvas without scrollbars
-        required_window_width = canvas_width + panel_width
-        required_window_height = canvas_height + toolbar_height + titlebar_height
+        minimum_window_width = self._constants["window"]["min_width"]
+        maximum_window_width = self._constants["window"]["max_width"]
+        minimum_window_height = self._constants["window"]["min_height"]
+        maximum_window_height = self._constants["window"]["max_height"]
 
-        #compute actual designer window dimensions (enforce min/max constraints)
-        window_width = clamp(required_window_width, minimum_width, maximum_width)
-        window_height = clamp(required_window_height, minimum_height, maximum_height)
+        required_window_width = requested_canvas_width + panel_width
+        required_window_height = requested_canvas_height + toolbar_height + titlebar_height
+        actual_window_width = clamp(required_window_width, minimum_window_width, maximum_window_width)
+        actual_window_height = clamp(required_window_height, minimum_window_height, maximum_window_height)
 
-        #derive available viewport from clamped window size
-        viewport_width = max(0, window_width - panel_width)
-        viewport_height = max(0, window_height - (toolbar_height + titlebar_height))
+        viewport_width = max(0, actual_window_width - panel_width)
+        viewport_height = max(0, actual_window_height - (toolbar_height + titlebar_height))
+        need_horizontal_scrollbar = requested_canvas_width > viewport_width
+        need_vertical_scrollbar = requested_canvas_height > viewport_height
 
-        #check whether scrollbars are needed
-        need_horizontal_scrollbar = canvas_width > viewport_width
-        need_vertical_scrollbar = canvas_height > viewport_height
+        window_width_new, window_height_new = actual_window_width, actual_window_height
 
-        window_width_new, window_height_new = window_width, window_height
-
-        for _ in range(2):
-            #vertical scrollbar needed → add scrollbar width to window width → enforce min/max → check whether horizontal scrollbar is needed
+        for _ in range(2):  #one scrollbar can make the other one necessary
             if need_vertical_scrollbar:
-                window_width_new = clamp(window_width + vertical_scrollbar_thickness, minimum_width, maximum_width)
+                window_width_new = clamp(actual_window_width + vertical_scrollbar_thickness, minimum_window_width, maximum_window_width)
                 viewport_width = max(0, window_width_new - panel_width)
-                need_horizontal_scrollbar = canvas_width > viewport_width
+                need_horizontal_scrollbar = requested_canvas_width > viewport_width
 
-            #horizontal scrollbar needed → add scrollbar width to window height → enforce min/max → check whether vertical scrollbar is needed
             if need_horizontal_scrollbar:
-                window_height_new = clamp(window_height + horizontal_scrollbar_thickness, minimum_height, maximum_height)
+                window_height_new = clamp(actual_window_height + horizontal_scrollbar_thickness, minimum_window_height, maximum_window_height)
                 viewport_height = max(0, window_height_new - (toolbar_height + titlebar_height))
-                need_vertical_scrollbar = canvas_height > viewport_height
+                need_vertical_scrollbar = requested_canvas_height > viewport_height
 
         return window_width_new, window_height_new
 
-    def _configure_scrollbar_style(self):
-        """configure custom scrollbar styles"""
+    def _configure_scrollbar_style(
+        self
+    ) -> None:
+        """Configure custom scrollbar styles."""
         style = ttk.Style(self.top)
         style.theme_use("default")  #allows colors
         style.configure(
             "Designer.Vertical.TScrollbar",
-            troughcolor=self.program_theme["scrollbar"]["trough_color"],
-            background=self.program_theme["scrollbar"]["background_color"],
-            arrowcolor=self.program_theme["scrollbar"]["arrow_color"],
-            bordercolor=self.program_theme["scrollbar"]["border_color"]
+            troughcolor=self._program_theme["scrollbar"]["trough_color"],
+            background=self._program_theme["scrollbar"]["background_color"],
+            arrowcolor=self._program_theme["scrollbar"]["arrow_color"],
+            bordercolor=self._program_theme["scrollbar"]["border_color"]
         )
         style.configure(
             "Designer.Horizontal.TScrollbar",
-            troughcolor=self.program_theme["scrollbar"]["trough_color"],
-            background=self.program_theme["scrollbar"]["background_color"],
-            arrowcolor=self.program_theme["scrollbar"]["arrow_color"],
-            bordercolor=self.program_theme["scrollbar"]["border_color"]
+            troughcolor=self._program_theme["scrollbar"]["trough_color"],
+            background=self._program_theme["scrollbar"]["background_color"],
+            arrowcolor=self._program_theme["scrollbar"]["arrow_color"],
+            bordercolor=self._program_theme["scrollbar"]["border_color"]
         )
 
-    def _refresh_scrollbars(self):
-        """compute which scrollbars should be visible and update layout"""
-        #ensure geometry is up-to-date
-        self.top.update_idletasks()
+    def _refresh_scrollbars(
+        self
+    ) -> None:
+        """Compute which scrollbars should be visible and update layout."""
+        self.top.update_idletasks()     #ensures geometry is up-to-date
 
-        #canvas dimensions
         canvas_width = self.app_state.project.width
         canvas_height = self.app_state.project.height
 
-        #scrollbar thickness
-        vertical_scrollbar_thickness = self.vertical_scrollbar.winfo_reqwidth()
-        horizontal_scrollbar_thickness = self.horizontal_scrollbar.winfo_reqheight()
+        vertical_scrollbar_thickness = self._vertical_scrollbar.winfo_reqwidth()
+        horizontal_scrollbar_thickness = self._horizontal_scrollbar.winfo_reqheight()
 
-        #viewport dimensions
-        viewport_width = self.work_area.winfo_width()
-        viewport_height = self.work_area.winfo_height()
+        viewport_width = self._work_area.winfo_width()
+        viewport_height = self._work_area.winfo_height()
 
-        #check whether scrollbars are needed
         need_horizontal_scrollbar = canvas_width > viewport_width
         need_vertical_scrollbar = canvas_height > viewport_height
 
-        for _ in range(2):
-            #vertical scrollbar needed → reduce viewport width by scrollbar width → check whether horizontal scrollbar is needed
+        for _ in range(2):  #one scrollbar can make the other one necessary
             if need_vertical_scrollbar:
                 viewport_width_new = viewport_width - vertical_scrollbar_thickness
                 need_horizontal_scrollbar = canvas_width > viewport_width_new
 
-            #horizontal scrollbar needed → reduce viewport height by scrollbar width → check whether vertical scrollbar is needed
             if need_horizontal_scrollbar:
                 viewport_height_new = viewport_height - horizontal_scrollbar_thickness
                 need_vertical_scrollbar = canvas_height > viewport_height_new
 
-        #add or remove scrollbars depending on if they're needed or not
         if need_vertical_scrollbar:
-            self.vertical_scrollbar.grid(row=0, column=1, sticky="ns")
+            self._vertical_scrollbar.grid(row=0, column=1, sticky="ns")
         else:
-            self.vertical_scrollbar.grid_remove()
+            self._vertical_scrollbar.grid_remove()
 
         if need_horizontal_scrollbar:
-            self.horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
+            self._horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
         else:
-            self.horizontal_scrollbar.grid_remove()
+            self._horizontal_scrollbar.grid_remove()
 
-        #update scroll region (always content size)
-        self.viewer.configure(scrollregion=(0, 0, canvas_width, canvas_height))
+        self._viewer.configure(scrollregion=(0, 0, canvas_width, canvas_height))
 
-    def _get_pointer_coordinates(self) -> tuple[int, int] | None:
-        """return the current pointer coordinates relative to the canvas or None if the pointer is outside the canvas"""
-        x = self.canvas.winfo_pointerx() - self.canvas.winfo_rootx()
-        y = self.canvas.winfo_pointery() - self.canvas.winfo_rooty()
+    def _get_pointer_coordinates(
+        self
+    ) -> tuple[int, int] | None:
+        """Return the current pointer coordinates relative to the canvas or None if the pointer is outside the canvas."""
+        x = self._canvas.winfo_pointerx() - self._canvas.winfo_rootx()
+        y = self._canvas.winfo_pointery() - self._canvas.winfo_rooty()
 
-        if x < 0 or x > self.canvas.winfo_width():
+        if x < 0 or x > self._canvas.winfo_width():
             return None
-        if y < 0 or y > self.canvas.winfo_height():
+        if y < 0 or y > self._canvas.winfo_height():
             return None
         return x, y
 
-    def _bind_mousewheel(self, widget):
-        """bind mousewheel scrolling behavior to a widget (in this case the Toplevel)"""
-        widget.bind("<MouseWheel>", lambda e: self.viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
-        widget.bind("<Shift-MouseWheel>", lambda e: self.viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
+    def _bind_mousewheel(
+        self,
+        widget: tk.BaseWidget
+    ) -> None:
+        """Bind mousewheel scrolling behavior to the given widget."""
+        widget.bind("<MouseWheel>", lambda e: self._viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
+        widget.bind("<Shift-MouseWheel>", lambda e: self._viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
 
-    def _center_window(self):
-        """center the Designer window on screen"""
+    def _center_window(
+        self
+    ) -> None:
+        """Center the designer window on screen."""
         self.top.update_idletasks()
         x_offset, y_offset = screen_offset_to_center_window(
             self.top.winfo_screenwidth(),
@@ -396,36 +371,39 @@ class Designer:
         self.top.geometry(f"+{x_offset}+{y_offset}")
 
     #Rendering----------------------------------------------------------------------------------------------------------
-    def _on_changed_state(self, state: AppState):
-        """respond to AppState mutations by performing incremental updates to widgets and selection outlines as well as updating the grid and the attributes panel"""
+    def _on_changed_state(
+        self,
+        state: AppState
+    ) -> None:
+        """Render incremental UI updates from AppState state change notification."""
         if state.is_dirty():
-            self.titlebar_label.configure(text=self.app_state.project.title + "*")
+            self._titlebar_label.configure(text=self.app_state.project.title + "*")
         else:
-            self.titlebar_label.configure(text=self.app_state.project.title)
+            self._titlebar_label.configure(text=self.app_state.project.title)
 
         #delete widgets and outlines for removed models
         for model_id in state.get_removed_model_ids():
-            self.widget_view.delete_widget_for(model_id)
-            self.selection_view.delete_outline_for(model_id)
+            self._widget_view.delete_widget_for(model_id)
+            self._selection_view.delete_outline_for(model_id)
 
         #update widgets and outlines for dirty models
         dirty_models = state.get_dirty_models()
         for model in dirty_models:
-            self.widget_view.update_widget_for(model)
+            self._widget_view.update_widget_for(model)
             if state.selection_contains(model.id):
-                self.selection_controller.update_outline_for(model) #controller derives required data from model and AppState
+                self._selection_controller.update_outline_for(model) #controller derives required data from model and AppState
 
         #show or hide the attributes panel and refresh outlines based on the selection
         if state.selection_change:
             selected_models = state.get_selected_models()
-            self.attributes_panel.set_selection(selected_models)
-            self.selection_view.clear_all_outlines()
+            self._attributes_panel.set_selection(selected_models)
+            self._selection_view.clear_all_outlines()
             for model in selected_models:
-                self.selection_controller.update_outline_for(model)
+                self._selection_controller.update_outline_for(model)
 
         #update grid
         if state.grid_change:
-            self.canvas_controller.render_grid()
+            self._canvas_controller.render_grid()
 
         #refresh attributes panel if the single selected model changed
         if len(dirty_models) == 1:
@@ -433,22 +411,28 @@ class Designer:
             selected_models = state.get_selected_models()
 
             if len(selected_models) == 1 and selected_models[0].id == dirty_model.id:   #prevents undo and redo from refreshing the attributes panel with values from an unselected dirty model
-                self.attributes_panel.refresh_from_model(dirty_model)
+                self._attributes_panel.refresh_from_model(dirty_model)
 
-    def _initial_render(self):
+    def _initial_render(
+        self
+    ) -> None:
+        """Create widgets for all models and render the grid."""
         for model in self.app_state.get_all_models():
-            self.widget_view.update_widget_for(model)
-        self.canvas_controller.render_grid()
+            self._widget_view.update_widget_for(model)
+        self._canvas_controller.render_grid()
 
     #Grid actions-------------------------------------------------------------------------------------------------------
-    def _toggle_grid(self):
-        """toggle grid visibility"""
-        self.grid_visible_variable.set(not self.grid_visible_variable.get())
+    def _toggle_grid(
+        self
+    ) -> None:
+        """Toggle grid visibility."""
+        self._grid_visible_variable.set(not self._grid_visible_variable.get())
         self._apply_grid_from_variable()
 
-    def _change_grid_size(self):
-        """prompt for and apply a new grid size"""
-        #prompt for new grid size
+    def _change_grid_size(
+        self
+    ) -> None:
+        """Prompt for and apply a new grid size."""
         new_grid_size = simpledialog.askinteger(
             "Grid size",
             "Enter new grid size:",
@@ -456,92 +440,98 @@ class Designer:
             maxvalue=100,
             parent=self.top
         )
+
         if new_grid_size is None:
             return
 
-        #update grid size in ProjectDocument
         self.app_state.set_grid_size(new_grid_size)
 
-    def _change_grid_color(self):
-        """prompt for and apply a new grid color"""
+    def _change_grid_color(
+        self
+    ) -> None:
+        """Prompt for and apply a new grid color."""
         color = colorchooser.askcolor(parent=self.top)[1]
 
-        #abort if user didn't select a color
         if color is None:
             return
 
-        #update grid color in ProjectDocument
         self.app_state.set_grid_color(str(color))
+        self._canvas.focus_set()
 
-        #set focus back to canvas
-        self.canvas.focus_set()
-
-    def _apply_grid_from_variable(self):
-        """apply grid visibility state from BooleanVar to AppState"""
-        visible = self.grid_visible_variable.get()
-
-        #write current grid visible state to ProjectDocument
+    def _apply_grid_from_variable(
+        self
+    ) -> None:
+        """Apply the current grid visibility state."""
+        visible = self._grid_visible_variable.get()
         self.app_state.set_grid_visible(visible)
 
     #UI actions---------------------------------------------------------------------------------------------------------
-    def _show_menu(self, event):
-        """show the context menu at the mouse position"""
+    def _show_menu(
+        self,
+        event: tk.Event
+    ) -> None:
+        """Show the context menu at the current mouse position."""
         self._last_right_click_coordinates = event.x, event.y
-        self.menu.post(event.x_root, event.y_root)
+        self._menu.post(event.x_root, event.y_root)
 
     #Wiring-------------------------------------------------------------------------------------------------------------
-    def _subscribe_functions_to_events(self):
-        """subscribe all functions, that should be called when an event is emitted, to the corresponding event"""
+    def _subscribe_functions_to_events(
+        self
+    ) -> None:
+        """Subscribe functions to their corresponding events."""
         #menu events
-        self.designer_event_bus.subscribe("menu.show", self._show_menu)
+        self._designer_event_bus.subscribe("menu.show", self._show_menu)
 
         #selection events
-        self.designer_event_bus.subscribe("selection.handle_press", self.selection_controller.handle_canvas_press)
-        self.designer_event_bus.subscribe("selection.handle_drag", self.selection_controller.handle_canvas_drag)
-        self.designer_event_bus.subscribe("selection.handle_release", self.selection_controller.handle_canvas_release)
+        self._designer_event_bus.subscribe("selection.handle_press", self._selection_controller.handle_canvas_press)
+        self._designer_event_bus.subscribe("selection.handle_drag", self._selection_controller.handle_canvas_drag)
+        self._designer_event_bus.subscribe("selection.handle_release", self._selection_controller.handle_canvas_release)
 
         #edit events
-        self.designer_event_bus.subscribe("edit.delete", self.actions.edit.delete)
-        self.designer_event_bus.subscribe("edit.copy", self.actions.edit.copy)
-        self.designer_event_bus.subscribe("edit.paste", lambda: self.actions.edit.paste(self._get_pointer_coordinates()))
-        self.designer_event_bus.subscribe("edit.cut", self.actions.edit.cut)
-        self.designer_event_bus.subscribe("edit.undo", self.actions.edit.undo)
-        self.designer_event_bus.subscribe("edit.redo", self.actions.edit.redo)
+        self._designer_event_bus.subscribe("edit.delete", self._actions.edit.delete)
+        self._designer_event_bus.subscribe("edit.copy", self._actions.edit.copy)
+        self._designer_event_bus.subscribe("edit.paste", lambda: self._actions.edit.paste(self._get_pointer_coordinates()))
+        self._designer_event_bus.subscribe("edit.cut", self._actions.edit.cut)
+        self._designer_event_bus.subscribe("edit.undo", self._actions.edit.undo)
+        self._designer_event_bus.subscribe("edit.redo", self._actions.edit.redo)
 
         #widget events
-        self.designer_event_bus.subscribe("widget.nudge", self.actions.widget.nudge)
-        self.designer_event_bus.subscribe("widget.snap_to_grid", self.actions.widget.snap_to_grid)
-        self.designer_event_bus.subscribe("widget.align", self.actions.widget.align)
-        self.designer_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
+        self._designer_event_bus.subscribe("widget.nudge", self._actions.widget.nudge)
+        self._designer_event_bus.subscribe("widget.snap_to_grid", self._actions.widget.snap_to_grid)
+        self._designer_event_bus.subscribe("widget.align", self._actions.widget.align)
+        self._designer_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
 
         #widget drag lifecycle events
-        self.designer_event_bus.subscribe("widget.drag.start", self.actions.widget.start_drag)
-        self.designer_event_bus.subscribe("widget.drag.apply_delta", self.actions.widget.apply_drag_delta)
-        self.designer_event_bus.subscribe("widget.drag.commit", self.actions.widget.commit_drag)
+        self._designer_event_bus.subscribe("widget.drag.start", self._actions.widget.start_drag)
+        self._designer_event_bus.subscribe("widget.drag.apply_delta", self._actions.widget.apply_drag_delta)
+        self._designer_event_bus.subscribe("widget.drag.commit", self._actions.widget.commit_drag)
 
         #widget edit lifecycle events
-        self.designer_event_bus.subscribe("widget.edit.start", self.actions.widget.start_edit)
-        self.designer_event_bus.subscribe("widget.edit.apply_change", self.actions.widget.apply_attribute_change)
-        self.designer_event_bus.subscribe("widget.edit.commit", self.actions.widget.commit_edit)
+        self._designer_event_bus.subscribe("widget.edit.start", self._actions.widget.start_edit)
+        self._designer_event_bus.subscribe("widget.edit.apply_change", self._actions.widget.apply_attribute_change)
+        self._designer_event_bus.subscribe("widget.edit.commit", self._actions.widget.commit_edit)
 
         #grid events
-        self.designer_event_bus.subscribe("grid.toggle", self._toggle_grid)
-        self.designer_event_bus.subscribe("grid.apply_variable", self._apply_grid_from_variable)
-        self.designer_event_bus.subscribe("grid.change_size", self._change_grid_size)
-        self.designer_event_bus.subscribe("grid.change_color", self._change_grid_color)
+        self._designer_event_bus.subscribe("grid.toggle", self._toggle_grid)
+        self._designer_event_bus.subscribe("grid.apply_variable", self._apply_grid_from_variable)
+        self._designer_event_bus.subscribe("grid.change_size", self._change_grid_size)
+        self._designer_event_bus.subscribe("grid.change_color", self._change_grid_color)
 
         #debug events
-        self.designer_event_bus.subscribe("debug.toggle_call_tracing", call_tracer.toggle)
-        self.designer_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
-        self.designer_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
-        self.designer_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
-        self.designer_event_bus.subscribe("debug.print_selection", self._print_selection)
-        self.designer_event_bus.subscribe("debug.print_bounding_boxes", self._print_bounding_boxes)
-        self.designer_event_bus.subscribe("debug.print_id_counters", self._print_id_counters)
+        self._designer_event_bus.subscribe("debug.toggle_call_tracing", call_tracer.toggle)
+        self._designer_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
+        self._designer_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
+        self._designer_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
+        self._designer_event_bus.subscribe("debug.print_selection", self._print_selection)
+        self._designer_event_bus.subscribe("debug.print_bounding_boxes", self._print_bounding_boxes)
+        self._designer_event_bus.subscribe("debug.print_id_counters", self._print_id_counters)
 
     #Domain logic-------------------------------------------------------------------------------------------------------
-    def _request_add_widget_from_context_menu(self, widget_type: WidgetType):
-        """collect required widget specific input and request widget creation at the last right click position"""
+    def _request_add_widget_from_context_menu(
+        self,
+        widget_type: WidgetType
+    ) -> None:
+        """Collect required widget specific input and request widget creation at the last right click position."""
         text = None
 
         if widget_type == WidgetType.LABEL:
@@ -553,52 +543,63 @@ class Designer:
             if text is None:
                 return
 
-        self.actions.widget.add(
+        self._actions.widget.add(
             widget_type=widget_type,
             coordinates=self._last_right_click_coordinates,
             text=text
         )
 
-    def _handle_attribute_panel_edit_phase(self, phase: str, **kwargs) -> None:
-        """handle an attributes panel edit phase by emitting the corresponding widget edit lifecycle event"""
+    def _handle_attribute_panel_edit_phase(
+        self,
+        phase: str,
+        **kwargs: str | int
+    ) -> None:
+        """Handle an attributes panel edit phase by emitting the corresponding widget edit lifecycle event."""
         if phase == "start":
-            self.event_router.emit("widget.edit.start")
+            self._event_router.emit("widget.edit.start")
         elif phase == "apply_change":
-            self.event_router.emit("widget.edit.apply_change", **kwargs)
+            self._event_router.emit("widget.edit.apply_change", **kwargs)
         elif phase == "commit":
-            self.event_router.emit("widget.edit.commit")
+            self._event_router.emit("widget.edit.commit")
         else:
             raise ValueError(f"Designer - attributes panel edit failed: unsupported edit phase \"{phase}\"")
 
-    def _commit_active_attributes_panel_edit(self) -> None:
-        """commit the active attributes panel edit if one is in progress"""
-        self.attributes_panel.commit_active_edit()
+    def _commit_active_attributes_panel_edit(
+        self
+    ) -> None:
+        """Commit the active attributes panel edit if one is in progress."""
+        self._attributes_panel.commit_active_edit()
 
     #Internals----------------------------------------------------------------------------------------------------------
-    def _create_context_menu(self):
-        """create the context menu for adding widgets"""
-        self.menu = tk.Menu(
+    def _create_context_menu(
+        self
+    ) -> None:
+        """Create the context menu for adding widgets."""
+        self._menu: tk.Menu = tk.Menu(
             self.top,
-            bg=self.program_theme["toolbar"]["bg"],
-            fg=self.program_theme["toolbar"]["fg"],
+            bg=self._program_theme["toolbar"]["bg"],
+            fg=self._program_theme["toolbar"]["fg"],
             tearoff=0
         )
 
-        self.menu.add_command(
+        self._menu.add_command(
             label="Add Label",
             command=lambda: self._request_add_widget_from_context_menu(WidgetType.LABEL)
         )
-        self.menu.add_command(
+        self._menu.add_command(
             label="Add Entry",
             command=lambda: self._request_add_widget_from_context_menu(WidgetType.ENTRY)
         )
-        self.menu.add_command(
+        self._menu.add_command(
             label="Add Button",
             command=lambda: self._request_add_widget_from_context_menu(WidgetType.BUTTON)
         )
 
-    def _confirm_delete(self, count: int) -> bool:
-        """prompt user to confirm the deletion"""
+    def _confirm_delete(
+        self,
+        count: int
+    ) -> bool:
+        """Prompt for delete confirmation."""
         if count == 1:
             messagebox_text = "Delete selected widget?"
         else:
@@ -610,36 +611,54 @@ class Designer:
             parent=self.top     #disables interaction with the parent (Designer) while the messagebox is shown
         )
 
-    def _print_widget_count(self):
+    def _print_widget_count(
+        self
+    ) -> None:
+        """Print the live widget count to the console."""
         print("#"*150)
-        print(f"Live widget count: {len(self.canvas.children)}")
+        print(f"Live widget count: {len(self._canvas.children)}")
 
-    def _print_clipboard(self):
+    def _print_clipboard(
+        self
+    ) -> None:
+        """Print the clipboard contents to the console."""
         print("#"*150)
         print(f"Clipboard:")
-        for model_data in self.clipboard:
+        for model_data in self._clipboard:
             print(f"{model_data}")
 
-    def _print_command_stack(self):
+    def _print_command_stack(
+        self
+    ) -> None:
+        """Print the command stack to the console."""
         print("#"*150)
         print(f"Command stack:")
-        print(self.command_stack)
+        print(self._command_stack)
 
-    def _print_selection(self):
+    def _print_selection(
+        self
+    ) -> None:
+        """Print the current selection to the console."""
         selected_models = self.app_state.get_selected_models()
         print("#"*150)
         print(f"Selection:")
         print(f"Selected model IDs: {[model.id for model in selected_models]}")
         print(f"Last selected model ID: {self.app_state.get_last_selected_model_id()}")
 
-    def _print_bounding_boxes(self):
+    def _print_bounding_boxes(
+        self
+    ) -> None:
+        """Print the bounding boxes of all models to the console."""
         print("#"*150)
         print(f"Model bounding boxes:")
         for model in self.app_state.get_all_models():
             bbox = self.app_state.get_model_bounding_box(model)
             print(f"{model.id}:\t{bbox}")
 
-    def _print_id_counters(self):
+    def _print_id_counters(
+        self
+    ) -> None:
+        """Print the current ID counter values to the console."""
         print("#"*150)
         print(f"ID counters:")
         print(self.app_state.project.id_counters)

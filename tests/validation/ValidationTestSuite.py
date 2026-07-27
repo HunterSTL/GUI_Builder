@@ -96,7 +96,7 @@ def setup_event_bus() -> dict:
 
 #Teardown---------------------------------------------------------------------------------------------------------------
 def teardown_designer(designer: Designer) -> None:
-    root = designer.parent
+    root = designer._parent
     root.destroy()
 
 #AppState tests---------------------------------------------------------------------------------------------------------
@@ -152,28 +152,28 @@ def action_handle_unsupported_attributes_panel_edit_phase(designer: Designer) ->
 
 #WidgetActions tests----------------------------------------------------------------------------------------------------
 def action_add_widget_with_missing_coordinates(designer: Designer) -> None:
-    designer.actions.widget.add(
+    designer._actions.widget.add(
         widget_type=WidgetType.LABEL,
         coordinates=None,
         text="TEXT"
     )
 
 def action_add_label_with_missing_text(designer: Designer) -> None:
-    designer.actions.widget.add(
+    designer._actions.widget.add(
         widget_type=WidgetType.LABEL,
         coordinates=(100, 100),
         text=None
     )
 
 def action_add_button_with_missing_text(designer: Designer) -> None:
-    designer.actions.widget.add(
+    designer._actions.widget.add(
         widget_type=WidgetType.BUTTON,
         coordinates=(100, 100),
         text=None
     )
 
 def action_add_widget_with_unsupported_type(designer: Designer) -> None:
-    designer.actions.widget.add(
+    designer._actions.widget.add(
         widget_type="UNSUPPORTED_TYPE",
         coordinates=(100, 100),
         text="TEXT"
@@ -190,23 +190,23 @@ def action_execute_move_widget_to_command_without_recording_final_positions(comm
 #AttributesPanel tests--------------------------------------------------------------------------------------------------
 def action_render_attributes_panel_for_model_with_unsupported_type(designer: Designer) -> None:
     model = _create_valid_model(type="UNSUPPORTED_TYPE")
-    designer.attributes_panel.set_selection((model,))
+    designer._attributes_panel.set_selection((model,))
 
 def action_compute_spinbox_limits_for_unsupported_attribute(designer: Designer) -> None:
-    designer.attributes_panel._compute_spinbox_limits(
+    designer._attributes_panel._compute_spinbox_limits(
         model=_create_valid_model(),
         attribute="UNSUPPORTED_ATTRIBUTE"
     )
 
 def action_create_colorpicker_for_unsupported_attribute(designer: Designer) -> None:
-    designer.attributes_panel._create_colorpicker(
+    designer._attributes_panel._create_colorpicker(
         model=_create_valid_model(),
         attribute="UNSUPPORTED_ATTRIBUTE",
         row=0
     )
 
 def action_create_combobox_for_unsupported_attribute(designer: Designer) -> None:
-    designer.attributes_panel._create_combobox(
+    designer._attributes_panel._create_combobox(
         model=_create_valid_model(),
         attribute="UNSUPPORTED_ATTRIBUTE",
         row=0
@@ -287,25 +287,25 @@ def action_compute_bounding_box_with_invalid_anchor() -> None:
 #WidgetView tests-------------------------------------------------------------------------------------------------------
 def action_update_widget_with_missing_position(designer: Designer) -> None:
     model = _create_valid_model(x=None, y=None)
-    designer.widget_view.update_widget_for(model)
+    designer._widget_view.update_widget_for(model)
 
 def action_update_widget_with_unknown_widget_id(designer: Designer) -> None:
     model = _create_valid_model()
-    designer.widget_view.update_widget_for(model)
-    widget_id = designer.widget_view.get_widget_id_from_model_id(model.id)
-    designer.widget_view.widget_map[widget_id] = None
-    designer.widget_view.update_widget_for(model)
+    designer._widget_view.update_widget_for(model)
+    widget_id = designer._widget_view.get_widget_id_from_model_id(model.id)
+    designer._widget_view.widget_map[widget_id] = None
+    designer._widget_view.update_widget_for(model)
 
 def action_create_widget_with_unsupported_type(designer: Designer) -> None:
     model = _create_valid_model(type="UNSUPPORTED_TYPE")
-    designer.widget_view.update_widget_for(model)
+    designer._widget_view.update_widget_for(model)
 
 def action_look_up_widget_with_unknown_widget_id(designer: Designer) -> None:
     model = _create_valid_model()
-    designer.widget_view.update_widget_for(model)
-    widget_id = designer.widget_view.get_widget_id_from_model_id(model.id)
-    designer.widget_view.widget_map[widget_id] = None
-    designer.widget_view.get_widget_from_model_id(model.id)
+    designer._widget_view.update_widget_for(model)
+    widget_id = designer._widget_view.get_widget_id_from_model_id(model.id)
+    designer._widget_view.widget_map[widget_id] = None
+    designer._widget_view.get_widget_from_model_id(model.id)
 
 VALIDATION_TESTS = (
     ValidationTest(
