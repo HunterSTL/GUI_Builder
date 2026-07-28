@@ -1,5 +1,5 @@
 from model import BaseWidgetData
-from commands import Command
+from .BaseCommand import Command
 from AppState import AppState
 
 _EDITABLE_ATTRIBUTES = {"x", "y", "bg", "fg", "width", "height", "anchor", "text"}

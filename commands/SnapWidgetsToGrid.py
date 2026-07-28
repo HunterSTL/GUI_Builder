@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from model import BaseWidgetData
-from commands import Command
+from .BaseCommand import Command
 from utility import allowed_x_range, allowed_y_range, nearest_in_bounds_grid_step
 from AppState import AppState
 

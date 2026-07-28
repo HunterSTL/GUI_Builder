@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from model import IdCounters
+from .IdCounters import IdCounters
 from utility import WidgetType
 
 @dataclass

@@ -1,4 +1,4 @@
-from commands import Command
+from .BaseCommand import Command
 
 class CommandStack:
     def __init__(self):

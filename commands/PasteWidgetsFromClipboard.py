@@ -1,6 +1,6 @@
 import copy
 from model import BaseWidgetData
-from commands import Command
+from .BaseCommand import Command
 from utility import clamped_delta
 from AppState import AppState
 

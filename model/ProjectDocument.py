@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Any
-from model import GridConfig, IdCounters
+from .GridConfig import GridConfig
+from .IdCounters import IdCounters
 from utility import CONSTANTS
 
 @dataclass

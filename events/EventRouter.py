@@ -1,4 +1,4 @@
-from events import EventBus
+from .EventBus import EventBus
 
 class EventRouter:
     """

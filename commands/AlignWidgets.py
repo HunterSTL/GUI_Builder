@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from model import BaseWidgetData
-from commands import Command
+from .BaseCommand import Command
 from utility import Edge
 from AppState import AppState
 

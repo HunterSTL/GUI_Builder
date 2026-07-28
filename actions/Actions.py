@@ -1,4 +1,5 @@
-from actions import EditActions, WidgetActions
+from .EditActions import EditActions
+from .WidgetActions import WidgetActions
 
 class Actions:
     """
