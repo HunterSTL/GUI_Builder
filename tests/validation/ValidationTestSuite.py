@@ -396,14 +396,14 @@ VALIDATION_TESTS = (
     ),
     ValidationTest(
         name="Adding label with missing text",
-        expected_error_message="WidgetActions - label creation failed: missing required attribute \"text\"",
+        expected_error_message="WidgetActions - widget creation failed: missing text",
         setup=setup_designer,
         action=action_add_label_with_missing_text,
         teardown=teardown_designer
     ),
     ValidationTest(
         name="Adding button with missing text",
-        expected_error_message="WidgetActions - button creation failed: missing required attribute \"text\"",
+        expected_error_message="WidgetActions - widget creation failed: missing text",
         setup=setup_designer,
         action=action_add_button_with_missing_text,
         teardown=teardown_designer

@@ -68,13 +68,13 @@ class WidgetView:
         self.model_id_to_widget_id.pop(model_id, None)
         self.widget_id_to_model_id.pop(widget_id, None)
 
-    def measure_preview_widget(self, model):
+    def measure_preview_widget(self, widget_type: WidgetType, text: str):
         """create a temporary preview widget then measure and return its required size"""
         #create temporary widget
-        widget = self._instantiate_widget(model.type)
+        widget = self._instantiate_widget(widget_type)
 
-        if model.type in (WidgetType.LABEL, WidgetType.BUTTON):
-            widget.config(text=model.text)
+        if widget_type in (WidgetType.LABEL, WidgetType.BUTTON):
+            widget.config(text=text)
 
         #measure required size
         widget.update_idletasks()

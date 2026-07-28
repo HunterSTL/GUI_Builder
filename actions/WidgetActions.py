@@ -1,4 +1,3 @@
-from copy import copy
 from collections.abc import Callable
 from model import BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData
 from commands import CommandStack, MoveWidgets, MoveWidgetsTo, SnapWidgetsToGrid, AlignWidgets, AddWidget, EditWidget
@@ -21,7 +20,7 @@ class WidgetActions:
         self,
         app_state: AppState,
         command_stack: CommandStack,
-        measure_preview_widget_callback: Callable[[BaseWidgetData], tuple[int, int]]
+        measure_preview_widget_callback: Callable[[WidgetType, str], tuple[int, int]]
     ):
         self._app_state = app_state
         self._command_stack = command_stack
@@ -162,49 +161,62 @@ class WidgetActions:
 
     def add(self, widget_type: WidgetType, coordinates: tuple[int, int] | None, text: str | None):
         """add a new widget to the project"""
+        if widget_type not in (WidgetType.LABEL, WidgetType.ENTRY, WidgetType.BUTTON):
+            raise ValueError(f"WidgetActions - widget creation failed: unsupported type \"{widget_type}\"")
+
         if coordinates is None:
             raise ValueError("WidgetActions - widget creation failed: missing coordinates")
 
-        if widget_type == WidgetType.LABEL:
-            if text is None:
-                raise ValueError("WidgetActions - label creation failed: missing required attribute \"text\"")
+        if widget_type in (WidgetType.LABEL, WidgetType.BUTTON) and text is None:
+            raise ValueError("WidgetActions - widget creation failed: missing text")
 
+        measurement_text = text if text is not None else ""
+        width, height = self._measure_preview_widget_callback(widget_type, measurement_text)
+
+        min_x, max_x = allowed_x_range(
+            canvas_width=self._app_state.project.width,
+            widget_width=width,
+            anchor="sw"
+        )
+        min_y, max_y = allowed_y_range(
+            canvas_height=self._app_state.project.height,
+            widget_height=height,
+            anchor="sw"
+        )
+        x = clamp(coordinates[0], min_x, max_x)
+        y = clamp(coordinates[1], min_y, max_y)
+
+        if widget_type == WidgetType.LABEL:
             model = LabelWidgetData(
-                x=coordinates[0],
-                y=coordinates[1],
+                x=x,
+                y=y,
                 bg=self._app_state.project.theme["label"]["bg"],
                 fg=self._app_state.project.theme["label"]["fg"],
+                width=width,
+                height=height,
                 text=text
             )
         elif widget_type == WidgetType.ENTRY:
             model = EntryWidgetData(
-                x=coordinates[0],
-                y=coordinates[1],
+                x=x,
+                y=y,
                 bg=self._app_state.project.theme["entry"]["bg"],
-                fg=self._app_state.project.theme["entry"]["fg"]
+                fg=self._app_state.project.theme["entry"]["fg"],
+                width=width,
+                height=height
             )
-        elif widget_type == WidgetType.BUTTON:
-            if text is None:
-                raise ValueError("WidgetActions - button creation failed: missing required attribute \"text\"")
-
+        else:   #WidgetType.BUTTON; other types were rejected above
             model = ButtonWidgetData(
-                x=coordinates[0],
-                y=coordinates[1],
+                x=x,
+                y=y,
                 bg=self._app_state.project.theme["button"]["bg"],
                 fg=self._app_state.project.theme["button"]["fg"],
+                width=width,
+                height=height,
                 text=text
             )
-        else:
-            raise ValueError(f"WidgetActions - widget creation failed: unsupported type \"{widget_type}\"")
 
         model.create_id(self._app_state.project.id_counters)
-        model.width, model.height = self._measure_preview_widget_callback(model)
-
-        #calculate clamped x and y to prevent the widget from being created (partially) outside the canvas
-        min_x, max_x = allowed_x_range(self._app_state.project.width, model.width, model.anchor)
-        min_y, max_y = allowed_y_range(self._app_state.project.height, model.height, model.anchor)
-        model.x = clamp(model.x, min_x, max_x)
-        model.y = clamp(model.y, min_y, max_y)
 
         cmd = AddWidget(
             model=model,
@@ -239,9 +251,7 @@ class WidgetActions:
 
         if attribute == "text":     #text updates require measurement to update model dimensions
             #compute new dimensions
-            measurement_model = copy(self._active_edit_model)
-            measurement_model.text = value
-            width, height = self._measure_preview_widget_callback(measurement_model)
+            width, height = self._measure_preview_widget_callback(self._active_edit_model.type, value)
 
             #compute allowed x and y range and clamp model coordinates
             min_x, max_x = allowed_x_range(self._app_state.project.width, width, self._active_edit_model.anchor)

@@ -61,6 +61,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
         import tkinter as tk
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
+        from utility import WidgetType
         from view import WidgetView
 
         root = tk.Tk()
@@ -73,11 +74,20 @@ class TestAddWidgetFromModel(unittest.TestCase):
             canvas=canvas
         )
 
-        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
+        text = "Add Widget Test"
+        width, height = widget_view.measure_preview_widget(WidgetType.LABEL, text)
+        model = LabelWidgetData(
+            x=50,
+            y=50,
+            bg="#111111",
+            fg="#aaaaaa",
+            width=width,
+            height=height,
+            text=text
+        )
         model.create_id(project_document.id_counters)
         app_state.add_model(model)
 
-        model.width, model.height = widget_view.measure_preview_widget(model)
 
         widget_view.update_widget_for(model)
         widget_id = widget_view.get_widget_id_from_model_id(model.id)
