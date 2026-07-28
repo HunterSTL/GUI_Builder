@@ -23,12 +23,29 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
         )
 
         #add 3 models to project document
-        widget_1 = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Roundtrip Test")
-        widget_1.create_id(project_document.id_counters)
-        widget_2 = EntryWidgetData(x=50, y=100, bg="#222222", fg="#bbbbbb")
-        widget_2.create_id(project_document.id_counters)
-        widget_3 = ButtonWidgetData(x=50, y=150, bg="#333333", fg="#cccccc", text="Roundtrip Test")
-        widget_3.create_id(project_document.id_counters)
+        widget_1 = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
+            x=50,
+            y=50,
+            bg="#111111",
+            fg="#aaaaaa",
+            text="Roundtrip Test"
+        )
+        widget_2 = EntryWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.ENTRY),
+            x=50,
+            y=100,
+            bg="#222222",
+            fg="#bbbbbb"
+        )
+        widget_3 = ButtonWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.BUTTON),
+            x=50,
+            y=150,
+            bg="#333333",
+            fg="#cccccc",
+            text="Roundtrip Test"
+        )
         project_document.widget_models.extend([widget_1, widget_2, widget_3])
 
         #serialize
@@ -77,6 +94,7 @@ class TestAddWidgetFromModel(unittest.TestCase):
         text = "Add Widget Test"
         width, height = widget_view.measure_preview_widget(WidgetType.LABEL, text)
         model = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
             x=50,
             y=50,
             bg="#111111",
@@ -85,7 +103,6 @@ class TestAddWidgetFromModel(unittest.TestCase):
             height=height,
             text=text
         )
-        model.create_id(project_document.id_counters)
         app_state.add_model(model)
 
 
@@ -102,6 +119,7 @@ class TestMoveWidget(unittest.TestCase):
         import tkinter as tk
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
+        from utility import WidgetType
         from view import WidgetView
 
         root = tk.Tk()
@@ -114,8 +132,14 @@ class TestMoveWidget(unittest.TestCase):
             canvas=canvas
         )
 
-        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
-        model.create_id(project_document.id_counters)
+        model = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
+            x=50,
+            y=50,
+            bg="#111111",
+            fg="#aaaaaa",
+            text="Move Widget Test"
+        )
         app_state.add_model(model)
 
         widget_view.update_widget_for(model)
@@ -143,12 +167,19 @@ class TestUndoRedoAddWidget(unittest.TestCase):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
         from commands import CommandStack, AddWidget
+        from utility import WidgetType
 
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
 
-        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Add Widget Test")
-        model.create_id(project_document.id_counters)
+        model = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
+            x=50,
+            y=50,
+            bg="#111111",
+            fg="#aaaaaa",
+            text="Add Widget Test"
+        )
         command_stack = CommandStack()
 
         #add model
@@ -168,12 +199,19 @@ class TestUndoRedoDeleteWidget(unittest.TestCase):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
         from commands import CommandStack, DeleteWidgets
+        from utility import WidgetType
 
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
 
-        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Delete Widget Test")
-        model.create_id(project_document.id_counters)
+        model = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
+            x=50,
+            y=50,
+            bg="#111111",
+            fg="#aaaaaa",
+            text="Delete Widget Test"
+        )
         app_state.add_model(model)
 
         command_stack = CommandStack()
@@ -195,12 +233,19 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
         from commands import CommandStack, MoveWidgets
+        from utility import WidgetType
 
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
 
-        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
-        model.create_id(project_document.id_counters)
+        model = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
+            x=50,
+            y=50,
+            bg="#111111",
+            fg="#aaaaaa",
+            text="Move Widget Test"
+        )
         app_state.add_model(model)
 
         command_stack = CommandStack()
@@ -223,12 +268,19 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
         from commands import CommandStack, MoveWidgetsTo
+        from utility import WidgetType
 
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
 
-        model = LabelWidgetData(x=50, y=50, bg="#111111", fg="#aaaaaa", text="Move Widget Test")
-        model.create_id(project_document.id_counters)
+        model = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
+            x=50,
+            y=50,
+            bg="#111111",
+            fg="#aaaaaa",
+            text="Move Widget Test"
+        )
         app_state.add_model(model)
 
         command_stack = CommandStack()
@@ -258,11 +310,13 @@ class TestUndoRedoPasteWidgets(unittest.TestCase):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
         from commands import CommandStack, PasteWidgetsFromClipboard
+        from utility import WidgetType
 
         project_document = ProjectDocument(width=300, height=200, theme={})
         app_state = AppState(project_document)
 
         model_1 = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
             x=50,
             y=50,
             width=100,
@@ -272,6 +326,7 @@ class TestUndoRedoPasteWidgets(unittest.TestCase):
             text="Paste Widget Test"
         )
         model_2 = LabelWidgetData(
+            id=project_document.id_counters.generate_id(WidgetType.LABEL),
             x=50,
             y=100,
             width=100,
@@ -280,8 +335,6 @@ class TestUndoRedoPasteWidgets(unittest.TestCase):
             fg="#aaaaaa",
             text="Paste Widget Test"
         )
-        model_1.create_id(project_document.id_counters)
-        model_2.create_id(project_document.id_counters)
         app_state.add_model(model_1)
         app_state.add_model(model_2)
 

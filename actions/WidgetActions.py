@@ -186,8 +186,11 @@ class WidgetActions:
         x = clamp(coordinates[0], min_x, max_x)
         y = clamp(coordinates[1], min_y, max_y)
 
+        model_id = self._app_state.project.id_counters.generate_id(widget_type)
+
         if widget_type == WidgetType.LABEL:
             model = LabelWidgetData(
+                id=model_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme["label"]["bg"],
@@ -198,6 +201,7 @@ class WidgetActions:
             )
         elif widget_type == WidgetType.ENTRY:
             model = EntryWidgetData(
+                id=model_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme["entry"]["bg"],
@@ -207,6 +211,7 @@ class WidgetActions:
             )
         else:   #WidgetType.BUTTON; other types were rejected above
             model = ButtonWidgetData(
+                id=model_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme["button"]["bg"],
@@ -215,8 +220,6 @@ class WidgetActions:
                 height=height,
                 text=text
             )
-
-        model.create_id(self._app_state.project.id_counters)
 
         cmd = AddWidget(
             model=model,

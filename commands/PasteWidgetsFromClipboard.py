@@ -32,8 +32,8 @@ class PasteWidgetsFromClipboard(Command):
 
             #only create an ID during the first execution (subsequent redos reuse the same IDs)
             if self._first_execution:
-                model_id = model.create_id(self._app_state.project.id_counters)
-                self._pasted_ids.append(model_id)
+                model.id = self._app_state.project.id_counters.generate_id(model.type)
+                self._pasted_ids.append(model.id)
             else:
                 model.id = self._pasted_ids[i]
 

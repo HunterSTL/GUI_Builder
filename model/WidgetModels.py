@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from .IdCounters import IdCounters
 from utility import WidgetType
 
 @dataclass
@@ -64,26 +63,14 @@ class LabelWidgetData(BaseWidgetData):
     text: str = ""
     type: WidgetType = WidgetType.LABEL
 
-    def create_id(self, id_counters: IdCounters) -> str:
-        self.id = id_counters.next_label_id()
-        return self.id
-
 @dataclass
 class EntryWidgetData(BaseWidgetData):
     type: WidgetType = WidgetType.ENTRY
-
-    def create_id(self, id_counters: IdCounters) -> str:
-        self.id = id_counters.next_entry_id()
-        return self.id
 
 @dataclass
 class ButtonWidgetData(BaseWidgetData):
     text: str = ""
     type: WidgetType = WidgetType.BUTTON
-
-    def create_id(self, id_counters: IdCounters) -> str:
-        self.id = id_counters.next_button_id()
-        return self.id
 
 _WIDGET_CLASSES = { #maps WidgetType to the corresponding model class for deserialization
     WidgetType.LABEL: LabelWidgetData,

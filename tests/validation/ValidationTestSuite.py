@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))    #GUI_Builder/
 import tkinter as tk
 from commands import EditWidget, MoveWidgetsTo
 from events import EventBus
-from model import ProjectDocument, LabelWidgetData, BaseWidgetData
+from model import ProjectDocument, LabelWidgetData, BaseWidgetData, IdCounters
 from utility import WidgetType, Geometry, CONSTANTS
 from AppState import AppState
 from Designer import Designer
@@ -92,6 +92,11 @@ def setup_move_widgets_to_command() -> dict:
 def setup_event_bus() -> dict:
     return {
         "event_bus": EventBus()
+    }
+
+def setup_id_counters() -> dict:
+    return {
+        "id_counters": IdCounters()
     }
 
 #Teardown---------------------------------------------------------------------------------------------------------------
@@ -223,6 +228,10 @@ def action_fail_handler_execution(event_bus: EventBus) -> None:
 
     event_bus.subscribe("EVENT", _handler)
     event_bus.emit("EVENT")
+
+#IdCounters tests-------------------------------------------------------------------------------------------------------
+def action_generate_id_for_unsupported_type(id_counters: IdCounters) -> None:
+    id_counters.generate_id("UNSUPPORTED_TYPE")
 
 #ProjectDocument tests--------------------------------------------------------------------------------------------------
 def action_deserialize_project_with_invalid_width() -> None:
@@ -466,6 +475,12 @@ VALIDATION_TESTS = (
         expected_error_message="EventBus - handler execution failed for event \"EVENT\": 1 handler raised an error:\n\t_handler: ERROR",
         setup=setup_event_bus,
         action=action_fail_handler_execution
+    ),
+    ValidationTest(
+        name="Generating ID for an unsupported type",
+        expected_error_message="IdCounters - ID generation failed: unsupported type \"UNSUPPORTED_TYPE\"",
+        setup=setup_id_counters,
+        action=action_generate_id_for_unsupported_type
     ),
     ValidationTest(
         name="Deserializing project with invalid width",

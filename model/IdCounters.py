@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from utility import WidgetType
+
 MINIMUM_COUNTER_VALUE = 1
 
 @dataclass
@@ -31,20 +33,23 @@ class IdCounters:
             button=_parse_counter_value(id_counter_data.get("button"))
         )
 
-    def next_label_id(self):
-        label_id = f"label_{self.label}"
-        self.label += 1
-        return label_id
+    def generate_id(self, widget_type: WidgetType) -> str:
+        if widget_type == WidgetType.LABEL:
+            model_id = f"label_{self.label}"
+            self.label += 1
+            return model_id
 
-    def next_entry_id(self):
-        entry_id = f"entry_{self.entry}"
-        self.entry += 1
-        return entry_id
+        if widget_type == WidgetType.ENTRY:
+            model_id = f"entry_{self.entry}"
+            self.entry += 1
+            return model_id
 
-    def next_button_id(self):
-        button_id = f"button_{self.button}"
-        self.button += 1
-        return button_id
+        if widget_type == WidgetType.BUTTON:
+            model_id = f"button_{self.button}"
+            self.button += 1
+            return model_id
+
+        raise ValueError(f"IdCounters - ID generation failed: unsupported type \"{widget_type}\"")
 
     def __repr__(self):
         lines = []
