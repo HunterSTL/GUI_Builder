@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from model import BaseWidgetData
 from .BaseCommand import Command
-from utility import Edge
+from utility import Edge, clamped_delta
 from AppState import AppState
 
 class AlignWidgets(Command):
@@ -50,6 +50,14 @@ class AlignWidgets(Command):
                     dx, dy = 0, 0
             else:
                 dx, dy = 0, 0
+
+            dx, dy = clamped_delta(     #keeps widgets within canvas bounds
+                canvas_width=self._app_state.project.width,
+                canvas_height=self._app_state.project.height,
+                bounding_box=self._app_state.get_model_bounding_box(model),
+                dx=dx,
+                dy=dy
+            )
 
             #snapshot final positions
             original_x, original_y = self._original_positions[model.id]
