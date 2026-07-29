@@ -1,17 +1,13 @@
 from .EditActions import EditActions
 from .WidgetActions import WidgetActions
 
-class Actions:
-    """
-    Provides a single access point for all editor action groups.
 
-    An action group is a class that provides methods that implement a set
-    of related editor actions (e.g. EditActions provides delete, copy, undo etc.)
-    """
+class Actions:
+    """Provides a single access point for editor action groups."""
     def __init__(
         self,
         edit_actions: EditActions,
         widget_actions: WidgetActions
-    ):
-        self.edit = edit_actions
-        self.widget = widget_actions
+    ) -> None:
+        self.edit: EditActions = edit_actions
+        self.widget: WidgetActions = widget_actions
