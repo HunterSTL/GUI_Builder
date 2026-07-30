@@ -127,9 +127,7 @@ class AttributesPanel:
         self._clear()
         row_index = 0
 
-        config = self._attribute_config.get(model.type)
-        if not config:
-            raise ValueError(f"AttributesPanel - rendering failed: unsupported type \"{model.type}\"")
+        config = self._attribute_config[model.type]
 
         for attribute, widget_type in config.items():
             #create displayname and appropriate editor widget for the widget type

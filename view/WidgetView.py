@@ -119,7 +119,7 @@ class WidgetView:
             return tk.Entry(self.canvas)
         elif widget_type == WidgetType.BUTTON:
             return tk.Button(self.canvas)
-        raise ValueError(f"WidgetView - widget creation failed: unsupported type \"{widget_type}\"")
+        raise ValueError(f"WidgetView - widget instantiation failed: unsupported type \"{widget_type}\"")
 
     def _insert_widget_into_canvas(self, widget, x, y, anchor):
         """place widget on canvas and return resulting widget ID"""

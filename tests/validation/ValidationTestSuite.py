@@ -23,7 +23,6 @@ MAXIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["max_height"]
 #Setup------------------------------------------------------------------------------------------------------------------
 def _create_valid_model(**overrides) -> LabelWidgetData:
     model_data = {
-        "type": WidgetType.LABEL,
         "id": "ID",
         "x": 50,
         "y": 50,
@@ -193,10 +192,6 @@ def action_execute_move_widget_to_command_without_recording_final_positions(comm
     command.execute()
 
 #AttributesPanel tests--------------------------------------------------------------------------------------------------
-def action_render_attributes_panel_for_model_with_unsupported_type(designer: Designer) -> None:
-    model = _create_valid_model(type="UNSUPPORTED_TYPE")
-    designer._attributes_panel.set_selection((model,))
-
 def action_compute_spinbox_limits_for_unsupported_attribute(designer: Designer) -> None:
     designer._attributes_panel._compute_spinbox_limits(
         model=_create_valid_model(),
@@ -254,7 +249,15 @@ def action_deserialize_project_with_height_above_maximum() -> None:
 
 #WidgetModel tests------------------------------------------------------------------------------------------------------
 def action_instantiate_base_type() -> None:
-    BaseWidgetData(type=WidgetType.LABEL)
+    BaseWidgetData(
+        id="ID",
+        x=0,
+        y=0,
+        bg="",
+        fg="",
+        width=0,
+        height=0
+    )
 
 def action_deserialize_widget_with_missing_type() -> None:
     BaseWidgetData.from_dict({})
@@ -305,9 +308,8 @@ def action_update_widget_with_unknown_widget_id(designer: Designer) -> None:
     designer._widget_view.widget_map[widget_id] = None
     designer._widget_view.update_widget_for(model)
 
-def action_create_widget_with_unsupported_type(designer: Designer) -> None:
-    model = _create_valid_model(type="UNSUPPORTED_TYPE")
-    designer._widget_view.update_widget_for(model)
+def action_instantiate_widget_with_unsupported_type(designer: Designer) -> None:
+    designer._widget_view._instantiate_widget("UNSUPPORTED_TYPE")
 
 def action_look_up_widget_with_unknown_widget_id(designer: Designer) -> None:
     model = _create_valid_model()
@@ -435,13 +437,6 @@ VALIDATION_TESTS = (
         expected_error_message="MoveWidgetsTo - execution failed: final positions were not recorded",
         setup=setup_move_widgets_to_command,
         action=action_execute_move_widget_to_command_without_recording_final_positions
-    ),
-    ValidationTest(
-        name="Rendering attributes panel for a model with unsupported type",
-        expected_error_message="AttributesPanel - rendering failed: unsupported type \"UNSUPPORTED_TYPE\"",
-        setup=setup_designer,
-        action=action_render_attributes_panel_for_model_with_unsupported_type,
-        teardown=teardown_designer
     ),
     ValidationTest(
         name="Computing spinbox limits for an unsupported attribute",
@@ -577,10 +572,10 @@ VALIDATION_TESTS = (
         teardown=teardown_designer
     ),
     ValidationTest(
-        name="Creating widget with unsupported type",
-        expected_error_message="WidgetView - widget creation failed: unsupported type \"UNSUPPORTED_TYPE\"",
+        name="Instantiating widget with unsupported type",
+        expected_error_message="WidgetView - widget instantiation failed: unsupported type \"UNSUPPORTED_TYPE\"",
         setup=setup_designer,
-        action=action_create_widget_with_unsupported_type,
+        action=action_instantiate_widget_with_unsupported_type,
         teardown=teardown_designer
     ),
     ValidationTest(

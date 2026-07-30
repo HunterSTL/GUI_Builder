@@ -1,7 +1,7 @@
 import copy
 from model import BaseWidgetData
 from .BaseCommand import Command
-from utility import clamped_delta
+from utility import WidgetType, clamped_delta
 from AppState import AppState
 
 class PasteWidgetsFromClipboard(Command):
@@ -26,16 +26,19 @@ class PasteWidgetsFromClipboard(Command):
         created_models: list[BaseWidgetData] = []
 
         #create models from clipboard data
-        for i, model_data in enumerate(self._clipboard):
+        for i, clipboard_data in enumerate(self._clipboard):
+            model_data = clipboard_data.copy()
+
+            if self._first_execution:       #generates new IDs during the first execution
+                widget_type = WidgetType(model_data["type"])
+                model_id = self._app_state.project.id_counters.generate_id(widget_type)
+                self._pasted_ids.append(model_id)
+            else:                           #reuses generated IDs during subsequent executions
+                model_id = self._pasted_ids[i]
+
+            model_data["id"] = model_id     #clipboard data contains the source ID, but pasted widgets must receive new IDs
             model = BaseWidgetData.from_dict(model_data)
             created_models.append(model)
-
-            #only create an ID during the first execution (subsequent redos reuse the same IDs)
-            if self._first_execution:
-                model.id = self._app_state.project.id_counters.generate_id(model.type)
-                self._pasted_ids.append(model.id)
-            else:
-                model.id = self._pasted_ids[i]
 
         #compute offset by clamping the delta
         x_offset, y_offset = clamped_delta(

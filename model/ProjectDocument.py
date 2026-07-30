@@ -26,7 +26,7 @@ class ProjectDocument:
             "grid": self.grid.to_dict(),
             "theme": self.theme,
             "widget_models": [
-                model.to_dict(include_id=True)  #used to replace WidgetType enum with string for serialization
+                model.to_dict()
                 for model in self.widget_models
             ],
             "id_counters": self.id_counters.to_dict()

@@ -29,6 +29,8 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
             y=50,
             bg="#111111",
             fg="#aaaaaa",
+            width=100,
+            height=20,
             text="Roundtrip Test"
         )
         widget_2 = EntryWidgetData(
@@ -36,7 +38,9 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
             x=50,
             y=100,
             bg="#222222",
-            fg="#bbbbbb"
+            fg="#bbbbbb",
+            width=100,
+            height=20
         )
         widget_3 = ButtonWidgetData(
             id=project_document.id_counters.generate_id(WidgetType.BUTTON),
@@ -44,6 +48,8 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
             y=150,
             bg="#333333",
             fg="#cccccc",
+            width=100,
+            height=20,
             text="Roundtrip Test"
         )
         project_document.widget_models.extend([widget_1, widget_2, widget_3])
@@ -132,13 +138,20 @@ class TestMoveWidget(unittest.TestCase):
             canvas=canvas
         )
 
+        text = "Move Widget Test"
+        width, height = widget_view.measure_preview_widget(
+            widget_type=WidgetType.LABEL,
+            text=text
+        )
         model = LabelWidgetData(
             id=project_document.id_counters.generate_id(WidgetType.LABEL),
             x=50,
             y=50,
             bg="#111111",
             fg="#aaaaaa",
-            text="Move Widget Test"
+            width=width,
+            height=height,
+            text=text
         )
         app_state.add_model(model)
 
@@ -178,6 +191,8 @@ class TestUndoRedoAddWidget(unittest.TestCase):
             y=50,
             bg="#111111",
             fg="#aaaaaa",
+            width=100,
+            height=20,
             text="Add Widget Test"
         )
         command_stack = CommandStack()
@@ -210,6 +225,8 @@ class TestUndoRedoDeleteWidget(unittest.TestCase):
             y=50,
             bg="#111111",
             fg="#aaaaaa",
+            width=100,
+            height=20,
             text="Delete Widget Test"
         )
         app_state.add_model(model)
@@ -244,6 +261,8 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
             y=50,
             bg="#111111",
             fg="#aaaaaa",
+            width=100,
+            height=20,
             text="Move Widget Test"
         )
         app_state.add_model(model)
@@ -279,6 +298,8 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
             y=50,
             bg="#111111",
             fg="#aaaaaa",
+            width=100,
+            height=20,
             text="Move Widget Test"
         )
         app_state.add_model(model)
@@ -339,7 +360,7 @@ class TestUndoRedoPasteWidgets(unittest.TestCase):
         app_state.add_model(model_2)
 
         #copy models to clipboard
-        clipboard = [model_1.to_dict(include_id=False), model_2.to_dict(include_id=False)]
+        clipboard = [model_1.to_dict(), model_2.to_dict()]
 
         command_stack = CommandStack()
 

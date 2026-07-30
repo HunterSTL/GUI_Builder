@@ -54,7 +54,7 @@ class EditActions:
         self._clipboard.clear()
 
         for model in selected_models:
-            model_data = model.to_dict(include_id=False)    #exclude ID because pasting creates new IDs, except on redo
+            model_data = model.to_dict()
             self._clipboard.append(model_data)
 
         last_selected_model = selected_models[-1]

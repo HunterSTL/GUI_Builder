@@ -18,7 +18,7 @@ class DeleteWidgets(Command):
 
         #store model data
         self._snapshot = [
-            model.to_dict(include_id=True)
+            model.to_dict()
             for model in models
         ]
 

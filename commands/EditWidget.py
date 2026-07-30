@@ -14,13 +14,13 @@ class EditWidget(Command):
         self._app_state = app_state
 
         self._model_id = model.id   #storing IDs and retrieving models protects against stale models
-        self._original_snapshot = model.to_dict(include_id=True)
+        self._original_snapshot = model.to_dict()
         self._final_snapshot = None
 
     def has_effect(self) -> bool:
         """return True if any attribute value changed since initialization"""
         model = self._app_state.get_model_from_model_id(self._model_id)
-        current_snapshot = model.to_dict(include_id=True)
+        current_snapshot = model.to_dict()
 
         for attribute in self._original_snapshot.keys() & _EDITABLE_ATTRIBUTES:
             if current_snapshot[attribute] != self._original_snapshot[attribute]:
@@ -38,7 +38,7 @@ class EditWidget(Command):
     def record_final_snapshot(self) -> None:
         """record final attribute values at the end of an edit"""
         model = self._app_state.get_model_from_model_id(self._model_id)
-        self._final_snapshot = model.to_dict(include_id=True)
+        self._final_snapshot = model.to_dict()
 
     def execute(self) -> None:
         """apply attribute values from the final snapshot"""

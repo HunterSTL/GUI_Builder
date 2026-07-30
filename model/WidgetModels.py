@@ -3,31 +3,30 @@ from utility import WidgetType
 
 @dataclass
 class BaseWidgetData:
-    type: WidgetType
-    id: str | None = None
-    x: int | None = None
-    y: int | None = None
-    bg: str | None = None
-    fg: str | None = None
-    width: int | None = None
-    height: int | None = None
+    id: str
+    x: int
+    y: int
+    bg: str
+    fg: str
+    width: int
+    height: int
     anchor: str = "sw"
+
+    @property
+    def type(self) -> WidgetType:
+        raise NotImplementedError
 
     def __post_init__(self):
         if type(self) is BaseWidgetData:
             raise ValueError("WidgetModels - model creation failed: base type (BaseWidgetData) cannot be instantiated directly")
 
-    def to_dict(self, include_id: bool) -> dict:
-        """return a copied dictionary of the model's attributes, optionally without the ID (suitable for clipboard use)"""
+    def to_dict(self) -> dict:
+        """return a copied dictionary of the model's attributes"""
         #copy model attributes
         model_data = self.__dict__.copy()       #shallow copy is safe because models are flat
 
         #convert WidgetType to string
         model_data["type"] = self.type.value
-
-        if not include_id:
-            #strip the ID attribute
-            model_data.pop("id", None)
 
         return model_data
 
@@ -51,7 +50,7 @@ class BaseWidgetData:
 
         #replace string type with WidgetType
         model_data = model_data.copy() #copy to prevent mutating input data
-        model_data["type"] = widget_type
+        model_data.pop("type")
 
         try:
             return _WIDGET_CLASSES[widget_type](**model_data)
@@ -61,16 +60,24 @@ class BaseWidgetData:
 @dataclass
 class LabelWidgetData(BaseWidgetData):
     text: str = ""
-    type: WidgetType = WidgetType.LABEL
+
+    @property
+    def type(self) -> WidgetType:
+        return WidgetType.LABEL
 
 @dataclass
 class EntryWidgetData(BaseWidgetData):
-    type: WidgetType = WidgetType.ENTRY
+    @property
+    def type(self) -> WidgetType:
+        return WidgetType.ENTRY
 
 @dataclass
 class ButtonWidgetData(BaseWidgetData):
     text: str = ""
-    type: WidgetType = WidgetType.BUTTON
+
+    @property
+    def type(self) -> WidgetType:
+        return WidgetType.BUTTON
 
 _WIDGET_CLASSES = { #maps WidgetType to the corresponding model class for deserialization
     WidgetType.LABEL: LabelWidgetData,

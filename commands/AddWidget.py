@@ -22,5 +22,5 @@ class AddWidget(Command):
     def __repr__(self):
         """called automatically when printing this object"""
         s = "[AddWidget]"
-        s += f"\n\tmodel data:\t\t{self._model.to_dict(include_id=True)}"
+        s += f"\n\tmodel data:\t\t{self._model.to_dict()}"
         return s
