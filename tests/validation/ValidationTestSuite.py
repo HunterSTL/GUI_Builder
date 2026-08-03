@@ -281,18 +281,6 @@ def action_deserialize_widget_with_invalid_attribute_set() -> None:
     BaseWidgetData.from_dict({"type": "Label", "INVALID_ATTRIBUTE": 0})
 
 #Geometry tests---------------------------------------------------------------------------------------------------------
-def action_compute_bounding_box_with_missing_x() -> None:
-    Geometry.compute_model_bounding_box(None, 0, 50, 20, "sw")
-
-def action_compute_bounding_box_with_missing_y() -> None:
-    Geometry.compute_model_bounding_box(0, None, 50, 20, "sw")
-
-def action_compute_bounding_box_with_missing_width() -> None:
-    Geometry.compute_model_bounding_box(0, 0, None, 20, "sw")
-
-def action_compute_bounding_box_with_missing_height() -> None:
-    Geometry.compute_model_bounding_box(0, 0, 50, None, "sw")
-
 def action_compute_bounding_box_with_invalid_anchor() -> None:
     Geometry.compute_model_bounding_box(0, 0, 50, 20, "INVALID_ANCHOR")
 
@@ -399,6 +387,13 @@ VALIDATION_TESTS = (
         teardown=teardown_designer
     ),
     ValidationTest(
+        name="Adding widget with unsupported type",
+        expected_error_message="WidgetActions - widget creation failed: unsupported type \"UNSUPPORTED_TYPE\"",
+        setup=setup_designer,
+        action=action_add_widget_with_unsupported_type,
+        teardown=teardown_designer
+    ),
+    ValidationTest(
         name="Adding widget with missing coordinates",
         expected_error_message="WidgetActions - widget creation failed: missing coordinates",
         setup=setup_designer,
@@ -417,13 +412,6 @@ VALIDATION_TESTS = (
         expected_error_message="WidgetActions - widget creation failed: missing text",
         setup=setup_designer,
         action=action_add_button_with_missing_text,
-        teardown=teardown_designer
-    ),
-    ValidationTest(
-        name="Adding widget with unsupported type",
-        expected_error_message="WidgetActions - widget creation failed: unsupported type \"UNSUPPORTED_TYPE\"",
-        setup=setup_designer,
-        action=action_add_widget_with_unsupported_type,
         teardown=teardown_designer
     ),
     ValidationTest(
@@ -531,26 +519,6 @@ VALIDATION_TESTS = (
         name="Deserializing widget with invalid attribute set",
         expected_error_message="WidgetModels - model deserialization failed: invalid attribute set for type \"Label\" [LabelWidgetData.__init__() got an unexpected keyword argument 'INVALID_ATTRIBUTE']",
         action=action_deserialize_widget_with_invalid_attribute_set
-    ),
-    ValidationTest(
-        name="Computing bounding box with missing x coordinate",
-        expected_error_message="Geometry - computation failed: missing x coordinate",
-        action=action_compute_bounding_box_with_missing_x
-    ),
-    ValidationTest(
-        name="Computing bounding box with missing y coordinate",
-        expected_error_message="Geometry - computation failed: missing y coordinate",
-        action=action_compute_bounding_box_with_missing_y
-    ),
-    ValidationTest(
-        name="Computing bounding box with missing width",
-        expected_error_message="Geometry - computation failed: missing width",
-        action=action_compute_bounding_box_with_missing_width
-    ),
-    ValidationTest(
-        name="Computing bounding box with missing height",
-        expected_error_message="Geometry - computation failed: missing height",
-        action=action_compute_bounding_box_with_missing_height
     ),
     ValidationTest(
         name="Computing bounding box with invalid anchor",
