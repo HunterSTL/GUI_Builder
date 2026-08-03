@@ -110,7 +110,7 @@ The method is named `create_colorpicker` and the `AttributesPanelController` rou
 
 ---
 
-## 14. `allowed_x_range` / `allowed_y_range` return negative max values for oversized widgets
+## 14. [Done] `allowed_x_range` / `allowed_y_range` return negative max values for oversized widgets
 
 If a widget is wider than the canvas (e.g. a very long label), `allowed_x_range` returns `(0, canvas_width - widget_width)` where `canvas_width - widget_width` is negative. `clamp` is then called with `min=0, max=<negative>`, making the max less than the min. `clamp` returns `max(0, min(<negative>, clamped))` which returns 0, but a widget placed at 0 extends beyond the canvas. There is no check that `min <= max` before clamping.
 

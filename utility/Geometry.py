@@ -10,23 +10,29 @@ class BoundingBox:
 
 def allowed_x_range(canvas_width: int, widget_width: int, anchor: str) -> tuple[int, int]:
     """return the allowed X-coordinate range for a model based on its anchor and canvas dimensions"""
+    if widget_width > canvas_width:
+        raise ValueError(f"Geometry - computation failed: widget width exceeds canvas width [{widget_width} > {canvas_width}]")
+
     if anchor in ["sw", "w", "nw"]:
         return 0, canvas_width - widget_width
     elif anchor in ["ne", "e", "se"]:
         return widget_width, canvas_width
     elif anchor in ["n", "s", "center"]:
         return widget_width // 2, canvas_width - (widget_width // 2)
-    return 0, canvas_width
+    raise ValueError(f"Geometry - computation failed: invalid anchor \"{anchor}\"")
 
 def allowed_y_range(canvas_height: int, widget_height: int, anchor: str) -> tuple[int, int]:
     """return the allowed Y-coordinate range for a model based on its anchor and canvas dimensions"""
+    if widget_height > canvas_height:
+        raise ValueError(f"Geometry - computation failed: widget height exceeds canvas height [{widget_height} > {canvas_height}]")
+
     if anchor in ["sw", "s", "se"]:
         return widget_height, canvas_height
     elif anchor in ["nw", "n", "ne"]:
         return 0, canvas_height - widget_height
     elif anchor in ["w", "e", "center"]:
         return widget_height // 2, canvas_height - (widget_height // 2)
-    return 0, canvas_height
+    raise ValueError(f"Geometry - computation failed: invalid anchor \"{anchor}\"")
 
 def clamp(value: int, minimum: int, maximum: int) -> int:
     """clamp a value into the given minimum - maximum range"""

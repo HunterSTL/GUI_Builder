@@ -281,8 +281,42 @@ def action_deserialize_widget_with_invalid_attribute_set() -> None:
     BaseWidgetData.from_dict({"type": "Label", "INVALID_ATTRIBUTE": 0})
 
 #Geometry tests---------------------------------------------------------------------------------------------------------
+def action_compute_allowed_x_range_with_widget_width_exceeding_canvas_width() -> None:
+    Geometry.allowed_x_range(
+        canvas_width=100,
+        widget_width=200,
+        anchor="SW"
+    )
+
+def action_compute_allowed_x_range_with_invalid_anchor() -> None:
+    Geometry.allowed_x_range(
+        canvas_width=200,
+        widget_width=100,
+        anchor="INVALID_ANCHOR"
+    )
+
+def action_compute_allowed_y_range_with_widget_height_exceeding_canvas_height() -> None:
+    Geometry.allowed_y_range(
+        canvas_height=100,
+        widget_height=200,
+        anchor="SW"
+    )
+
+def action_compute_allowed_y_range_with_invalid_anchor() -> None:
+    Geometry.allowed_y_range(
+        canvas_height=200,
+        widget_height=100,
+        anchor="INVALID_ANCHOR"
+    )
+
 def action_compute_bounding_box_with_invalid_anchor() -> None:
-    Geometry.compute_model_bounding_box(0, 0, 50, 20, "INVALID_ANCHOR")
+    Geometry.compute_model_bounding_box(
+        x=0,
+        y=0,
+        width=50,
+        height=20,
+        anchor="INVALID_ANCHOR"
+    )
 
 #WidgetView tests-------------------------------------------------------------------------------------------------------
 def action_update_widget_with_missing_position(designer: Designer) -> None:
@@ -519,6 +553,26 @@ VALIDATION_TESTS = (
         name="Deserializing widget with invalid attribute set",
         expected_error_message="WidgetModels - model deserialization failed: invalid attribute set for type \"Label\" [LabelWidgetData.__init__() got an unexpected keyword argument 'INVALID_ATTRIBUTE']",
         action=action_deserialize_widget_with_invalid_attribute_set
+    ),
+    ValidationTest(
+        name="Computing allowed X range with widget width exceeding canvas width",
+        expected_error_message="Geometry - computation failed: widget width exceeds canvas width [200 > 100]",
+        action=action_compute_allowed_x_range_with_widget_width_exceeding_canvas_width
+    ),
+    ValidationTest(
+        name="Computing allowed X range with invalid anchor",
+        expected_error_message="Geometry - computation failed: invalid anchor \"INVALID_ANCHOR\"",
+        action=action_compute_allowed_x_range_with_invalid_anchor
+    ),
+    ValidationTest(
+        name="Computing allowed Y range with widget height exceeding canvas height",
+        expected_error_message="Geometry - computation failed: widget height exceeds canvas height [200 > 100]",
+        action=action_compute_allowed_y_range_with_widget_height_exceeding_canvas_height
+    ),
+    ValidationTest(
+        name="Computing allowed Y range with invalid anchor",
+        expected_error_message="Geometry - computation failed: invalid anchor \"INVALID_ANCHOR\"",
+        action=action_compute_allowed_y_range_with_invalid_anchor
     ),
     ValidationTest(
         name="Computing bounding box with invalid anchor",
