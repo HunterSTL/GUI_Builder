@@ -361,10 +361,39 @@ Implementation details that are not part of a class's intentional public API.
 * Tests may access private members when validating internal behaviour
 * Helper classes that are implementation details of the same module may access private members of the owning class
 
-## 10 Error Messages
-Report invalid or inconsistent state explicitly.
+## 10 Error Handling
+Detects and rejects invalid or inconsistent state.
 
 * Invalid or inconsistent state must raise errors instead of failing silently
+* Untrusted data must be validated at input boundaries
+* Internal code must enforce domain invariants
+* Internal code must not validate parameters that callers are responsible for providing
+* Programmer errors should not be converted into custom validation errors
+* Expected no-op or invalid actions should return early instead of raising errors
+
+### 10.1 Input Boundaries
+Process untrusted data before it becomes application state.
+
+* Must reject missing, malformed or corrupted data
+
+**Examples:**
+* Project deserialization
+* Widget model deserialization
+* User input parsing
+
+### 10.2 Domain Invariants
+Define conditions that must remain true for the application to work correctly.
+
+* Must be enforced by internal code that relies on them
+
+**Examples:**
+* A widget's anchor can only be `n`, `ne`, `e`, `se`, `s`, `sw`, `w`, `nw` or `center`
+* Widgets must be smaller than the canvas
+* Widget IDs must be unique
+
+## 11 Error Messages
+Describe the reason an error was raised.
+
 * Must list the module that raises the error
 * Must list the operation that failed (e.g. model creation, selection update, widget lookup)
 * Must list the reason for the failure
@@ -395,11 +424,11 @@ WidgetController - widget update failed: missing widget for model "label_1"
 Designer - widget creation failed: unsupported type "slider"
 ```
 
-## 11 Dirty State
+## 12 Dirty State
 Indicates whether unsaved changes exist.
 
 * Must be owned by AppState
 * Must be set after any mutation that actually changes persistent project state
 * Must not be set on no-op mutations (setting an attribute to its current value)
-* Dirty state must be cleared after a successful save
-* Dirty state must be visually represented in the UI
+* Must be cleared after a successful save
+* Must be visually represented in the UI
