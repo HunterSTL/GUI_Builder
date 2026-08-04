@@ -374,7 +374,7 @@ class SetupWizard:
             height=height,
             icon_path=self._icon_path,
             grid=GridConfig(
-                size=CONSTANTS["grid_size"],
+                size=CONSTANTS["grid"]["default_size"],
                 color=self._program_theme["grid"]["color"],
                 visible=False
             ),

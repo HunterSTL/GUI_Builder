@@ -22,16 +22,22 @@ class SelectionConstants(TypedDict):
     dash: tuple[int, int]
 
 
+class GridConstants(TypedDict):
+    default_size: int
+    min_size: int
+    max_size: int
+
+
 class ApplicationConstants(TypedDict):
     """Defines the structure of application constants."""
     window: DimensionConstants
     canvas: DimensionConstants
     nudge: NudgeConstants
     selection: SelectionConstants
+    grid: GridConstants
     titlebar_height: int
     toolbar_height: int
     attributes_panel_width: int
-    grid_size: int
     ctrl_key: int
     drag_threshold: int
 
@@ -58,10 +64,14 @@ CONSTANTS: ApplicationConstants = {
         "padding": 3,
         "dash": (3, 2)
     },
+    "grid": {
+        "default_size": 10,
+        "min_size": 5,
+        "max_size": 100
+    },
     "titlebar_height": 25,
     "toolbar_height": 25,
     "attributes_panel_width": 200,
-    "grid_size": 10,
     "ctrl_key": 0x0004,
     "drag_threshold": 10
 }

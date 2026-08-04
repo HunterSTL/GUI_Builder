@@ -429,8 +429,8 @@ class Designer:
         new_grid_size = simpledialog.askinteger(
             "Grid size",
             "Enter new grid size:",
-            minvalue=5,
-            maxvalue=100,
+            minvalue=CONSTANTS["grid"]["min_size"],
+            maxvalue=CONSTANTS["grid"]["max_size"],
             parent=self.top
         )
 
