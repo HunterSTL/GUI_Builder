@@ -4,7 +4,7 @@ from tkinter import colorchooser, messagebox, filedialog
 from collections.abc import Callable
 
 from model import ProjectDocument, GridConfig, IdCounters
-from utility import screen_offset_to_center_window, load_icon, CustomTitlebar, ApplicationConstants
+from utility import screen_offset_to_center_window, load_icon, CustomTitlebar, CONSTANTS
 
 class SetupWizard:
     """Collects project settings and constructs a project document."""
@@ -13,14 +13,12 @@ class SetupWizard:
         parent: tk.Tk,
         user_theme: dict[str, dict[str, str]],
         program_theme: dict[str, dict[str, str]],
-        constants: ApplicationConstants,
         on_done_callback: Callable[[ProjectDocument], None],
         on_cancel_callback: Callable[[], None]
     ) -> None:
         self._parent: tk.Tk = parent
         self._user_theme: dict[str, dict[str, str]] = user_theme
         self._program_theme: dict[str, dict[str, str]] = program_theme
-        self._constants: ApplicationConstants = constants
         self._on_done_callback: Callable[[ProjectDocument], None] = on_done_callback
         self._on_cancel_callback: Callable[[], None] = on_cancel_callback
 
@@ -58,7 +56,7 @@ class SetupWizard:
         titlebar = CustomTitlebar(
             parent=self._top,
             title="Tkinter GUI Builder – Setup",
-            height=self._constants["titlebar_height"],
+            height=CONSTANTS["titlebar_height"],
             bg_color=self._program_theme["titlebar"]["bg"],
             fg_color=self._program_theme["titlebar"]["fg"],
             icon_path=os.path.join(os.path.dirname(__file__), "icon.ico"),
@@ -345,10 +343,10 @@ class SetupWizard:
             )
             return
 
-        minimum_canvas_width = self._constants["canvas"]["min_width"]
-        minimum_canvas_height = self._constants["canvas"]["min_height"]
-        maximum_canvas_width = self._constants["canvas"]["max_width"]
-        maximum_canvas_height = self._constants["canvas"]["max_height"]
+        minimum_canvas_width = CONSTANTS["canvas"]["min_width"]
+        minimum_canvas_height = CONSTANTS["canvas"]["min_height"]
+        maximum_canvas_width = CONSTANTS["canvas"]["max_width"]
+        maximum_canvas_height = CONSTANTS["canvas"]["max_height"]
         width = int(width_input)
         height = int(height_input)
 
@@ -376,7 +374,7 @@ class SetupWizard:
             height=height,
             icon_path=self._icon_path,
             grid=GridConfig(
-                size=self._constants["grid_size"],
+                size=CONSTANTS["grid_size"],
                 color=self._program_theme["grid"]["color"],
                 visible=False
             ),

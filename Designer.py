@@ -7,7 +7,7 @@ from components import AttributesPanel
 from controller import CanvasController, SelectionController, ToolbarController
 from events import EventBus, EventRouter
 from model import ProjectDocument
-from utility import call_tracer, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType, ApplicationConstants
+from utility import call_tracer, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType, CONSTANTS
 from view import CanvasView, SelectionView, ToolbarView, WidgetView
 
 from AppState import AppState
@@ -19,12 +19,10 @@ class Designer:
         self,
         parent: tk.Tk,
         project_document: ProjectDocument,
-        constants: ApplicationConstants,
         program_theme: dict[str, dict[str, str]],
         app_event_bus: EventBus
     ) -> None:
         self._parent: tk.Tk = parent
-        self._constants: ApplicationConstants = constants
         self._program_theme: dict[str, dict[str, str]] = program_theme
 
         #Event system---------------------------------------------------------------------------------------------------
@@ -69,14 +67,14 @@ class Designer:
             canvas=self._canvas,
             selection_color=self._program_theme["selection"]["color"],
             last_selected_color=self._program_theme["selection"]["last_selected_color"],
-            selection_width=self._constants["selection"]["width"],
-            selection_dash=self._constants["selection"]["dash"],
-            selection_padding=self._constants["selection"]["padding"]
+            selection_width=CONSTANTS["selection"]["width"],
+            selection_dash=CONSTANTS["selection"]["dash"],
+            selection_padding=CONSTANTS["selection"]["padding"]
         )
 
         self._toolbar_view: ToolbarView = ToolbarView(
             parent=self.top,
-            height=self._constants["toolbar_height"],
+            height=CONSTANTS["toolbar_height"],
             toolbar_color=self._program_theme["toolbar"]["bg"],
             button_color=self._program_theme["button"]["bg"],
             button_text_color=self._program_theme["button"]["fg"],
@@ -93,8 +91,8 @@ class Designer:
         self._canvas_controller: CanvasController = CanvasController(
             app_state=self.app_state,
             canvas_view=self._canvas_view,
-            nudge_small=self._constants["nudge"]["small"],
-            nudge_big=self._constants["nudge"]["big"],
+            nudge_small=CONSTANTS["nudge"]["small"],
+            nudge_big=CONSTANTS["nudge"]["big"],
             event_router=self._event_router
         )
         self._canvas_controller.bind_events()
@@ -103,8 +101,8 @@ class Designer:
             canvas=self._canvas,
             app_state=self.app_state,
             selection_view=self._selection_view,
-            ctrl_key=self._constants["ctrl_key"],
-            drag_threshold=self._constants["drag_threshold"],
+            ctrl_key=CONSTANTS["ctrl_key"],
+            drag_threshold=CONSTANTS["drag_threshold"],
             resolve_widget_to_model=lambda widget_id: self._widget_view.get_model_id_from_widget_id(widget_id),
             event_router=self._event_router
         )
@@ -148,14 +146,14 @@ class Designer:
         """Construct the designer UI layout and its components."""
         self.top: tk.Toplevel = tk.Toplevel(self._parent)
         self.top.wm_minsize(
-            self._constants["window"]["min_width"],
-            self._constants["window"]["min_height"]
+            CONSTANTS["window"]["min_width"],
+            CONSTANTS["window"]["min_height"]
         )
 
         titlebar = CustomTitlebar(
             parent=self.top,
             title=self.app_state.project.title,
-            height=self._constants["titlebar_height"],
+            height=CONSTANTS["titlebar_height"],
             bg_color=self._program_theme["titlebar"]["bg"],
             fg_color=self._program_theme["titlebar"]["fg"],
             icon_path=self.app_state.project.icon_path,
@@ -184,7 +182,7 @@ class Designer:
             parent=self._main_frame,
             canvas_width=self.app_state.project.width,
             canvas_height=self.app_state.project.height,
-            panel_width=self._constants["attributes_panel_width"],
+            panel_width=CONSTANTS["attributes_panel_width"],
             panel_color=self._program_theme["attributes_panel"]["color"],
             widget_color=self._program_theme["attributes_panel"]["widget_color"],
             text_color=self._program_theme["attributes_panel"]["text_color"],
@@ -234,17 +232,17 @@ class Designer:
         requested_canvas_width = self.app_state.project.width
         requested_canvas_height = self.app_state.project.height
 
-        panel_width = self._constants["attributes_panel_width"]
-        titlebar_height = self._constants["titlebar_height"]
-        toolbar_height = self._constants["toolbar_height"]
+        panel_width = CONSTANTS["attributes_panel_width"]
+        titlebar_height = CONSTANTS["titlebar_height"]
+        toolbar_height = CONSTANTS["toolbar_height"]
 
         vertical_scrollbar_thickness = self._vertical_scrollbar.winfo_reqwidth()
         horizontal_scrollbar_thickness = self._horizontal_scrollbar.winfo_reqheight()
 
-        minimum_window_width = self._constants["window"]["min_width"]
-        maximum_window_width = self._constants["window"]["max_width"]
-        minimum_window_height = self._constants["window"]["min_height"]
-        maximum_window_height = self._constants["window"]["max_height"]
+        minimum_window_width = CONSTANTS["window"]["min_width"]
+        maximum_window_width = CONSTANTS["window"]["max_width"]
+        minimum_window_height = CONSTANTS["window"]["min_height"]
+        maximum_window_height = CONSTANTS["window"]["max_height"]
 
         required_window_width = requested_canvas_width + panel_width
         required_window_height = requested_canvas_height + toolbar_height + titlebar_height

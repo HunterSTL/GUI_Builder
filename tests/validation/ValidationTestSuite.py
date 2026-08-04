@@ -59,7 +59,6 @@ def setup_designer() -> dict:
             parent=root,
             project_document=ProjectDocument(theme=USER_THEME),
             program_theme=PROGRAM_THEME,
-            constants=CONSTANTS,
             app_event_bus=EventBus()
         )
     except Exception:

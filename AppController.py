@@ -5,7 +5,7 @@ from tkinter import messagebox, filedialog
 
 from events import EventBus
 from model import ProjectDocument
-from utility import screen_offset_to_center_window, CustomTitlebar, atomic_write_json, CONSTANTS, ApplicationConstants
+from utility import screen_offset_to_center_window, CustomTitlebar, atomic_write_json, CONSTANTS
 
 from Designer import Designer
 from SetupWizard import SetupWizard
@@ -20,7 +20,6 @@ class AppController:
     ) -> None:
         self._root: tk.Tk = root
 
-        self._constants: ApplicationConstants = CONSTANTS
         self._program_theme: dict[str, dict[str, str]] = PROGRAM_THEME
         self._user_theme: dict[str, dict[str, str]] = { #prevents mutation of the global theme
             key: value.copy()
@@ -60,7 +59,7 @@ class AppController:
         titlebar = CustomTitlebar(
             parent=self._root,
             title="Tkinter GUI Builder – Startup",
-            height=self._constants["titlebar_height"],
+            height=CONSTANTS["titlebar_height"],
             bg_color=self._program_theme["titlebar"]["bg"],
             fg_color=self._program_theme["titlebar"]["fg"],
             icon_path=None,
@@ -118,7 +117,6 @@ class AppController:
         self._designer = Designer(
             parent=self._root,
             project_document=project_document,
-            constants=self._constants,
             program_theme=self._program_theme,
             app_event_bus=self._app_event_bus
         )
@@ -192,7 +190,6 @@ class AppController:
             parent=self._root,
             user_theme=self._copy_user_theme(),
             program_theme=self._program_theme,
-            constants=self._constants,
             on_done_callback=self._launch_designer_from_project_document,
             on_cancel_callback=self._cancel_new_project_creation
         )
