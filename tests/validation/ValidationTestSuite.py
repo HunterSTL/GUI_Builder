@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))    #GUI_Builder/
 import tkinter as tk
 from commands import EditWidget, MoveWidgetsTo
 from events import EventBus
-from model import ProjectDocument, LabelWidgetData, BaseWidgetData, IdCounters
+from model import GridConfig, IdCounters, ProjectDocument, LabelWidgetData, BaseWidgetData
 from utility import WidgetType, Geometry, CONSTANTS
 from AppState import AppState
 from Designer import Designer
@@ -19,6 +19,9 @@ MINIMUM_CANVAS_WIDTH = CONSTANTS["canvas"]["min_width"]
 MINIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["min_height"]
 MAXIMUM_CANVAS_WIDTH = CONSTANTS["canvas"]["max_width"]
 MAXIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["max_height"]
+
+MINIMUM_GRID_SIZE = CONSTANTS["grid"]["min_size"]
+MAXIMUM_GRID_SIZE = CONSTANTS["grid"]["max_size"]
 
 #Setup------------------------------------------------------------------------------------------------------------------
 def _create_valid_model(**overrides) -> LabelWidgetData:
@@ -222,6 +225,64 @@ def action_fail_handler_execution(event_bus: EventBus) -> None:
 
     event_bus.subscribe("EVENT", _handler)
     event_bus.emit("EVENT")
+
+#GridConfig tests-------------------------------------------------------------------------------------------------------
+def action_deserialize_grid_data_with_invalid_input_type() -> None:
+    GridConfig.from_dict(grid_data=[])
+
+def action_deserialize_grid_data_with_missing_required_attribute() -> None:
+    GridConfig.from_dict(
+        grid_data={
+            "size": 10,
+            "color": "#ffffff"
+        }
+    )
+
+def action_deserialize_grid_data_with_invalid_attribute_set() -> None:
+    GridConfig.from_dict(
+        grid_data={
+            "size": 10,
+            "color": "#ffffff",
+            "visible": False,
+            "UNEXPECTED_ATTRIBUTE": "value"
+        }
+    )
+
+def action_deserialize_grid_data_with_invalid_size() -> None:
+    GridConfig.from_dict(
+        grid_data={
+            "size": "INVALID_SIZE",
+            "color": "#ffffff",
+            "visible": False
+        }
+    )
+
+def action_deserialize_grid_data_with_size_outside_allowed_range() -> None:
+    GridConfig.from_dict(
+        grid_data={
+            "size": 1,
+            "color": "#ffffff",
+            "visible": False
+        }
+    )
+
+def action_deserialize_grid_data_with_invalid_color() -> None:
+    GridConfig.from_dict(
+        grid_data={
+            "size": 10,
+            "color": "INVALID_COLOR",
+            "visible": False
+        }
+    )
+
+def action_deserialize_grid_data_with_invalid_visibility() -> None:
+    GridConfig.from_dict(
+        grid_data={
+            "size": 10,
+            "color": "#ffffff",
+            "visible": "INVALID_VISIBILITY"
+        }
+    )
 
 #IdCounters tests-------------------------------------------------------------------------------------------------------
 def action_generate_id_for_unsupported_type(id_counters: IdCounters) -> None:
@@ -491,6 +552,41 @@ VALIDATION_TESTS = (
         expected_error_message="EventBus - handler execution failed for event \"EVENT\": 1 handler raised an error:\n\t_handler: ERROR",
         setup=setup_event_bus,
         action=action_fail_handler_execution
+    ),
+    ValidationTest(
+        name="Deserializing grid data with invalid input type",
+        expected_error_message="GridConfig - grid data deserialization failed: grid data is not a dictionary",
+        action=action_deserialize_grid_data_with_invalid_input_type
+    ),
+    ValidationTest(
+        name="Deserializing grid data with missing required attribute",
+        expected_error_message="GridConfig - grid data deserialization failed: missing required attribute \"visible\"",
+        action=action_deserialize_grid_data_with_missing_required_attribute
+    ),
+    ValidationTest(
+        name="Deserializing grid data with invalid attribute set",
+        expected_error_message="GridConfig - grid data deserialization failed: invalid attribute set [got unexpected attribute \"UNEXPECTED_ATTRIBUTE\"]",
+        action=action_deserialize_grid_data_with_invalid_attribute_set
+    ),
+    ValidationTest(
+        name="Deserializing grid data with invalid size",
+        expected_error_message="GridConfig - grid data deserialization failed: invalid size \"INVALID_SIZE\"",
+        action=action_deserialize_grid_data_with_invalid_size
+    ),
+    ValidationTest(
+        name="Deserializing grid data with size outside allowed range",
+        expected_error_message=f"GridConfig - grid data deserialization failed: size outside allowed range [expected {MINIMUM_GRID_SIZE} - {MAXIMUM_GRID_SIZE}, got 1]",
+        action=action_deserialize_grid_data_with_size_outside_allowed_range
+    ),
+    ValidationTest(
+        name="Deserializing grid data with invalid color",
+        expected_error_message="GridConfig - grid data deserialization failed: invalid color \"INVALID_COLOR\"",
+        action=action_deserialize_grid_data_with_invalid_color
+    ),
+    ValidationTest(
+        name="Deserializing grid data with invalid visibility",
+        expected_error_message="GridConfig - grid data deserialization failed: invalid visibility \"INVALID_VISIBILITY\"",
+        action=action_deserialize_grid_data_with_invalid_visibility
     ),
     ValidationTest(
         name="Generating ID for an unsupported type",
