@@ -95,11 +95,6 @@ def setup_event_bus() -> dict:
         "event_bus": EventBus()
     }
 
-def setup_id_counters() -> dict:
-    return {
-        "id_counters": IdCounters()
-    }
-
 #Teardown---------------------------------------------------------------------------------------------------------------
 def teardown_designer(designer: Designer) -> None:
     root = designer._parent
@@ -285,8 +280,57 @@ def action_deserialize_grid_data_with_invalid_visibility() -> None:
     )
 
 #IdCounters tests-------------------------------------------------------------------------------------------------------
-def action_generate_id_for_unsupported_type(id_counters: IdCounters) -> None:
-    id_counters.generate_id("UNSUPPORTED_TYPE")
+def action_generate_id_for_unsupported_type() -> None:
+    id_counters = IdCounters()
+    id_counters.generate_id(widget_type="UNSUPPORTED_TYPE")
+
+def action_deserialize_id_counter_data_with_invalid_input_type() -> None:
+    IdCounters.from_dict(id_counter_data=[])
+
+def action_deserialize_id_counter_data_with_missing_required_attribute() -> None:
+    IdCounters.from_dict(
+        id_counter_data={
+            "label": 1,
+            "entry": 1
+        }
+    )
+
+def action_deserialize_id_counter_data_with_invalid_attribute_set() -> None:
+    IdCounters.from_dict(
+        id_counter_data={
+            "label": 1,
+            "entry": 1,
+            "button": 1,
+            "UNEXPECTED_ATTRIBUTE": "value"
+        }
+    )
+
+def action_deserialize_id_counter_data_with_invalid_label_id_counter_value() -> None:
+    IdCounters.from_dict(
+        id_counter_data={
+            "label": "INVALID_LABEL_ID_COUNTER_VALUE",
+            "entry": 1,
+            "button": 1
+        }
+    )
+
+def action_deserialize_id_counter_data_with_invalid_entry_id_counter_value() -> None:
+    IdCounters.from_dict(
+        id_counter_data={
+            "label": 1,
+            "entry": "INVALID_ENTRY_ID_COUNTER_VALUE",
+            "button": 1
+        }
+    )
+
+def action_deserialize_id_counter_data_with_invalid_button_id_counter_value() -> None:
+    IdCounters.from_dict(
+        id_counter_data={
+            "label": 1,
+            "entry": 1,
+            "button": "INVALID_BUTTON_ID_COUNTER_VALUE"
+        }
+    )
 
 #ProjectDocument tests--------------------------------------------------------------------------------------------------
 def action_deserialize_project_with_invalid_width() -> None:
@@ -591,8 +635,37 @@ VALIDATION_TESTS = (
     ValidationTest(
         name="Generating ID for an unsupported type",
         expected_error_message="IdCounters - ID generation failed: unsupported type \"UNSUPPORTED_TYPE\"",
-        setup=setup_id_counters,
         action=action_generate_id_for_unsupported_type
+    ),
+    ValidationTest(
+        name="Deserializing ID counter data with invalid input type",
+        expected_error_message="IdCounters - ID counter data deserialization failed: ID counter data is not a dictionary",
+        action=action_deserialize_id_counter_data_with_invalid_input_type
+    ),
+    ValidationTest(
+        name="Deserializing ID counter data with missing required attribute",
+        expected_error_message="IdCounters - ID counter data deserialization failed: missing required attribute \"button\"",
+        action=action_deserialize_id_counter_data_with_missing_required_attribute
+    ),
+    ValidationTest(
+        name="Deserializing ID counter data with invalid attribute set",
+        expected_error_message="IdCounters - ID counter data deserialization failed: invalid attribute set [got unexpected attribute \"UNEXPECTED_ATTRIBUTE\"]",
+        action=action_deserialize_id_counter_data_with_invalid_attribute_set
+    ),
+    ValidationTest(
+        name="Deserializing ID counter data with invalid label ID counter value",
+        expected_error_message="IdCounters - ID counter data deserialization failed: invalid label ID counter value \"INVALID_LABEL_ID_COUNTER_VALUE\"",
+        action=action_deserialize_id_counter_data_with_invalid_label_id_counter_value
+    ),
+    ValidationTest(
+        name="Deserializing ID counter data with invalid entry ID counter value",
+        expected_error_message="IdCounters - ID counter data deserialization failed: invalid entry ID counter value \"INVALID_ENTRY_ID_COUNTER_VALUE\"",
+        action=action_deserialize_id_counter_data_with_invalid_entry_id_counter_value
+    ),
+    ValidationTest(
+        name="Deserializing ID counter data with invalid button ID counter value",
+        expected_error_message="IdCounters - ID counter data deserialization failed: invalid button ID counter value \"INVALID_BUTTON_ID_COUNTER_VALUE\"",
+        action=action_deserialize_id_counter_data_with_invalid_button_id_counter_value
     ),
     ValidationTest(
         name="Deserializing project with invalid width",
