@@ -23,7 +23,35 @@ MAXIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["max_height"]
 MINIMUM_GRID_SIZE = CONSTANTS["grid"]["min_size"]
 MAXIMUM_GRID_SIZE = CONSTANTS["grid"]["max_size"]
 
+CANVAS_WIDTH = 800
+CANVAS_HEIGHT = 600
+
+WIDGET_WIDTH = 100
+WIDGET_HEIGHT = 20
+
 #Setup------------------------------------------------------------------------------------------------------------------
+def _create_valid_project_data(**overrides) -> dict[str, object]:
+    project_data = {
+        "version": 1,
+        "title": "TITLE",
+        "width": CANVAS_WIDTH,
+        "height": CANVAS_HEIGHT,
+        "grid": {
+            "size": 10,
+            "color": "#ffffff",
+            "visible": False
+        },
+        "theme": {},
+        "widgets": [],
+        "id_counters": {
+            "label": 1,
+            "entry": 1,
+            "button": 1
+        }
+    }
+    project_data.update(overrides)
+    return project_data
+
 def _create_valid_widget_data(**overrides) -> dict[str, object]:
     widget_data = {
         "type": "Label",
@@ -32,8 +60,8 @@ def _create_valid_widget_data(**overrides) -> dict[str, object]:
         "y": 100,
         "bg": "#000000",
         "fg": "#ffffff",
-        "width": 100,
-        "height": 20,
+        "width": WIDGET_WIDTH,
+        "height": WIDGET_HEIGHT,
         "anchor": "sw",
         "text": "TEXT"
     }
@@ -215,7 +243,6 @@ def action_create_combobox_for_unsupported_attribute(designer: Designer) -> None
         row=0
     )
 
-
 #EventBus tests---------------------------------------------------------------------------------------------------------
 def action_subscribe_uncallable_to_event_bus(event_bus: EventBus) -> None:
     event_bus.subscribe("EVENT", "UNCALLABLE")
@@ -339,23 +366,96 @@ def action_deserialize_id_counter_data_with_invalid_button_id_counter_value() ->
     )
 
 #ProjectDocument tests--------------------------------------------------------------------------------------------------
-def action_deserialize_project_with_invalid_width() -> None:
-    ProjectDocument.from_json({"width": "INVALID_WIDTH"})
+def action_deserialize_project_data_with_invalid_input_type() -> None:
+    ProjectDocument.from_json([])
 
-def action_deserialize_project_with_invalid_height() -> None:
-    ProjectDocument.from_json({"height": "INVALID_HEIGHT"})
+def action_deserialize_project_data_with_missing_required_attribute() -> None:
+    project_data = _create_valid_project_data()
+    project_data.pop("id_counters")
+    ProjectDocument.from_json(project_data)
 
-def action_deserialize_project_with_width_below_minimum() -> None:
-    ProjectDocument.from_json({"width": MINIMUM_CANVAS_WIDTH - 1})
+def action_deserialize_project_data_with_invalid_attribute_set() -> None:
+    project_data = _create_valid_project_data()
+    project_data["UNEXPECTED_ATTRIBUTE"] = "value"
+    ProjectDocument.from_json(project_data)
 
-def action_deserialize_project_with_height_below_minimum() -> None:
-    ProjectDocument.from_json({"height": MINIMUM_CANVAS_HEIGHT - 1})
+def action_deserialize_project_data_with_invalid_version() -> None:
+    project_data = _create_valid_project_data(version="INVALID_VERSION")
+    ProjectDocument.from_json(project_data)
 
-def action_deserialize_project_with_width_above_maximum() -> None:
-    ProjectDocument.from_json({"width": MAXIMUM_CANVAS_WIDTH + 1})
+def action_deserialize_project_data_with_unsupported_version() -> None:
+    project_data = _create_valid_project_data(version=2)
+    ProjectDocument.from_json(project_data)
 
-def action_deserialize_project_with_height_above_maximum() -> None:
-    ProjectDocument.from_json({"height": MAXIMUM_CANVAS_HEIGHT + 1})
+def action_deserialize_project_data_with_invalid_title() -> None:
+    project_data = _create_valid_project_data(title=None)
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_invalid_width() -> None:
+    project_data = _create_valid_project_data(width="INVALID_WIDTH")
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_invalid_height() -> None:
+    project_data = _create_valid_project_data(height="INVALID_HEIGHT")
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_width_outside_allowed_range() -> None:
+    project_data = _create_valid_project_data(width=MAXIMUM_CANVAS_WIDTH + 1)
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_height_outside_allowed_range() -> None:
+    project_data = _create_valid_project_data(height=MAXIMUM_CANVAS_HEIGHT + 1)
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_invalid_icon_path() -> None:
+    project_data = _create_valid_project_data(icon_path=1)
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_invalid_theme_type() -> None:
+    project_data = _create_valid_project_data(theme=[])
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_invalid_widget_data_list_type() -> None:
+    project_data = _create_valid_project_data(widgets={})
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_duplicate_widget_id() -> None:
+    widget_data_list = [
+        _create_valid_widget_data(id="DUPLICATE_ID"),
+        _create_valid_widget_data(id="DUPLICATE_ID")
+    ]
+    project_data = _create_valid_project_data(widgets=widget_data_list)
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_widget_width_exceeding_canvas_width() -> None:
+    widget_data_list = [
+        _create_valid_widget_data(width=CANVAS_WIDTH + 1)
+    ]
+    project_data = _create_valid_project_data(widgets=widget_data_list)
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_widget_height_exceeding_canvas_height() -> None:
+    widget_data_list = [
+        _create_valid_widget_data(height=CANVAS_HEIGHT + 1)
+    ]
+    project_data = _create_valid_project_data(widgets=widget_data_list)
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_widget_x_coordinate_outside_allowed_range() -> None:
+    invalid_x = CANVAS_WIDTH - WIDGET_WIDTH + 1
+    widget_data_list = [
+        _create_valid_widget_data(x=invalid_x)
+    ]
+    project_data = _create_valid_project_data(widgets=widget_data_list)
+    ProjectDocument.from_json(project_data)
+
+def action_deserialize_project_data_with_widget_y_coordinate_outside_allowed_range() -> None:
+    invalid_y = CANVAS_HEIGHT + 1
+    widget_data_list = [
+        _create_valid_widget_data(y=invalid_y)
+    ]
+    project_data = _create_valid_project_data(widgets=widget_data_list)
+    ProjectDocument.from_json(project_data)
 
 #WidgetModel tests------------------------------------------------------------------------------------------------------
 def action_instantiate_widget_model_base_type() -> None:
@@ -706,34 +806,94 @@ VALIDATION_TESTS = (
         action=action_deserialize_id_counter_data_with_invalid_button_id_counter_value
     ),
     ValidationTest(
-        name="Deserializing project with invalid width",
-        expected_error_message="ProjectDocument - deserialization failed: width must be an integer [got \"INVALID_WIDTH\"]",
-        action=action_deserialize_project_with_invalid_width
+        name="Deserializing project data with invalid input type",
+        expected_error_message="ProjectDocument - project data deserialization failed: project data is not a dictionary",
+        action=action_deserialize_project_data_with_invalid_input_type
     ),
     ValidationTest(
-        name="Deserializing project with invalid height",
-        expected_error_message="ProjectDocument - deserialization failed: height must be an integer [got \"INVALID_HEIGHT\"]",
-        action=action_deserialize_project_with_invalid_height
+        name="Deserializing project data with missing required attribute",
+        expected_error_message="ProjectDocument - project data deserialization failed: missing required attribute \"id_counters\"",
+        action=action_deserialize_project_data_with_missing_required_attribute
     ),
     ValidationTest(
-        name="Deserializing project with width below minimum",
-        expected_error_message=f"ProjectDocument - deserialization failed: width below minimum of {MINIMUM_CANVAS_WIDTH} [got {MINIMUM_CANVAS_WIDTH - 1}]",
-        action=action_deserialize_project_with_width_below_minimum
+        name="Deserializing project data with invalid attribute set",
+        expected_error_message="ProjectDocument - project data deserialization failed: invalid attribute set [got unexpected attribute \"UNEXPECTED_ATTRIBUTE\"]",
+        action=action_deserialize_project_data_with_invalid_attribute_set
     ),
     ValidationTest(
-        name="Deserializing project with height below minimum",
-        expected_error_message=f"ProjectDocument - deserialization failed: height below minimum of {MINIMUM_CANVAS_HEIGHT} [got {MINIMUM_CANVAS_HEIGHT - 1}]",
-        action=action_deserialize_project_with_height_below_minimum
+        name="Deserializing project data with invalid version",
+        expected_error_message="ProjectDocument - project data deserialization failed: invalid version \"INVALID_VERSION\"",
+        action=action_deserialize_project_data_with_invalid_version
     ),
     ValidationTest(
-        name="Deserializing project with width above maximum",
-        expected_error_message=f"ProjectDocument - deserialization failed: width above maximum of {MAXIMUM_CANVAS_WIDTH} [got {MAXIMUM_CANVAS_WIDTH + 1}]",
-        action=action_deserialize_project_with_width_above_maximum
+        name="Deserializing project data with unsupported version",
+        expected_error_message="ProjectDocument - project data deserialization failed: unsupported version \"2\"",
+        action=action_deserialize_project_data_with_unsupported_version
     ),
     ValidationTest(
-        name="Deserializing project with height above maximum",
-        expected_error_message=f"ProjectDocument - deserialization failed: height above maximum of {MAXIMUM_CANVAS_HEIGHT} [got {MAXIMUM_CANVAS_HEIGHT + 1}]",
-        action=action_deserialize_project_with_height_above_maximum
+        name="Deserializing project data with invalid title",
+        expected_error_message="ProjectDocument - project data deserialization failed: invalid title \"None\"",
+        action=action_deserialize_project_data_with_invalid_title
+    ),
+    ValidationTest(
+        name="Deserializing project data with invalid width",
+        expected_error_message="ProjectDocument - project data deserialization failed: invalid width \"INVALID_WIDTH\"",
+        action=action_deserialize_project_data_with_invalid_width
+    ),
+    ValidationTest(
+        name="Deserializing project data with invalid height",
+        expected_error_message="ProjectDocument - project data deserialization failed: invalid height \"INVALID_HEIGHT\"",
+        action=action_deserialize_project_data_with_invalid_height
+    ),
+    ValidationTest(
+        name="Deserializing project data with width outside allowed range",
+        expected_error_message=f"ProjectDocument - project data deserialization failed: width outside allowed range [expected {MINIMUM_CANVAS_WIDTH} - {MAXIMUM_CANVAS_WIDTH}, got {MAXIMUM_CANVAS_WIDTH + 1}]",
+        action=action_deserialize_project_data_with_width_outside_allowed_range
+    ),
+    ValidationTest(
+        name="Deserializing project data with height outside allowed range",
+        expected_error_message=f"ProjectDocument - project data deserialization failed: height outside allowed range [expected {MINIMUM_CANVAS_HEIGHT} - {MAXIMUM_CANVAS_HEIGHT}, got {MAXIMUM_CANVAS_HEIGHT + 1}]",
+        action=action_deserialize_project_data_with_height_outside_allowed_range
+    ),
+    ValidationTest(
+        name="Deserializing project data with invalid icon path",
+        expected_error_message="ProjectDocument - project data deserialization failed: invalid icon path \"1\"",
+        action=action_deserialize_project_data_with_invalid_icon_path
+    ),
+    ValidationTest(
+        name="Deserializing project data with invalid theme type",
+        expected_error_message="ProjectDocument - project data deserialization failed: theme is not a dictionary",
+        action=action_deserialize_project_data_with_invalid_theme_type
+    ),
+    ValidationTest(
+        name="Deserializing project data with invalid widget data list type",
+        expected_error_message="ProjectDocument - project data deserialization failed: widget data is not a list",
+        action=action_deserialize_project_data_with_invalid_widget_data_list_type
+    ),
+    ValidationTest(
+        name="Deserializing project data with duplicate widget ID",
+        expected_error_message="ProjectDocument - project data deserialization failed: duplicate widget ID \"DUPLICATE_ID\"",
+        action=action_deserialize_project_data_with_duplicate_widget_id
+    ),
+    ValidationTest(
+        name="Deserializing project data with widget width exceeding canvas width",
+        expected_error_message=f"ProjectDocument - project data deserialization failed: widget width exceeds canvas width [{CANVAS_WIDTH + 1} > {CANVAS_WIDTH}, ID: \"ID\"]",
+        action=action_deserialize_project_data_with_widget_width_exceeding_canvas_width
+    ),
+    ValidationTest(
+        name="Deserializing project data with widget height exceeding canvas height",
+        expected_error_message=f"ProjectDocument - project data deserialization failed: widget height exceeds canvas height [{CANVAS_HEIGHT + 1} > {CANVAS_HEIGHT}, ID: \"ID\"]",
+        action=action_deserialize_project_data_with_widget_height_exceeding_canvas_height
+    ),
+    ValidationTest(
+        name="Deserializing project data with widget X coordinate outside allowed range",
+        expected_error_message=f"ProjectDocument - project data deserialization failed: widget X coordinate outside allowed range [expected 0 - {CANVAS_WIDTH - WIDGET_WIDTH}, got {CANVAS_WIDTH - WIDGET_WIDTH + 1}, ID: \"ID\"]",
+        action=action_deserialize_project_data_with_widget_x_coordinate_outside_allowed_range
+    ),
+    ValidationTest(
+        name="Deserializing project data with widget Y coordinate outside allowed range",
+        expected_error_message=f"ProjectDocument - project data deserialization failed: widget Y coordinate outside allowed range [expected {WIDGET_HEIGHT} - {CANVAS_HEIGHT}, got {CANVAS_HEIGHT + 1}, ID: \"ID\"]",
+        action=action_deserialize_project_data_with_widget_y_coordinate_outside_allowed_range
     ),
     ValidationTest(
         name="Instantiating widget model base type",
