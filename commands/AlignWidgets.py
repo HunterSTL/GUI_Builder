@@ -1,43 +1,41 @@
 from collections.abc import Iterable
+
 from model import BaseWidgetData
-from .BaseCommand import Command
-from utility import Edge, clamped_delta
+from utility import Edge, BoundingBox, clamped_delta
+
 from AppState import AppState
+from .BaseCommand import Command
+
 
 class AlignWidgets(Command):
+    """Encapsulates widget alignment as an undoable command."""
     def __init__(
         self,
         models: Iterable[BaseWidgetData],
         reference_model_id: str,
         edge: Edge,
         app_state: AppState
-    ):
-        """store affected model IDs, snapshot original widget positions and compute and snapshot final widget positions"""
-        self._reference_model_id = reference_model_id
-        self._edge = edge
-        self._app_state = app_state
+    ) -> None:
+        self._reference_model_id: str = reference_model_id
+        self._edge: Edge = edge
+        self._app_state: AppState = app_state
 
-        #store affected model IDs
-        models = tuple(models)                              #freezes iteration order for deterministic undo and redo behaviour
-        self._model_ids = [model.id for model in models]    #storing IDs and retrieving models protects against stale models
+        models = tuple(models)                                          #freezes iteration order for deterministic undo and redo behaviour
+        self._model_ids: list[str] = [model.id for model in models]     #storing IDs and retrieving models protects against stale models
 
-        #determine the bounding box of the reference model
         reference_model = self._app_state.get_model_from_model_id(reference_model_id)
-        self._reference_model_bbox = self._app_state.get_model_bounding_box(reference_model)
+        self._reference_model_bbox: BoundingBox = self._app_state.get_model_bounding_box(reference_model)
 
-        #snapshot original positions
-        self._original_positions = {
+        self._original_positions: dict[str, tuple[int, int]] = {
             model.id: (model.x, model.y)
             for model in models
         }
 
-        #compute and snapshot final positions
-        self._final_positions = {}
+        self._final_positions: dict[str, tuple[int, int]] = {}
         for model in models:
             if model.id != self._reference_model_id:
                 model_bbox = self._app_state.get_model_bounding_box(model)
 
-                #calculate necessary movement delta
                 if self._edge == Edge.LEFT:
                     dx, dy = self._reference_model_bbox.left - model_bbox.left, 0
                 elif self._edge == Edge.RIGHT:
@@ -59,37 +57,40 @@ class AlignWidgets(Command):
                 dy=dy
             )
 
-            #snapshot final positions
             original_x, original_y = self._original_positions[model.id]
             self._final_positions[model.id] = (original_x + dx, original_y + dy)
 
-    def has_effect(self):
-        """return True if executing this command would cause the model to change"""
+    def has_effect(
+        self
+    ) -> bool:
+        """Return True if execution would change at least one widget model position."""
         return any(
             self._original_positions[model_id] != self._final_positions[model_id]
             for model_id in self._model_ids
         )
 
-    def execute(self):
-        """apply the snapshotted widget positions after alignment to AppState"""
+    def execute(
+        self
+    ) -> None:
+        """Apply the snapshotted final positions to the widget models through AppState."""
         with self._app_state.batch():
             for model_id, (x, y) in self._final_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)
-
-                #set the model position to the snapshotted final position
                 self._app_state.set_model_position(model, x, y)
 
-    def undo(self):
-        """restore original widget positions from the snapshot"""
+    def undo(
+        self
+    ) -> None:
+        """Restore the snapshotted original positions to the widget models through AppState."""
         with self._app_state.batch():
             for model_id, (x, y) in self._original_positions.items():
                 model = self._app_state.get_model_from_model_id(model_id)
-
-                #set the model position to the original position
                 self._app_state.set_model_position(model, x, y)
 
-    def __repr__(self):
-        """called automatically when printing this object"""
+    def __repr__(
+        self
+    ) -> str:
+        """Return a debug representation of the command."""
         s = "[AlignWidgets]"
         s += f"\n\tmodel IDs:\t\t\t{self._model_ids}"
         s += f"\n\treference model ID:\t{self._reference_model_id}"

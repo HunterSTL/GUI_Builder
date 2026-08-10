@@ -1,16 +1,18 @@
 from abc import ABC, abstractmethod
 
-#The ABC (abstract base class) "Command" defines which methods each derived command class needs
+
 class Command(ABC):
-    """
-    A Command represents an undoable operation.
-    Commands store operation parameters (IDs, movement deltas...) and snapshot relevant model state (original/final positions, clipboard) either during construction or finalization.
-    The execute() method applies the stored operation or snapshotted final state, while the undo() method restores the snapshotted original state.
-    """
+    """Represents an undoable operation."""
     @abstractmethod
-    def execute(self):
+    def execute(
+        self
+    ) -> None:
+        """Apply the stored operation or snapshotted final state."""
         raise NotImplementedError
 
     @abstractmethod
-    def undo(self):
+    def undo(
+        self
+    ) -> None:
+        """Restore the snapshotted original state."""
         raise NotImplementedError
