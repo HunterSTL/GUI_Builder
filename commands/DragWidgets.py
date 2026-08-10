@@ -6,7 +6,7 @@ from AppState import AppState
 from .BaseCommand import Command
 
 
-class MoveWidgetsTo(Command):
+class DragWidgets(Command):
     """Encapsulates widget dragging as an undoable command."""
     def __init__(
         self,
@@ -65,7 +65,7 @@ class MoveWidgetsTo(Command):
     ) -> None:
         """Apply the snapshotted final positions to the widget models through AppState."""
         if not self._final_positions:
-            raise ValueError("MoveWidgetsTo - execution failed: final positions were not recorded")
+            raise ValueError("DragWidgets - execution failed: final positions were not recorded")
 
         with self._app_state.batch():
             for model_id, (x, y) in self._final_positions.items():
@@ -85,7 +85,7 @@ class MoveWidgetsTo(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[MoveWidgetsTo]"
+        s = "[DragWidgets]"
         s += f"\n\tmodel IDs:\t\t\t{self._model_ids}"
         s += f"\n\toriginal positions:\t{self._original_positions}"
         s += f"\n\tfinal positions:\t{self._final_positions}"

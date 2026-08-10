@@ -245,11 +245,11 @@ class TestUndoRedoDeleteWidget(unittest.TestCase):
         command_stack.redo()
         self.assertEqual(len(project_document.widget_models), 0)
 
-class TestUndoRedoMoveWidget(unittest.TestCase):
-    def test_undo_redo_move_widget(self):
+class TestUndoRedoNudgeWidget(unittest.TestCase):
+    def test_undo_redo_nudge_widget(self):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
-        from commands import CommandStack, MoveWidgets
+        from commands import CommandStack, NudgeWidgets
         from utility import WidgetType
 
         project_document = ProjectDocument(width=300, height=200, theme={})
@@ -263,14 +263,14 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
             fg="#aaaaaa",
             width=100,
             height=20,
-            text="Move Widget Test"
+            text="Nudge Widget Test"
         )
         app_state.add_model(model)
 
         command_stack = CommandStack()
 
-        #move by a delta
-        command_stack.execute(MoveWidgets(tuple([model]), 50, 50, app_state))
+        #nudge by a delta
+        command_stack.execute(NudgeWidgets(tuple([model]), 50, 50, app_state))
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
@@ -282,11 +282,11 @@ class TestUndoRedoMoveWidget(unittest.TestCase):
         self.assertEqual(model.x, 100)
         self.assertEqual(model.y, 100)
 
-class TestUndoRedoMoveWidgetTo(unittest.TestCase):
-    def test_undo_redo_move_widget_to(self):
+class TestUndoRedoDragWidget(unittest.TestCase):
+    def test_undo_redo_drag_widget(self):
         from AppState import AppState
         from model import ProjectDocument, LabelWidgetData
-        from commands import CommandStack, MoveWidgetsTo
+        from commands import CommandStack, DragWidgets
         from utility import WidgetType
 
         project_document = ProjectDocument(width=300, height=200, theme={})
@@ -300,12 +300,12 @@ class TestUndoRedoMoveWidgetTo(unittest.TestCase):
             fg="#aaaaaa",
             width=100,
             height=20,
-            text="Move Widget Test"
+            text="Drag Widget Test"
         )
         app_state.add_model(model)
 
         command_stack = CommandStack()
-        command = MoveWidgetsTo(tuple([model]), app_state)
+        command = DragWidgets(tuple([model]), app_state)
 
         #simulate live dragging
         command.apply_drag_delta(50, 50)

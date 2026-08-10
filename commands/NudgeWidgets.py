@@ -6,7 +6,7 @@ from AppState import AppState
 from .BaseCommand import Command
 
 
-class MoveWidgets(Command):
+class NudgeWidgets(Command):
     """Encapsulates widget nudging as an undoable command."""
     def __init__(
         self,
@@ -49,7 +49,7 @@ class MoveWidgets(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[MoveWidgets]"
+        s = "[NudgeWidgets]"
         s += f"\n\tmodel IDs:\t\t\t{self._model_ids}"
         s += f"\n\tdx|dy:\t\t\t\t{self._dx}|{self._dy}"
         return s

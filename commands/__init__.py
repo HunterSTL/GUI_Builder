@@ -3,9 +3,9 @@ from .AlignWidgets import AlignWidgets
 from .BaseCommand import Command
 from .CommandStack import CommandStack
 from .DeleteWidgets import DeleteWidgets
+from .DragWidgets import DragWidgets
 from .EditWidget import EditWidget
-from .MoveWidgets import MoveWidgets
-from .MoveWidgetsTo import MoveWidgetsTo
+from .NudgeWidgets import NudgeWidgets
 from .PasteWidgetsFromClipboard import PasteWidgetsFromClipboard
 from .SnapWidgetsToGrid import SnapWidgetsToGrid
 
@@ -15,9 +15,9 @@ __all__ = [
     "Command",
     "CommandStack",
     "DeleteWidgets",
+    "DragWidgets",
     "EditWidget",
-    "MoveWidgets",
-    "MoveWidgetsTo",
+    "NudgeWidgets",
     "PasteWidgetsFromClipboard",
     "SnapWidgetsToGrid"
 ]

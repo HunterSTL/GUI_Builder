@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from commands import AddWidget, AlignWidgets, CommandStack, EditWidget, MoveWidgets, MoveWidgetsTo, SnapWidgetsToGrid
+from commands import AddWidget, AlignWidgets, CommandStack, DragWidgets, EditWidget, NudgeWidgets, SnapWidgetsToGrid
 from model import BaseWidgetData, ButtonWidgetData, EntryWidgetData, LabelWidgetData
 from utility import Direction, Edge, WidgetType, allowed_x_range, allowed_y_range, clamp, clamped_delta
 
@@ -19,7 +19,7 @@ class WidgetActions:
         self._command_stack: CommandStack = command_stack
         self._measure_preview_widget_callback: Callable[[WidgetType, str], tuple[int, int]] = measure_preview_widget_callback
 
-        self._active_drag_command: MoveWidgetsTo | None = None
+        self._active_drag_command: DragWidgets | None = None
         self._active_drag_models: tuple[BaseWidgetData, ...] | None = None  #live reference to models used for bounding box lookup during live dragging
 
         self._active_edit_command: EditWidget | None = None
@@ -48,7 +48,7 @@ class WidgetActions:
             return
 
         self._command_stack.execute(
-            MoveWidgets(
+            NudgeWidgets(
                 models=selected_models,
                 dx=dx,
                 dy=dy,
@@ -65,7 +65,7 @@ class WidgetActions:
             return
 
         self._active_drag_models = selected_models  #used for bounding box lookup during live dragging
-        self._active_drag_command = MoveWidgetsTo(
+        self._active_drag_command = DragWidgets(
             models=selected_models,
             app_state=self._app_state
         )

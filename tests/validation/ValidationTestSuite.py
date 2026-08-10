@@ -5,7 +5,7 @@ from ValidationFramework import ValidationTest, run_validation_tests, print_vali
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))    #GUI_Builder/
 
 import tkinter as tk
-from commands import EditWidget, MoveWidgetsTo
+from commands import DragWidgets, EditWidget
 from events import EventBus
 from model import GridConfig, IdCounters, ProjectDocument, LabelWidgetData, BaseWidgetData
 from utility import WidgetType, Geometry, CONSTANTS
@@ -114,8 +114,8 @@ def _create_edit_widget_command() -> EditWidget:
         app_state=AppState(ProjectDocument())
     )
 
-def _create_move_widgets_to_command() -> MoveWidgetsTo:
-    return MoveWidgetsTo(
+def _create_drag_widgets_command() -> DragWidgets:
+    return DragWidgets(
         models=(_create_valid_widget_model(),),
         app_state=AppState(ProjectDocument())
     )
@@ -217,9 +217,9 @@ def action_execute_edit_widget_command_without_recording_final_attribute_values(
     command = _create_edit_widget_command()
     command.execute()
 
-#MoveWidgetsTo command tests--------------------------------------------------------------------------------------------
-def action_execute_move_widget_to_command_without_recording_final_positions() -> None:
-    command = _create_move_widgets_to_command()
+#DragWidgets command tests----------------------------------------------------------------------------------------------
+def action_execute_drag_widgets_command_without_recording_final_positions() -> None:
+    command = _create_drag_widgets_command()
     command.execute()
 
 #AttributesPanel tests--------------------------------------------------------------------------------------------------
@@ -686,9 +686,9 @@ VALIDATION_TESTS = (
         action=action_execute_edit_widget_command_without_recording_final_attribute_values
     ),
     ValidationTest(
-        name="Executing MoveWidgetsTo command without recording final positions",
-        expected_error_message="MoveWidgetsTo - execution failed: final positions were not recorded",
-        action=action_execute_move_widget_to_command_without_recording_final_positions
+        name="Executing DragWidgets command without recording final positions",
+        expected_error_message="DragWidgets - execution failed: final positions were not recorded",
+        action=action_execute_drag_widgets_command_without_recording_final_positions
     ),
     ValidationTest(
         name="Computing spinbox limits for an unsupported attribute",

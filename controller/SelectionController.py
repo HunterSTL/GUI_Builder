@@ -110,7 +110,7 @@ class SelectionController:
         except Exception:
             pass
 
-        #notify Designer that drag gesture starts (initializes MoveWidgetsTo command to store original widget positions)
+        #notify Designer that drag gesture starts (initializes DragWidgets command to store original widget positions)
         self.event_router.emit("widget.drag.start")
 
     def handle_widget_drag(self, event):
@@ -149,7 +149,7 @@ class SelectionController:
         self.event_router.emit("widget.drag.apply_delta", dx=incremental_dx, dy=incremental_dy)
 
     def end_widget_drag(self):
-        """end a widget drag by resetting widget drag state and notifying the Designer (to execute the MoveWidgetsTo command)"""
+        """end a widget drag by resetting widget drag state and notifying the Designer (to execute the DragWidgets command)"""
         wds = self._widget_drag_state
 
         wds.drag_start_coords = None
@@ -160,7 +160,7 @@ class SelectionController:
         except Exception:
             pass
 
-        #notify Designer that drag gesture ends (executes the MoveWidgetsTo command)
+        #notify Designer that drag gesture ends (executes the DragWidgets command)
         self.event_router.emit("widget.drag.commit")
 
     def start_rectangle_selection(self, event):
