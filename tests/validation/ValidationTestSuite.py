@@ -218,6 +218,10 @@ def action_execute_edit_widget_command_without_recording_final_attribute_values(
     command.execute()
 
 #DragWidgets command tests----------------------------------------------------------------------------------------------
+def action_check_drag_widgets_command_effect_without_recording_final_positions() -> None:
+    command = _create_drag_widgets_command()
+    command.has_effect()
+
 def action_execute_drag_widgets_command_without_recording_final_positions() -> None:
     command = _create_drag_widgets_command()
     command.execute()
@@ -684,6 +688,11 @@ VALIDATION_TESTS = (
         name="Executing EditWidget command without recording final attribute values",
         expected_error_message="EditWidget - execution failed: final attribute values were not recorded",
         action=action_execute_edit_widget_command_without_recording_final_attribute_values
+    ),
+    ValidationTest(
+        name="Checking DragWidgets command effect without recording final positions",
+        expected_error_message="DragWidgets - effect check failed: final positions were not recorded",
+        action=action_check_drag_widgets_command_effect_without_recording_final_positions
     ),
     ValidationTest(
         name="Executing DragWidgets command without recording final positions",

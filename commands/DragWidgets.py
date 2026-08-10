@@ -28,11 +28,13 @@ class DragWidgets(Command):
         self
     ) -> bool:
         """Return True if execution would change at least one widget model position."""
-        for model_id in self._model_ids:
-            model = self._app_state.get_model_from_model_id(model_id)
-            if self._original_positions[model_id] != (model.x, model.y):
-                return True
-        return False
+        if not self._final_positions:
+            raise ValueError("DragWidgets - effect check failed: final positions were not recorded")
+
+        return any(
+            self._original_positions[model_id] != self._final_positions[model_id]
+            for model_id in self._model_ids
+        )
 
     def apply_drag_delta(
         self,
