@@ -29,7 +29,42 @@ CANVAS_HEIGHT = 600
 WIDGET_WIDTH = 100
 WIDGET_HEIGHT = 20
 
-#Setup------------------------------------------------------------------------------------------------------------------
+#Lifecycle management---------------------------------------------------------------------------------------------------
+def setup_designer() -> dict:
+    def _init_and_withdraw(self, *args, **kwargs):
+        """executes the original __init__ and self.withdraw()"""
+        original_init(self, *args, **kwargs)
+        self.withdraw()
+
+    root = tk.Tk()
+    root.withdraw()
+
+    #withdraw Toplevel after __init__ to prevent the window from showing up during tests
+    original_init = tk.Toplevel.__init__
+    tk.Toplevel.__init__ = _init_and_withdraw
+
+    try:
+        designer = Designer(
+            parent=root,
+            project_document=ProjectDocument(theme=USER_THEME),
+            program_theme=PROGRAM_THEME,
+            app_event_bus=EventBus()
+        )
+    except Exception:
+        root.destroy()
+        raise
+    finally:
+        tk.Toplevel.__init__ = original_init
+
+    return {
+        "designer": designer
+    }
+
+def teardown_designer(designer: Designer) -> None:
+    root = designer._parent
+    root.destroy()
+
+#Helpers----------------------------------------------------------------------------------------------------------------
 def _create_valid_project_data(**overrides) -> dict[str, object]:
     project_data = {
         "version": 1,
@@ -73,112 +108,75 @@ def _create_valid_widget_model(**overrides) -> LabelWidgetData:
     widget_data.pop("type")
     return LabelWidgetData(**widget_data)
 
-def setup_app_state() -> dict:
-    return {
-        "app_state": AppState(ProjectDocument())
-    }
+def _create_edit_widget_command() -> EditWidget:
+    return EditWidget(
+        model=_create_valid_widget_model(),
+        app_state=AppState(ProjectDocument())
+    )
 
-def setup_designer() -> dict:
-    def _init_and_withdraw(self, *args, **kwargs):
-        """executes the original __init__ and self.withdraw()"""
-        original_init(self, *args, **kwargs)
-        self.withdraw()
-
-    root = tk.Tk()
-    root.withdraw()
-
-    #withdraw Toplevel after __init__ to prevent the window from showing up during tests
-    original_init = tk.Toplevel.__init__
-    tk.Toplevel.__init__ = _init_and_withdraw
-
-    try:
-        designer = Designer(
-            parent=root,
-            project_document=ProjectDocument(theme=USER_THEME),
-            program_theme=PROGRAM_THEME,
-            app_event_bus=EventBus()
-        )
-    except Exception:
-        root.destroy()
-        raise
-    finally:
-        tk.Toplevel.__init__ = original_init
-
-    return {
-        "designer": designer
-    }
-
-def setup_edit_widget_command() -> dict:
-    return {
-        "command": EditWidget(
-            model=_create_valid_widget_model(),
-            app_state=AppState(ProjectDocument())
-        )
-    }
-
-def setup_move_widgets_to_command() -> dict:
-    return {
-        "command": MoveWidgetsTo(
-            models=(_create_valid_widget_model(),),
-            app_state=AppState(ProjectDocument())
-        )
-    }
-
-def setup_event_bus() -> dict:
-    return {
-        "event_bus": EventBus()
-    }
-
-#Teardown---------------------------------------------------------------------------------------------------------------
-def teardown_designer(designer: Designer) -> None:
-    root = designer._parent
-    root.destroy()
+def _create_move_widgets_to_command() -> MoveWidgetsTo:
+    return MoveWidgetsTo(
+        models=(_create_valid_widget_model(),),
+        app_state=AppState(ProjectDocument())
+    )
 
 #AppState tests---------------------------------------------------------------------------------------------------------
-def action_subscribe_uncallable_to_app_state(app_state: AppState) -> None:
+def action_subscribe_uncallable_to_app_state() -> None:
+    app_state = AppState(ProjectDocument())
     app_state.subscribe("UNCALLABLE")
 
-def action_add_model_with_missing_id(app_state: AppState) -> None:
+def action_add_model_with_missing_id() -> None:
+    app_state = AppState(ProjectDocument())
     model = _create_valid_widget_model(id=None)
     app_state.add_model(model)
 
-def action_add_model_with_duplicate_id(app_state: AppState) -> None:
+def action_add_model_with_duplicate_id() -> None:
+    app_state = AppState(ProjectDocument())
     model_1 = _create_valid_widget_model(id="DUPLICATE_ID")
     model_2 = _create_valid_widget_model(id="DUPLICATE_ID")
     app_state.add_model(model_1)
     app_state.add_model(model_2)
 
-def action_remove_model_with_unknown_id(app_state: AppState) -> None:
+def action_remove_model_with_unknown_id() -> None:
+    app_state = AppState(ProjectDocument())
     model = _create_valid_widget_model(id="UNKNOWN_ID")
     app_state.remove_model(model)
 
-def action_update_model_position_absolute_with_unknown_id(app_state: AppState) -> None:
+def action_update_model_position_absolute_with_unknown_id() -> None:
+    app_state = AppState(ProjectDocument())
     model = _create_valid_widget_model(id="UNKNOWN_ID")
     app_state.set_model_position(model, 100, 100)
 
-def action_update_model_position_relative_with_unknown_id(app_state: AppState) -> None:
+def action_update_model_position_relative_with_unknown_id() -> None:
+    app_state = AppState(ProjectDocument())
     model = _create_valid_widget_model(id="UNKNOWN_ID")
     app_state.offset_model_position(model, 10, 10)
 
-def action_update_model_attribute_with_unknown_id(app_state: AppState) -> None:
+def action_update_model_attribute_with_unknown_id() -> None:
+    app_state = AppState(ProjectDocument())
     model = _create_valid_widget_model(id="UNKNOWN_ID")
     app_state.set_model_attribute(model, "x", 0)
 
-def action_update_unknown_model_attribute(app_state: AppState) -> None:
+def action_update_unknown_model_attribute() -> None:
+    app_state = AppState(ProjectDocument())
     model = _create_valid_widget_model()
     app_state.add_model(model)
     app_state.set_model_attribute(model, "UNKNOWN_ATTRIBUTE", "VALUE")
 
-def action_select_model_with_unknown_id(app_state: AppState) -> None:
+def action_select_model_with_unknown_id() -> None:
+    app_state = AppState(ProjectDocument())
     app_state.selection_handle_click(model_id="UNKNOWN_ID", is_additive=False)
 
-def action_look_up_model_with_unknown_id(app_state: AppState) -> None:
+def action_look_up_model_with_unknown_id() -> None:
+    app_state = AppState(ProjectDocument())
     app_state.get_model_from_model_id("UNKNOWN_ID")
 
-def action_look_up_model_bounding_box_with_no_model_provided(app_state: AppState) -> None:
+def action_look_up_model_bounding_box_with_no_model_provided() -> None:
+    app_state = AppState(ProjectDocument())
     app_state.get_model_bounding_box(None)
 
-def action_look_up_model_group_bounding_box_with_no_models_provided(app_state: AppState) -> None:
+def action_look_up_model_group_bounding_box_with_no_models_provided() -> None:
+    app_state = AppState(ProjectDocument())
     app_state.get_model_group_bounding_box([])
 
 #Designer tests---------------------------------------------------------------------------------------------------------
@@ -215,11 +213,13 @@ def action_add_widget_with_unsupported_type(designer: Designer) -> None:
     )
 
 #EditWidget command tests-----------------------------------------------------------------------------------------------
-def action_execute_edit_widget_command_without_recording_final_attribute_values(command: EditWidget) -> None:
+def action_execute_edit_widget_command_without_recording_final_attribute_values() -> None:
+    command = _create_edit_widget_command()
     command.execute()
 
 #MoveWidgetsTo command tests--------------------------------------------------------------------------------------------
-def action_execute_move_widget_to_command_without_recording_final_positions(command: MoveWidgetsTo) -> None:
+def action_execute_move_widget_to_command_without_recording_final_positions() -> None:
+    command = _create_move_widgets_to_command()
     command.execute()
 
 #AttributesPanel tests--------------------------------------------------------------------------------------------------
@@ -244,13 +244,15 @@ def action_create_combobox_for_unsupported_attribute(designer: Designer) -> None
     )
 
 #EventBus tests---------------------------------------------------------------------------------------------------------
-def action_subscribe_uncallable_to_event_bus(event_bus: EventBus) -> None:
+def action_subscribe_uncallable_to_event_bus() -> None:
+    event_bus = EventBus()
     event_bus.subscribe("EVENT", "UNCALLABLE")
 
-def action_fail_handler_execution(event_bus: EventBus) -> None:
+def action_fail_handler_execution() -> None:
     def _handler() -> None:
         raise ValueError("ERROR")
 
+    event_bus = EventBus()
     event_bus.subscribe("EVENT", _handler)
     event_bus.emit("EVENT")
 
@@ -586,73 +588,61 @@ VALIDATION_TESTS = (
     ValidationTest(
         name="Subscribing uncallable to AppState",
         expected_error_message="AppState - subscription failed: subscriber must be callable",
-        setup=setup_app_state,
         action=action_subscribe_uncallable_to_app_state
     ),
     ValidationTest(
         name="Adding model with missing ID to AppState",
         expected_error_message="AppState - model addition failed: missing ID",
-        setup=setup_app_state,
         action=action_add_model_with_missing_id
     ),
     ValidationTest(
         name="Adding model with duplicate ID to AppState",
         expected_error_message="AppState - model addition failed: duplicate ID \"DUPLICATE_ID\"",
-        setup=setup_app_state,
         action=action_add_model_with_duplicate_id
     ),
     ValidationTest(
         name="Removing model with unknown ID from AppState",
         expected_error_message="AppState - model removal failed: unknown ID \"UNKNOWN_ID\"",
-        setup=setup_app_state,
         action=action_remove_model_with_unknown_id
     ),
     ValidationTest(
         name="Updating model position (absolute) with unknown ID",
         expected_error_message="AppState - model position update failed: unknown ID \"UNKNOWN_ID\"",
-        setup=setup_app_state,
         action=action_update_model_position_absolute_with_unknown_id
     ),
     ValidationTest(
         name="Updating model position (relative) with unknown ID",
         expected_error_message="AppState - model position update failed: unknown ID \"UNKNOWN_ID\"",
-        setup=setup_app_state,
         action=action_update_model_position_relative_with_unknown_id
     ),
     ValidationTest(
         name="Updating model attribute with unknown ID",
         expected_error_message="AppState - model attribute update failed: unknown ID \"UNKNOWN_ID\"",
-        setup=setup_app_state,
         action=action_update_model_attribute_with_unknown_id
     ),
     ValidationTest(
         name="Updating unknown model attribute",
         expected_error_message="AppState - model attribute update failed: unknown attribute \"UNKNOWN_ATTRIBUTE\" [ID]",
-        setup=setup_app_state,
         action=action_update_unknown_model_attribute
     ),
     ValidationTest(
         name="Selecting model with unknown ID",
         expected_error_message="AppState - model selection failed: unknown ID \"UNKNOWN_ID\"",
-        setup=setup_app_state,
         action=action_select_model_with_unknown_id
     ),
     ValidationTest(
         name="Looking up model with unknown ID",
         expected_error_message="AppState - model lookup failed: unknown ID \"UNKNOWN_ID\"",
-        setup=setup_app_state,
         action=action_look_up_model_with_unknown_id
     ),
     ValidationTest(
         name="Looking up model bounding box with no model provided",
         expected_error_message="AppState - model bounding box lookup failed: no model provided",
-        setup=setup_app_state,
         action=action_look_up_model_bounding_box_with_no_model_provided
     ),
     ValidationTest(
         name="Looking up model group bounding box with no models provided",
         expected_error_message="AppState - model group bounding box lookup failed: no models provided",
-        setup=setup_app_state,
         action=action_look_up_model_group_bounding_box_with_no_models_provided
     ),
     ValidationTest(
@@ -693,13 +683,11 @@ VALIDATION_TESTS = (
     ValidationTest(
         name="Executing EditWidget command without recording final attribute values",
         expected_error_message="EditWidget - execution failed: final attribute values were not recorded",
-        setup=setup_edit_widget_command,
         action=action_execute_edit_widget_command_without_recording_final_attribute_values
     ),
     ValidationTest(
         name="Executing MoveWidgetsTo command without recording final positions",
         expected_error_message="MoveWidgetsTo - execution failed: final positions were not recorded",
-        setup=setup_move_widgets_to_command,
         action=action_execute_move_widget_to_command_without_recording_final_positions
     ),
     ValidationTest(
@@ -726,13 +714,11 @@ VALIDATION_TESTS = (
     ValidationTest(
         name="Subscribing uncallable to EventBus",
         expected_error_message="EventBus - subscription failed: subscriber must be callable [event: EVENT]",
-        setup=setup_event_bus,
         action=action_subscribe_uncallable_to_event_bus
     ),
     ValidationTest(
         name="Failing handler execution",
         expected_error_message="EventBus - handler execution failed for event \"EVENT\": 1 handler raised an error:\n\t_handler: ERROR",
-        setup=setup_event_bus,
         action=action_fail_handler_execution
     ),
     ValidationTest(
