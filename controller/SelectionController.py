@@ -1,5 +1,5 @@
 import tkinter as tk
-from model import WidgetDragState, RectangleSelectionState, BaseWidgetData
+from model import WidgetDragState, RectangleSelectionState, BaseWidget
 from view import SelectionView
 from events import EventRouter
 from AppState import AppState
@@ -7,7 +7,7 @@ from AppState import AppState
 class SelectionController:
     """
     Implements click selection, additive selection, rectangle selection,
-    drag gestures, hit-testing and model based selection outline rendering.
+    drag gestures, hit-testing and selection outline rendering.
     """
     #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
@@ -17,7 +17,7 @@ class SelectionController:
         selection_view: SelectionView,
         ctrl_key: int,
         drag_threshold: int,
-        resolve_widget_to_model,
+        resolve_canvas_item_id_to_widget_id,
         event_router: EventRouter
     ):
         """initialize selection/drag states and mappings"""
@@ -28,7 +28,7 @@ class SelectionController:
         self.ctrl_key = ctrl_key
         self.drag_threshold = drag_threshold
 
-        self.resolve_widget_to_model = resolve_widget_to_model  #resolves widget ID → model ID
+        self.resolve_canvas_item_id_to_widget_id = resolve_canvas_item_id_to_widget_id
 
         self.event_router = event_router
 
@@ -42,12 +42,12 @@ class SelectionController:
         self._rectangle_selection_state = RectangleSelectionState()
 
     #Rendering API------------------------------------------------------------------------------------------------------
-    def update_outline_for(self, model: BaseWidgetData):
-        """create or update the selection outline for the given model based on selection state"""
-        self.selection_view.update_outline_for(
-            model_id=model.id,  #used to map selection outline rectangles to models
-            bounding_box=self.app_state.get_model_bounding_box(model),
-            is_last_selected=model.id == self.app_state.get_last_selected_model_id()
+    def render_outline_for(self, widget: BaseWidget):
+        """create or update the selection outline for the given widget based on selection state"""
+        self.selection_view.render_outline_for(
+            widget_id=widget.id,    #used to map selection outline rectangles to widgets
+            bounding_box=self.app_state.get_widget_bounding_box(widget),
+            is_last_selected=widget.id == self.app_state.get_last_selected_widget_id()
         )
 
     #Event handling-----------------------------------------------------------------------------------------------------
@@ -55,10 +55,10 @@ class SelectionController:
         """handle mouse press, deciding between selection or dragging mode"""
         canvas_x, canvas_y = self.pointer_in_canvas_coords(event)
 
-        #check for model at canvas coords
-        model_id = self.model_id_at(canvas_x, canvas_y)
+        #check for widget at canvas coords
+        widget_id = self.widget_id_at(canvas_x, canvas_y)
 
-        if model_id:
+        if widget_id:
             #widget clicked → set mode to "drag" → start widget drag
             self._mode = "drag"
 
@@ -66,7 +66,7 @@ class SelectionController:
             is_additive = bool(event.state & self.ctrl_key)
 
             #select the clicked widget (toggle or select_only based on CTRL-key)
-            self.app_state.selection_handle_click(model_id, is_additive)
+            self.app_state.selection_handle_click(widget_id, is_additive)
 
             #record start coords for widget drag and notify designer of drag start
             self.start_widget_drag(event)
@@ -206,29 +206,29 @@ class SelectionController:
         x0n, x1n = sorted((x0, x1))
         y0n, y1n = sorted((y0, y1))
 
-        #find all enclosed widgets and filter out anything that isn't a window (widget)
-        enclosed_widget_ids = [
-            widget_id for widget_id in self.canvas.find_enclosed(x0n, y0n, x1n, y1n)
-            if self.canvas.type(widget_id) == "window"
+        #find all enclosed items and filter out anything that isn't a window (widget)
+        enclosed_canvas_item_ids = [
+            canvas_item_id for canvas_item_id in self.canvas.find_enclosed(x0n, y0n, x1n, y1n)
+            if self.canvas.type(canvas_item_id) == "window"
         ]
 
-        #convert canvas item IDs (int) to model IDs (str)
-        enclosed_model_ids = [
-            self.resolve_widget_to_model(widget_id)
-            for widget_id in enclosed_widget_ids
+        #convert canvas item IDs (int) to widget IDs (str)
+        enclosed_widget_ids = [
+            self.resolve_canvas_item_id_to_widget_id(canvas_item_id)
+            for canvas_item_id in enclosed_canvas_item_ids
         ]
 
         #update selection
         if not rss.is_dragging:
             #not dragging → behave like a click
-            model_id = self.model_id_at(x1, y1)
-            if model_id is None:
+            widget_id = self.widget_id_at(x1, y1)
+            if widget_id is None:
                 self.app_state.selection_clear()
             else:
-                self.app_state.selection_handle_click(model_id, rss.is_additive)
+                self.app_state.selection_handle_click(widget_id, rss.is_additive)
         else:
             #dragging → apply rectangle selection
-            self.app_state.apply_rectangle_selection(enclosed_model_ids, rss.is_additive)
+            self.app_state.apply_rectangle_selection(enclosed_widget_ids, rss.is_additive)
 
             #reset rectangle selection state
             rss.drag_start_coords = None
@@ -243,17 +243,17 @@ class SelectionController:
         """convert tk event coordinates to canvas coordinates"""
         return int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
 
-    def find_topmost_window_at(self, x: int, y: int) -> int | None:
-        """return the topmost widget at the given coordinates"""
-        items = self.canvas.find_overlapping(x, y, x, y)
-        for item in reversed(items):    #last is top-most
-            if self.canvas.type(item) == "window":
-                return item
+    def find_topmost_canvas_window_at(self, x: int, y: int) -> int | None:
+        """return the topmost canvas window item at the given coordinates"""
+        canvas_item_ids = self.canvas.find_overlapping(x, y, x, y)
+        for canvas_item_id in reversed(canvas_item_ids):    #last is top-most
+            if self.canvas.type(canvas_item_id) == "window":
+                return canvas_item_id
         return None
 
-    def model_id_at(self, x: int, y: int) -> str | None:
-        """return the model ID of the widget located at the given canvas coordinates"""
-        widget_id = self.find_topmost_window_at(x, y)
-        if widget_id is None:
+    def widget_id_at(self, x: int, y: int) -> str | None:
+        """return the widget ID of the widget located at the given canvas coordinates"""
+        canvas_item_id = self.find_topmost_canvas_window_at(x, y)
+        if canvas_item_id is None:
             return None
-        return self.resolve_widget_to_model(widget_id)
+        return self.resolve_canvas_item_id_to_widget_id(canvas_item_id)

@@ -3,7 +3,7 @@ from .IdCounters import IdCounters
 from .ProjectDocument import ProjectDocument
 from .RectangleSelectionState import RectangleSelectionState
 from .WidgetDragState import WidgetDragState
-from .WidgetModels import BaseWidgetData, LabelWidgetData, EntryWidgetData, ButtonWidgetData
+from .Widgets import BaseWidget, LabelWidget, EntryWidget, ButtonWidget
 
 __all__ = [
     "GridConfig",
@@ -11,8 +11,8 @@ __all__ = [
     "ProjectDocument",
     "RectangleSelectionState",
     "WidgetDragState",
-    "BaseWidgetData",
-    "LabelWidgetData",
-    "EntryWidgetData",
-    "ButtonWidgetData"
+    "BaseWidget",
+    "LabelWidget",
+    "EntryWidget",
+    "ButtonWidget"
 ]

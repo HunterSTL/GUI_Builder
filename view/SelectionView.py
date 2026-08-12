@@ -24,28 +24,28 @@ class SelectionView:
         self.selection_padding = selection_padding
 
         self._selection_rectangle_id: int | None = None
-        self._selection_outlines: dict[str, int] = {}   #{model.id: rectangle_id}
+        self._selection_outlines: dict[str, int] = {}   #{widget.id: rectangle_id}
 
     #Rendering API------------------------------------------------------------------------------------------------------
-    def update_outline_for(self, model_id: str, bounding_box: BoundingBox, is_last_selected: bool):
-        """create or update the selection outline for a model ID using the given bounding box"""
+    def render_outline_for(self, widget_id: str, bounding_box: BoundingBox, is_last_selected: bool):
+        """create or update the selection outline for a widget ID using the given bounding box"""
         x1, y1 = bounding_box.left - self.selection_padding, bounding_box.top - self.selection_padding      #top-left corner of selection outline
         x2, y2 = bounding_box.right + self.selection_padding, bounding_box.bottom + self.selection_padding  #bottom-right corner of selection outline
 
         outline_color = self.last_selected_color if is_last_selected else self.selection_color
-        rectangle_id = self._selection_outlines.get(model_id)
+        rectangle_id = self._selection_outlines.get(widget_id)
 
         if rectangle_id is None:
-            rectangle_id = self._create_outline_for(model_id)
+            rectangle_id = self._create_outline_for(widget_id)
 
         self._update_outline(rectangle_id, x1, y1, x2, y2, outline_color)
 
-    def delete_outline_for(self, model_id: str):
-        """delete the selection outline for the given model ID"""
-        if model_id not in self._selection_outlines:
+    def delete_outline_for(self, widget_id: str):
+        """delete the selection outline for the given widget ID"""
+        if widget_id not in self._selection_outlines:
             return
 
-        rectangle_id = self._selection_outlines.pop(model_id)
+        rectangle_id = self._selection_outlines.pop(widget_id)
         self.canvas.delete(rectangle_id)
 
     def clear_all_outlines(self):
@@ -87,12 +87,12 @@ class SelectionView:
             self._selection_rectangle_id = None
 
     #Internals----------------------------------------------------------------------------------------------------------
-    def _create_outline_for(self, model_id: str) -> int:
+    def _create_outline_for(self, widget_id: str) -> int:
         rectangle_id = self.canvas.create_rectangle(
             0, 0, 0, 0,
             tags="selection_outline"
         )
-        self._selection_outlines[model_id] = rectangle_id
+        self._selection_outlines[widget_id] = rectangle_id
         return rectangle_id
 
     def _update_outline(self, rectangle_id: int, x1: int, y1: int, x2: int, y2: int, outline_color: str):

@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from model import BaseWidgetData
+from model import BaseWidget
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -10,7 +10,7 @@ class NudgeWidgets(Command):
     """Encapsulates widget nudging as an undoable command."""
     def __init__(
         self,
-        models: Iterable[BaseWidgetData],
+        widgets: Iterable[BaseWidget],
         dx: int,
         dy: int,
         app_state: AppState
@@ -19,37 +19,37 @@ class NudgeWidgets(Command):
         self._dy: int = dy
         self._app_state: AppState = app_state
 
-        models = tuple(models)                                          #freezes iteration order for deterministic undo and redo behaviour
-        self._model_ids: list[str] = [model.id for model in models]     #storing IDs and retrieving models protects against stale models
+        widgets = tuple(widgets)                                            #freezes iteration order for deterministic undo and redo behaviour
+        self._widget_ids: list[str] = [widget.id for widget in widgets]     #storing IDs and retrieving widgets protects against stale widget references
 
         self._original_positions: dict[str, tuple[int, int]] = {
-            model.id: (model.x, model.y)
-            for model in models
+            widget.id: (widget.x, widget.y)
+            for widget in widgets
         }
 
     def execute(
         self
     ) -> None:
-        """Apply the stored movement deltas to the widget models through AppState."""
+        """Apply the stored movement deltas to the widgets through AppState."""
         with self._app_state.batch():
-            for model_id in self._model_ids:
-                model = self._app_state.get_model_from_model_id(model_id)
-                self._app_state.offset_model_position(model, self._dx, self._dy)
+            for widget_id in self._widget_ids:
+                widget = self._app_state.get_widget_from_widget_id(widget_id)
+                self._app_state.offset_widget_position(widget, self._dx, self._dy)
 
     def undo(
         self
     ) -> None:
-        """Restore the snapshotted original positions to the widget models through AppState."""
+        """Restore the snapshotted original positions to the widgets through AppState."""
         with self._app_state.batch():
-            for model_id, (x, y) in self._original_positions.items():
-                model = self._app_state.get_model_from_model_id(model_id)
-                self._app_state.set_model_position(model, x, y)
+            for widget_id, (x, y) in self._original_positions.items():
+                widget = self._app_state.get_widget_from_widget_id(widget_id)
+                self._app_state.set_widget_position(widget, x, y)
 
     def __repr__(
         self
     ) -> str:
         """Return a debug representation of the command."""
         s = "[NudgeWidgets]"
-        s += f"\n\tmodel IDs:\t\t\t{self._model_ids}"
+        s += f"\n\twidget IDs:\t\t\t{self._widget_ids}"
         s += f"\n\tdx|dy:\t\t\t\t{self._dx}|{self._dy}"
         return s

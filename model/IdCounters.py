@@ -39,19 +39,19 @@ class IdCounters:
     ) -> str:
         """Generate a unique ID for the given widget type."""
         if widget_type == WidgetType.LABEL:
-            model_id = f"label_{self.label}"
+            widget_id = f"label_{self.label}"
             self.label += 1
-            return model_id
+            return widget_id
 
         if widget_type == WidgetType.ENTRY:
-            model_id = f"entry_{self.entry}"
+            widget_id = f"entry_{self.entry}"
             self.entry += 1
-            return model_id
+            return widget_id
 
         if widget_type == WidgetType.BUTTON:
-            model_id = f"button_{self.button}"
+            widget_id = f"button_{self.button}"
             self.button += 1
-            return model_id
+            return widget_id
 
         raise ValueError(f"IdCounters - ID generation failed: unsupported type \"{widget_type}\"")
 

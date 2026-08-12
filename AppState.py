@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterable
 
-from model import ProjectDocument, BaseWidgetData
-from utility import BoundingBox, compute_model_bounding_box
+from model import ProjectDocument, BaseWidget
+from utility import BoundingBox, compute_widget_bounding_box
 
 
 class AppState:
@@ -10,14 +10,14 @@ class AppState:
         self,
         project_document: ProjectDocument
     ) -> None:
-        self.project: ProjectDocument = project_document            #must only be mutated using AppState API (add_model, set_grid_visible, set_title...)
+        self.project: ProjectDocument = project_document            #must only be mutated using AppState API (add_widget, set_grid_visible, set_title...)
 
         #Persistent project state (survives across notifications)-------------------------------------------------------
         self._is_dirty: bool = False                                #signals whether unsaved changes exist
 
         #Transient change information (resets after each notification)--------------------------------------------------
-        self._dirty_model_ids: set[str] = set()                     #IDs of models that changed
-        self._removed_model_ids: set[str] = set()                   #IDs of models that were removed
+        self._dirty_widget_ids: set[str] = set()                    #IDs of widgets that changed
+        self._removed_widget_ids: set[str] = set()                  #IDs of widgets that were removed
         self.selection_change: bool = False                         #signals whether the selection outlines need to be re-rendered
         self.grid_change: bool = False                              #signals whether the grid needs to be re-rendered
 
@@ -26,14 +26,14 @@ class AppState:
         self._batch_depth: int = 0                                  #keeps track of batch depth so only the outermost batch calls _notify (batches can be nested)
         self._pending_notify: bool = False                          #signals whether _notify will be called at the end of the batch
 
-        #Model dictionary-----------------------------------------------------------------------------------------------
-        self._model_by_id: dict[str, BaseWidgetData] = {}           #{model.id: model} for O(1) lookup; maintained in add_/remove_model()
+        #Widget dictionary----------------------------------------------------------------------------------------------
+        self._widget_by_id: dict[str, BaseWidget] = {}              #{widget.id: widget} for O(1) lookup; maintained in add_/remove_widget()
 
         #Selection------------------------------------------------------------------------------------------------------
-        self._selected_model_ids: list[str] = []                    #IDs of models in the order they were selected (newest is last)
+        self._selected_widget_ids: list[str] = []                   #IDs of widgets in the order they were selected (newest is last)
 
-        for model in self.project.widget_models:
-            self._model_by_id[model.id] = model
+        for widget in self.project.widgets:
+            self._widget_by_id[widget.id] = widget
 
     #Notification system------------------------------------------------------------------------------------------------
     def subscribe(
@@ -64,8 +64,8 @@ class AppState:
 
         self.selection_change = False
         self.grid_change = False
-        self._dirty_model_ids.clear()
-        self._removed_model_ids.clear()
+        self._dirty_widget_ids.clear()
+        self._removed_widget_ids.clear()
 
     #Dirty state API----------------------------------------------------------------------------------------------------
     def is_dirty(
@@ -84,103 +84,103 @@ class AppState:
         self._is_dirty = False
         self._notify()
 
-    #Model API----------------------------------------------------------------------------------------------------------
-    def add_model(
+    #Widget API---------------------------------------------------------------------------------------------------------
+    def add_widget(
         self,
-        model: BaseWidgetData
+        widget: BaseWidget
     ) -> None:
-        """Add a new model to the project document."""
-        if not model.id:
-            raise ValueError("AppState - model addition failed: missing ID")
+        """Add a new widget to the project document."""
+        if not widget.id:
+            raise ValueError("AppState - widget addition failed: missing widget ID")
 
-        if model.id in self._model_by_id:
-            raise ValueError(f"AppState - model addition failed: duplicate ID \"{model.id}\"")
+        if widget.id in self._widget_by_id:
+            raise ValueError(f"AppState - widget addition failed: duplicate widget ID \"{widget.id}\"")
 
-        self.project.widget_models.append(model)
-        self._model_by_id[model.id] = model
-        self._dirty_model_ids.add(model.id)
+        self.project.widgets.append(widget)
+        self._widget_by_id[widget.id] = widget
+        self._dirty_widget_ids.add(widget.id)
 
         #select the created widget without notifying
-        self._selected_model_ids = [model.id]
+        self._selected_widget_ids = [widget.id]
         self.selection_change = True
 
         self._mark_dirty()
 
-    def remove_model(
+    def remove_widget(
         self,
-        model: BaseWidgetData
+        widget: BaseWidget
     ) -> None:
-        """Remove an existing model from the project document."""
-        if model.id not in self._model_by_id:
-            raise ValueError(f"AppState - model removal failed: unknown ID \"{model.id}\"")
+        """Remove an existing widget from the project document."""
+        if widget.id not in self._widget_by_id:
+            raise ValueError(f"AppState - widget removal failed: unknown widget ID \"{widget.id}\"")
 
-        model = self.get_model_from_model_id(model.id)  #prevents removing a stale model
-        self.project.widget_models.remove(model)
-        self._model_by_id.pop(model.id, None)
-        self._removed_model_ids.add(model.id)
+        widget = self.get_widget_from_widget_id(widget.id)  #prevents removing a stale widget
+        self.project.widgets.remove(widget)
+        self._widget_by_id.pop(widget.id, None)
+        self._removed_widget_ids.add(widget.id)
 
-        if model.id in self._selected_model_ids:
-            self._selected_model_ids.remove(model.id)
+        if widget.id in self._selected_widget_ids:
+            self._selected_widget_ids.remove(widget.id)
             self.selection_change = True
 
         self._mark_dirty()
 
-    def set_model_position(
+    def set_widget_position(
         self,
-        model: BaseWidgetData,
+        widget: BaseWidget,
         x: int,
         y: int
     ) -> None:
-        """Set the absolute position of a model."""
-        if model.id not in self._model_by_id:
-            raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
+        """Set the absolute position of a widget."""
+        if widget.id not in self._widget_by_id:
+            raise ValueError(f"AppState - widget position update failed: unknown widget ID \"{widget.id}\"")
 
-        model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
+        widget = self.get_widget_from_widget_id(widget.id)  #prevents updating a stale widget
 
-        if model.x == x and model.y == y:
+        if widget.x == x and widget.y == y:
             return
 
-        model.x = x
-        model.y = y
-        self._dirty_model_ids.add(model.id)
+        widget.x = x
+        widget.y = y
+        self._dirty_widget_ids.add(widget.id)
         self._mark_dirty()
 
-    def offset_model_position(
+    def offset_widget_position(
         self,
-        model: BaseWidgetData,
+        widget: BaseWidget,
         dx: int,
         dy: int
     ) -> None:
-        """Offset the model position by a delta."""
-        if model.id not in self._model_by_id:
-            raise ValueError(f"AppState - model position update failed: unknown ID \"{model.id}\"")
+        """Offset the widget position by a delta."""
+        if widget.id not in self._widget_by_id:
+            raise ValueError(f"AppState - widget position update failed: unknown widget ID \"{widget.id}\"")
 
-        model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
-        model.x += dx
-        model.y += dy
-        self._dirty_model_ids.add(model.id)
+        widget = self.get_widget_from_widget_id(widget.id)  #prevents updating a stale widget
+        widget.x += dx
+        widget.y += dy
+        self._dirty_widget_ids.add(widget.id)
         self._mark_dirty()
 
-    def set_model_attribute(
+    def set_widget_attribute(
         self,
-        model: BaseWidgetData,
+        widget: BaseWidget,
         attribute: str,
         value: str | int
     ) -> None:
-        """Set a model attribute to the given value."""
-        if model.id not in self._model_by_id:
-            raise ValueError(f"AppState - model attribute update failed: unknown ID \"{model.id}\"")
+        """Set a widget attribute to the given value."""
+        if widget.id not in self._widget_by_id:
+            raise ValueError(f"AppState - widget attribute update failed: unknown widget ID \"{widget.id}\"")
 
-        model = self.get_model_from_model_id(model.id)  #prevents updating a stale model
+        widget = self.get_widget_from_widget_id(widget.id)  #prevents updating a stale widget
 
-        if not hasattr(model, attribute):
-            raise ValueError(f"AppState - model attribute update failed: unknown attribute \"{attribute}\" [{model.id}]")
+        if not hasattr(widget, attribute):
+            raise ValueError(f"AppState - widget attribute update failed: unknown attribute \"{attribute}\" [{widget.id}]")
 
-        if getattr(model, attribute) == value:
+        if getattr(widget, attribute) == value:
             return
 
-        setattr(model, attribute, value)
-        self._dirty_model_ids.add(model.id)
+        setattr(widget, attribute, value)
+        self._dirty_widget_ids.add(widget.id)
         self._mark_dirty()
 
     #Grid API-----------------------------------------------------------------------------------------------------------
@@ -240,136 +240,136 @@ class AppState:
         if self.selection_is_empty():
             return
 
-        self._selected_model_ids.clear()
+        self._selected_widget_ids.clear()
         self._mark_selection_change()
 
     def selection_select_only(
         self,
-        model_id: str
+        widget_id: str
     ) -> None:
-        """Replace the current selection with the given model ID."""
-        if self._selected_model_ids == [model_id]:
+        """Replace the current selection with the given widget ID."""
+        if self._selected_widget_ids == [widget_id]:
             return
 
-        self._selected_model_ids = [model_id]
+        self._selected_widget_ids = [widget_id]
         self._mark_selection_change()
 
     def selection_toggle(
         self,
-        model_id: str
+        widget_id: str
     ) -> None:
-        """Add the given model ID to the selection or remove it if it's already selected."""
-        if self.selection_contains(model_id):
-            self._selected_model_ids.remove(model_id)
+        """Add the given widget ID to the selection or remove it if it's already selected."""
+        if self.selection_contains(widget_id):
+            self._selected_widget_ids.remove(widget_id)
         else:
-            self._selected_model_ids.append(model_id)
+            self._selected_widget_ids.append(widget_id)
 
         self._mark_selection_change()
 
     def selection_select_all(
         self
     ) -> None:
-        """Select all model IDs in the project document."""
-        if self._selected_model_ids == [model.id for model in self.project.widget_models]:
+        """Select all widget IDs in the project document."""
+        if self._selected_widget_ids == [widget.id for widget in self.project.widgets]:
             return
 
-        self._selected_model_ids = [model.id for model in self.project.widget_models]
+        self._selected_widget_ids = [widget.id for widget in self.project.widgets]
         self._mark_selection_change()
 
     def selection_handle_click(
         self,
-        model_id: str,
+        widget_id: str,
         is_additive: bool
     ) -> None:
-        """Apply additive or exclusive selection for the given model ID."""
-        if model_id not in self._model_by_id:
-            raise ValueError(f"AppState - model selection failed: unknown ID \"{model_id}\"")
+        """Apply additive or exclusive selection for the given widget ID."""
+        if widget_id not in self._widget_by_id:
+            raise ValueError(f"AppState - widget selection failed: unknown widget ID \"{widget_id}\"")
 
         if is_additive:
-            self.selection_toggle(model_id)
+            self.selection_toggle(widget_id)
         else:
-            if not self.selection_contains(model_id):
-                self.selection_select_only(model_id)
+            if not self.selection_contains(widget_id):
+                self.selection_select_only(widget_id)
 
     def apply_rectangle_selection(
         self,
-        enclosed_model_ids: list[str],
+        enclosed_widget_ids: list[str],
         is_additive: bool
     ) -> None:
-        """Apply additive or exclusive rectangle selection for the given enclosed model IDs."""
+        """Apply additive or exclusive rectangle selection for the given enclosed widget IDs."""
         if not is_additive:
             self.selection_clear()
 
-        for model_id in enclosed_model_ids:
-            if model_id not in self._selected_model_ids:
-                self._selected_model_ids.append(model_id)
+        for widget_id in enclosed_widget_ids:
+            if widget_id not in self._selected_widget_ids:
+                self._selected_widget_ids.append(widget_id)
                 self.selection_change = True
 
         self._notify()
 
-    #Model query API----------------------------------------------------------------------------------------------------
-    def get_model_from_model_id(
+    #Widget query API----------------------------------------------------------------------------------------------------
+    def get_widget_from_widget_id(
         self,
-        model_id: str
-    ) -> BaseWidgetData:
-        """Return the model associated with the given model ID."""
+        widget_id: str
+    ) -> BaseWidget:
+        """Return the widget associated with the given widget ID."""
         try:
-            return self._model_by_id[model_id]
+            return self._widget_by_id[widget_id]
         except KeyError:
-            raise ValueError(f"AppState - model lookup failed: unknown ID \"{model_id}\"")
+            raise ValueError(f"AppState - widget lookup failed: unknown widget ID \"{widget_id}\"")
 
-    def get_dirty_models(
+    def get_dirty_widgets(
         self
-    ) -> tuple[BaseWidgetData, ...]:
-        """Return all dirty models."""
+    ) -> tuple[BaseWidget, ...]:
+        """Return all dirty widgets."""
         return tuple(
-            model
-            for model in self.project.widget_models #iterates over all models for stable order
-            if model.id in self._dirty_model_ids
+            widget
+            for widget in self.project.widgets  #iterates over all widgets for stable order
+            if widget.id in self._dirty_widget_ids
         )
 
-    def get_removed_model_ids(
+    def get_removed_widget_ids(
         self
     ) -> frozenset[str]:
-        """Return the IDs of removed models."""
-        return frozenset(self._removed_model_ids)
+        """Return the IDs of removed widgets."""
+        return frozenset(self._removed_widget_ids)
 
-    def get_all_models(
+    def get_all_widgets(
         self
-    ) -> tuple[BaseWidgetData, ...]:
-        """Return all models in the project document."""
-        return tuple(self.project.widget_models)
+    ) -> tuple[BaseWidget, ...]:
+        """Return all widgets in the project document."""
+        return tuple(self.project.widgets)
 
     @staticmethod
-    def get_model_bounding_box(
-        model: BaseWidgetData
+    def get_widget_bounding_box(
+        widget: BaseWidget
     ) -> BoundingBox:
-        """Return the given model's bounding box."""
-        if model is None:
-            raise ValueError("AppState - model bounding box lookup failed: no model provided")
+        """Return the given widget's bounding box."""
+        if widget is None:
+            raise ValueError("AppState - widget bounding box lookup failed: no widget provided")
 
-        return compute_model_bounding_box(model.x, model.y, model.width, model.height, model.anchor)
+        return compute_widget_bounding_box(widget.x, widget.y, widget.width, widget.height, widget.anchor)
 
-    def get_model_group_bounding_box(
+    def get_widget_group_bounding_box(
         self,
-        models: Iterable[BaseWidgetData]
+        widgets: Iterable[BaseWidget]
     ) -> BoundingBox:
-        """Return the collective bounding box of all given models."""
-        models = tuple(models)
+        """Return the collective bounding box of all given widgets."""
+        widgets = tuple(widgets)
 
-        if not models:
-            raise ValueError("AppState - model group bounding box lookup failed: no models provided")
+        if not widgets:
+            raise ValueError("AppState - widget group bounding box lookup failed: no widgets provided")
 
-        first_model = models[0]
-        bounding_box = self.get_model_bounding_box(first_model)
+        first_widget = widgets[0]
+        bounding_box = self.get_widget_bounding_box(first_widget)
 
         left = bounding_box.left
         top = bounding_box.top
         right = bounding_box.right
         bottom = bounding_box.bottom
 
-        for model in models[1:]:    #skips the first model
-            bounding_box = self.get_model_bounding_box(model)
+        for widget in widgets[1:]:  #skips the first widget
+            bounding_box = self.get_widget_bounding_box(widget)
             left = min(left, bounding_box.left)
             top = min(top, bounding_box.top)
             right = max(right, bounding_box.right)
@@ -387,31 +387,31 @@ class AppState:
         self
     ) -> bool:
         """Return whether the selection is empty."""
-        return len(self._selected_model_ids) == 0
+        return len(self._selected_widget_ids) == 0
 
     def selection_contains(
         self,
-        model_id: str
+        widget_id: str
     ) -> bool:
-        """Return whether the selection contains the given model ID."""
-        return model_id in self._selected_model_ids
+        """Return whether the selection contains the given widget ID."""
+        return widget_id in self._selected_widget_ids
 
-    def get_selected_models(
+    def get_selected_widgets(
         self
-    ) -> tuple[BaseWidgetData, ...]:
-        """Return the selected models in selection order."""
+    ) -> tuple[BaseWidget, ...]:
+        """Return the selected widgets in selection order."""
         return tuple(
-            self.get_model_from_model_id(model_id)
-            for model_id in self._selected_model_ids
+            self.get_widget_from_widget_id(widget_id)
+            for widget_id in self._selected_widget_ids
         )
 
-    def get_last_selected_model_id(
+    def get_last_selected_widget_id(
         self
     ) -> str | None:
-        """Return the ID of the last selected model or None when the selection is empty."""
-        if not self._selected_model_ids:
+        """Return the ID of the last selected widget or None when the selection is empty."""
+        if not self._selected_widget_ids:
             return None
-        return self._selected_model_ids[-1]
+        return self._selected_widget_ids[-1]
 
     #Internals----------------------------------------------------------------------------------------------------------
     def _mark_dirty(

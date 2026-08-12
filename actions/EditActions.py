@@ -27,18 +27,18 @@ class EditActions:
         self
     ) -> None:
         """Delete selected widgets after user confirmation."""
-        selected_models = self._app_state.get_selected_models()
-        if not selected_models:
+        selected_widgets = self._app_state.get_selected_widgets()
+        if not selected_widgets:
             return
 
-        if not self._confirm_delete_callback(len(selected_models)):
+        if not self._confirm_delete_callback(len(selected_widgets)):
             return
 
         self._commit_active_attributes_panel_edit_callback()
 
         self._command_stack.execute(
             DeleteWidgets(
-                models=selected_models,
+                widgets=selected_widgets,
                 app_state=self._app_state
             )
         )
@@ -47,18 +47,18 @@ class EditActions:
         self
     ) -> None:
         """Copy selected widgets to clipboard."""
-        selected_models = self._app_state.get_selected_models()
-        if not selected_models:
+        selected_widgets = self._app_state.get_selected_widgets()
+        if not selected_widgets:
             return
 
         self._clipboard.clear()
 
-        for model in selected_models:
-            model_data = model.to_dict()
-            self._clipboard.append(model_data)
+        for widget in selected_widgets:
+            widget_data = widget.to_dict()
+            self._clipboard.append(widget_data)
 
-        last_selected_model = selected_models[-1]
-        self._copy_origin_coordinates = last_selected_model.x, last_selected_model.y    #used to compute the movement delta applied during paste
+        last_selected_widget = selected_widgets[-1]
+        self._copy_origin_coordinates = last_selected_widget.x, last_selected_widget.y  #used to compute the movement delta applied during paste
 
     def paste(
         self,
@@ -87,15 +87,15 @@ class EditActions:
         self
     ) -> None:
         """Copy selected widgets to clipboard and delete them."""
-        selected_models = self._app_state.get_selected_models()
-        if not selected_models:
+        selected_widgets = self._app_state.get_selected_widgets()
+        if not selected_widgets:
             return
 
         self._commit_active_attributes_panel_edit_callback()
         self.copy()
         self._command_stack.execute(
             DeleteWidgets(
-                models=selected_models,
+                widgets=selected_widgets,
                 app_state=self._app_state
             )
         )

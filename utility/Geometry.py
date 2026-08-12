@@ -9,7 +9,7 @@ class BoundingBox:
     bottom: int
 
 def allowed_x_range(canvas_width: int, widget_width: int, anchor: str) -> tuple[int, int]:
-    """return the allowed X-coordinate range for a model based on its anchor and canvas dimensions"""
+    """return the allowed X coordinate range for a widget based on its anchor and canvas dimensions"""
     if widget_width > canvas_width:
         raise ValueError(f"Geometry - computation failed: widget width exceeds canvas width [{widget_width} > {canvas_width}]")
 
@@ -22,7 +22,7 @@ def allowed_x_range(canvas_width: int, widget_width: int, anchor: str) -> tuple[
     raise ValueError(f"Geometry - computation failed: invalid anchor \"{anchor}\"")
 
 def allowed_y_range(canvas_height: int, widget_height: int, anchor: str) -> tuple[int, int]:
-    """return the allowed Y-coordinate range for a model based on its anchor and canvas dimensions"""
+    """return the allowed Y-coordinate range for a widget based on its anchor and canvas dimensions"""
     if widget_height > canvas_height:
         raise ValueError(f"Geometry - computation failed: widget height exceeds canvas height [{widget_height} > {canvas_height}]")
 
@@ -39,7 +39,7 @@ def clamp(value: int, minimum: int, maximum: int) -> int:
     return max(minimum, min(maximum, value))
 
 def clamped_delta(canvas_width, canvas_height, bounding_box: BoundingBox, dx: int, dy: int) -> tuple[int, int]:
-    """clamp a movement delta so the given bounding box (of one or more models) stays fully within the canvas bounds"""
+    """clamp a movement delta so the given bounding box (of one or more widgets) stays fully within the canvas bounds"""
     if not bounding_box:
         return 0, 0
 
@@ -79,8 +79,8 @@ def nearest_in_bounds_grid_step(value: int, grid_size: int, min_value: int, max_
     #if there are no grid steps inside the allowed range → only clamp to allowed range
     return clamp(value, min_value, max_value)
 
-def compute_model_bounding_box(x: int, y: int, width: int, height: int, anchor: str) -> BoundingBox:
-    """compute the model's bounding box based on position, size and anchor"""
+def compute_widget_bounding_box(x: int, y: int, width: int, height: int, anchor: str) -> BoundingBox:
+    """compute the widget's bounding box based on position, size and anchor"""
     if anchor == "sw":
         left, right = x, x + width
         top, bottom = y - height, y

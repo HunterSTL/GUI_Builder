@@ -103,7 +103,7 @@ class Designer:
             selection_view=self._selection_view,
             ctrl_key=CONSTANTS["ctrl_key"],
             drag_threshold=CONSTANTS["drag_threshold"],
-            resolve_widget_to_model=lambda widget_id: self._widget_view.get_model_id_from_widget_id(widget_id),
+            resolve_canvas_item_id_to_widget_id=lambda canvas_item_id: self._widget_view.get_widget_id_from_canvas_item_id(canvas_item_id),
             event_router=self._event_router
         )
 
@@ -126,7 +126,7 @@ class Designer:
         widget_actions: WidgetActions = WidgetActions(
             app_state=self.app_state,
             command_stack=self._command_stack,
-            measure_preview_widget_callback=self._widget_view.measure_preview_widget
+            measure_preview_tk_widget_callback=self._widget_view.measure_preview_tk_widget
         )
 
         self._actions: Actions = Actions(
@@ -344,11 +344,11 @@ class Designer:
 
     def _bind_mousewheel(
         self,
-        widget: tk.BaseWidget
+        tk_widget: tk.BaseWidget
     ) -> None:
         """Bind mousewheel scrolling behavior to the given widget."""
-        widget.bind("<MouseWheel>", lambda e: self._viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
-        widget.bind("<Shift-MouseWheel>", lambda e: self._viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
+        tk_widget.bind("<MouseWheel>", lambda e: self._viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
+        tk_widget.bind("<Shift-MouseWheel>", lambda e: self._viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
 
     def _center_window(
         self
@@ -374,44 +374,44 @@ class Designer:
         else:
             self._titlebar_label.configure(text=self.app_state.project.title)
 
-        #delete widgets and outlines for removed models
-        for model_id in state.get_removed_model_ids():
-            self._widget_view.delete_widget_for(model_id)
-            self._selection_view.delete_outline_for(model_id)
+        #delete Tk widgets and outlines for removed widgets
+        for widget_id in state.get_removed_widget_ids():
+            self._widget_view.delete_tk_widget_for(widget_id)
+            self._selection_view.delete_outline_for(widget_id)
 
-        #update widgets and outlines for dirty models
-        dirty_models = state.get_dirty_models()
-        for model in dirty_models:
-            self._widget_view.update_widget_for(model)
-            if state.selection_contains(model.id):
-                self._selection_controller.update_outline_for(model) #controller derives required data from model and AppState
+        #render Tk widgets and outlines for dirty widgets
+        dirty_widgets = state.get_dirty_widgets()
+        for widget in dirty_widgets:
+            self._widget_view.render_tk_widget_for(widget)
+            if state.selection_contains(widget.id):
+                self._selection_controller.render_outline_for(widget)   #controller derives required data from widget and AppState
 
         #show or hide the attributes panel and refresh outlines based on the selection
         if state.selection_change:
-            selected_models = state.get_selected_models()
-            self._attributes_panel.set_selection(selected_models)
+            selected_widgets = state.get_selected_widgets()
+            self._attributes_panel.set_selection(selected_widgets)
             self._selection_view.clear_all_outlines()
-            for model in selected_models:
-                self._selection_controller.update_outline_for(model)
+            for widget in selected_widgets:
+                self._selection_controller.render_outline_for(widget)
 
-        #update grid
+        #render grid
         if state.grid_change:
             self._canvas_controller.render_grid()
 
-        #refresh attributes panel if the single selected model changed
-        if len(dirty_models) == 1:
-            dirty_model = dirty_models[0]
-            selected_models = state.get_selected_models()
+        #refresh attributes panel if the single selected widget changed
+        if len(dirty_widgets) == 1:
+            dirty_widget = dirty_widgets[0]
+            selected_widgets = state.get_selected_widgets()
 
-            if len(selected_models) == 1 and selected_models[0].id == dirty_model.id:   #prevents undo and redo from refreshing the attributes panel with values from an unselected dirty model
-                self._attributes_panel.refresh_from_model(dirty_model)
+            if len(selected_widgets) == 1 and selected_widgets[0].id == dirty_widget.id:    #prevents undo and redo from refreshing the attributes panel with values from an unselected dirty widget
+                self._attributes_panel.refresh_from_widget(dirty_widget)
 
     def _initial_render(
         self
     ) -> None:
-        """Create widgets for all models and render the grid."""
-        for model in self.app_state.get_all_models():
-            self._widget_view.update_widget_for(model)
+        """Create Tk widgets for all domain widgets and render the grid."""
+        for widget in self.app_state.get_all_widgets():
+            self._widget_view.render_tk_widget_for(widget)
         self._canvas_controller.render_grid()
 
     #Grid actions-------------------------------------------------------------------------------------------------------
@@ -617,8 +617,8 @@ class Designer:
         """Print the clipboard contents to the console."""
         print("#"*150)
         print(f"Clipboard:")
-        for model_data in self._clipboard:
-            print(f"{model_data}")
+        for widget_data in self._clipboard:
+            print(f"{widget_data}")
 
     def _print_command_stack(
         self
@@ -632,21 +632,21 @@ class Designer:
         self
     ) -> None:
         """Print the current selection to the console."""
-        selected_models = self.app_state.get_selected_models()
+        selected_widgets = self.app_state.get_selected_widgets()
         print("#"*150)
         print(f"Selection:")
-        print(f"Selected model IDs: {[model.id for model in selected_models]}")
-        print(f"Last selected model ID: {self.app_state.get_last_selected_model_id()}")
+        print(f"Selected widget IDs: {[widget.id for widget in selected_widgets]}")
+        print(f"Last selected widget ID: {self.app_state.get_last_selected_widget_id()}")
 
     def _print_bounding_boxes(
         self
     ) -> None:
-        """Print the bounding boxes of all models to the console."""
+        """Print the bounding boxes of all widgets to the console."""
         print("#"*150)
-        print(f"Model bounding boxes:")
-        for model in self.app_state.get_all_models():
-            bbox = self.app_state.get_model_bounding_box(model)
-            print(f"{model.id}:\t{bbox}")
+        print(f"Widget bounding boxes:")
+        for widget in self.app_state.get_all_widgets():
+            bbox = self.app_state.get_widget_bounding_box(widget)
+            print(f"{widget.id}:\t{bbox}")
 
     def _print_id_counters(
         self

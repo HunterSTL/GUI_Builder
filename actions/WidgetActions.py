@@ -1,7 +1,7 @@
 from collections.abc import Callable
 
 from commands import AddWidget, AlignWidgets, CommandStack, DragWidgets, EditWidget, NudgeWidgets, SnapWidgetsToGrid
-from model import BaseWidgetData, ButtonWidgetData, EntryWidgetData, LabelWidgetData
+from model import BaseWidget, ButtonWidget, EntryWidget, LabelWidget
 from utility import Direction, Edge, WidgetType, allowed_x_range, allowed_y_range, clamp, clamped_delta
 
 from AppState import AppState
@@ -13,17 +13,17 @@ class WidgetActions:
         self,
         app_state: AppState,
         command_stack: CommandStack,
-        measure_preview_widget_callback: Callable[[WidgetType, str], tuple[int, int]]
+        measure_preview_tk_widget_callback: Callable[[WidgetType, str], tuple[int, int]]
     ) -> None:
         self._app_state: AppState = app_state
         self._command_stack: CommandStack = command_stack
-        self._measure_preview_widget_callback: Callable[[WidgetType, str], tuple[int, int]] = measure_preview_widget_callback
+        self._measure_preview_tk_widget_callback: Callable[[WidgetType, str], tuple[int, int]] = measure_preview_tk_widget_callback
 
         self._active_drag_command: DragWidgets | None = None
-        self._active_drag_models: tuple[BaseWidgetData, ...] | None = None  #live reference to models used for bounding box lookup during live dragging
+        self._active_drag_widgets: tuple[BaseWidget, ...] | None = None     #live reference to widgets used for bounding box lookup during live dragging
 
         self._active_edit_command: EditWidget | None = None
-        self._active_edit_model: BaseWidgetData | None = None               #live reference to the model used for dimension recomputation on text changes
+        self._active_edit_widget: BaseWidget | None = None                  #live reference to the widget used for dimension recomputation on text changes
 
 
     def nudge(
@@ -32,14 +32,14 @@ class WidgetActions:
         amount: int
     ) -> None:
         """Nudge selected widgets by a fixed amount in the given direction."""
-        selected_models = self._app_state.get_selected_models()
-        if not selected_models:
+        selected_widgets = self._app_state.get_selected_widgets()
+        if not selected_widgets:
             return
 
         dx, dy = clamped_delta(     #keeps widgets within canvas bounds
             canvas_width=self._app_state.project.width,
             canvas_height=self._app_state.project.height,
-            bounding_box=self._app_state.get_model_group_bounding_box(selected_models),
+            bounding_box=self._app_state.get_widget_group_bounding_box(selected_widgets),
             dx=direction.dx * amount,
             dy=direction.dy * amount
         )
@@ -49,7 +49,7 @@ class WidgetActions:
 
         self._command_stack.execute(
             NudgeWidgets(
-                models=selected_models,
+                widgets=selected_widgets,
                 dx=dx,
                 dy=dy,
                 app_state=self._app_state
@@ -60,13 +60,13 @@ class WidgetActions:
         self
     ) -> None:
         """Start a drag gesture with the current selection."""
-        selected_models = self._app_state.get_selected_models()
-        if not selected_models:
+        selected_widgets = self._app_state.get_selected_widgets()
+        if not selected_widgets:
             return
 
-        self._active_drag_models = selected_models  #used for bounding box lookup during live dragging
+        self._active_drag_widgets = selected_widgets    #used for bounding box lookup during live dragging
         self._active_drag_command = DragWidgets(
-            models=selected_models,
+            widgets=selected_widgets,
             app_state=self._app_state
         )
 
@@ -76,13 +76,13 @@ class WidgetActions:
         dy: int
     ) -> None:
         """Apply a drag delta to the active drag gesture."""
-        if self._active_drag_command is None or self._active_drag_models is None:
+        if self._active_drag_command is None or self._active_drag_widgets is None:
             return
 
         dx, dy = clamped_delta(     #keeps widgets within canvas bounds
             canvas_width=self._app_state.project.width,
             canvas_height=self._app_state.project.height,
-            bounding_box=self._app_state.get_model_group_bounding_box(self._active_drag_models),
+            bounding_box=self._app_state.get_widget_group_bounding_box(self._active_drag_widgets),
             dx=dx,
             dy=dy
         )
@@ -106,19 +106,19 @@ class WidgetActions:
             if cmd.has_effect():
                 self._command_stack.execute(cmd)
         finally:
-            self._active_drag_models = None
+            self._active_drag_widgets = None
             self._active_drag_command = None
 
     def snap_to_grid(
         self
     ) -> None:
         """Snap selected widgets to their nearest valid grid positions."""
-        selected_models = self._app_state.get_selected_models()
-        if not selected_models:
+        selected_widgets = self._app_state.get_selected_widgets()
+        if not selected_widgets:
             return
 
         cmd = SnapWidgetsToGrid(
-            models=selected_models,
+            widgets=selected_widgets,
             app_state=self._app_state
         )
 
@@ -132,14 +132,14 @@ class WidgetActions:
         edge: Edge
     ) -> None:
         """Align the given edge of selected widgets to the same edge of the last selected widget."""
-        selected_models = self._app_state.get_selected_models()
-        last_selected_model_id = self._app_state.get_last_selected_model_id()
-        if not selected_models or last_selected_model_id is None:
+        selected_widgets = self._app_state.get_selected_widgets()
+        last_selected_widget_id = self._app_state.get_last_selected_widget_id()
+        if not selected_widgets or last_selected_widget_id is None:
             return
 
         cmd = AlignWidgets(
-            models=selected_models,
-            reference_model_id=last_selected_model_id,
+            widgets=selected_widgets,
+            reference_widget_id=last_selected_widget_id,
             edge=edge,
             app_state=self._app_state
         )
@@ -166,7 +166,7 @@ class WidgetActions:
             raise ValueError("WidgetActions - widget creation failed: missing text")
 
         measurement_text = text if text is not None else ""
-        width, height = self._measure_preview_widget_callback(widget_type, measurement_text)
+        width, height = self._measure_preview_tk_widget_callback(widget_type, measurement_text)
 
         min_x, max_x = allowed_x_range(
             canvas_width=self._app_state.project.width,
@@ -181,11 +181,11 @@ class WidgetActions:
         x = clamp(coordinates[0], min_x, max_x)
         y = clamp(coordinates[1], min_y, max_y)
 
-        model_id = self._app_state.project.id_counters.generate_id(widget_type)
+        widget_id = self._app_state.project.id_counters.generate_id(widget_type)
 
         if widget_type == WidgetType.LABEL:
-            model = LabelWidgetData(
-                id=model_id,
+            widget = LabelWidget(
+                id=widget_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme["label"]["bg"],
@@ -195,8 +195,8 @@ class WidgetActions:
                 text=text
             )
         elif widget_type == WidgetType.ENTRY:
-            model = EntryWidgetData(
-                id=model_id,
+            widget = EntryWidget(
+                id=widget_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme["entry"]["bg"],
@@ -205,8 +205,8 @@ class WidgetActions:
                 height=height
             )
         else:   #WidgetType.BUTTON; other types were rejected above
-            model = ButtonWidgetData(
-                id=model_id,
+            widget = ButtonWidget(
+                id=widget_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme["button"]["bg"],
@@ -217,7 +217,7 @@ class WidgetActions:
             )
 
         cmd = AddWidget(
-            model=model,
+            widget=widget,
             app_state=self._app_state
         )
 
@@ -230,13 +230,13 @@ class WidgetActions:
         if self._active_edit_command is not None:
             return
 
-        selected_models = self._app_state.get_selected_models()
-        if len(selected_models) != 1:
+        selected_widgets = self._app_state.get_selected_widgets()
+        if len(selected_widgets) != 1:
             return
 
-        self._active_edit_model = selected_models[0]    #used for dimension recomputation on text changes
+        self._active_edit_widget = selected_widgets[0]  #used for dimension recomputation on text changes
         self._active_edit_command = EditWidget(
-            model=selected_models[0],
+            widget=selected_widgets[0],
             app_state=self._app_state
         )
 
@@ -251,24 +251,24 @@ class WidgetActions:
         Text changes may update widget dimensions.
         Dimension and anchor changes may update widget position.
         """
-        if self._active_edit_command is None or self._active_edit_model is None:
+        if self._active_edit_command is None or self._active_edit_widget is None:
             return
 
-        if attribute == "text":     #text updates require measurement to update model dimensions
-            width, height = self._measure_preview_widget_callback(self._active_edit_model.type, value)
+        if attribute == "text":     #text updates require measurement to update widget dimensions
+            width, height = self._measure_preview_tk_widget_callback(self._active_edit_widget.type, value)
 
             min_x, max_x = allowed_x_range(
                 canvas_width=self._app_state.project.width,
                 widget_width=width,
-                anchor=self._active_edit_model.anchor
+                anchor=self._active_edit_widget.anchor
             )
             min_y, max_y = allowed_y_range(
                 canvas_height=self._app_state.project.height,
                 widget_height=height,
-                anchor=self._active_edit_model.anchor
+                anchor=self._active_edit_widget.anchor
             )
-            x = clamp(self._active_edit_model.x, min_x, max_x)
-            y = clamp(self._active_edit_model.y, min_y, max_y)
+            x = clamp(self._active_edit_widget.x, min_x, max_x)
+            y = clamp(self._active_edit_widget.y, min_y, max_y)
 
             attribute_changes = {
                 "text": value,
@@ -281,9 +281,9 @@ class WidgetActions:
             min_x, max_x = allowed_x_range(
                 canvas_width=self._app_state.project.width,
                 widget_width=value,
-                anchor=self._active_edit_model.anchor
+                anchor=self._active_edit_widget.anchor
             )
-            x = clamp(self._active_edit_model.x, min_x, max_x)
+            x = clamp(self._active_edit_widget.x, min_x, max_x)
 
             attribute_changes = {
                 "width": value,
@@ -293,9 +293,9 @@ class WidgetActions:
             min_y, max_y = allowed_y_range(
                 canvas_height=self._app_state.project.height,
                 widget_height=value,
-                anchor=self._active_edit_model.anchor
+                anchor=self._active_edit_widget.anchor
             )
-            y = clamp(self._active_edit_model.y, min_y, max_y)
+            y = clamp(self._active_edit_widget.y, min_y, max_y)
 
             attribute_changes = {
                 "height": value,
@@ -304,16 +304,16 @@ class WidgetActions:
         elif attribute == "anchor": #anchor updates require recomputation of allowed x and y range
             min_x, max_x = allowed_x_range(
                 canvas_width=self._app_state.project.width,
-                widget_width=self._active_edit_model.width,
+                widget_width=self._active_edit_widget.width,
                 anchor=value
             )
             min_y, max_y = allowed_y_range(
                 canvas_height=self._app_state.project.height,
-                widget_height=self._active_edit_model.height,
+                widget_height=self._active_edit_widget.height,
                 anchor=value
             )
-            x = clamp(self._active_edit_model.x, min_x, max_x)
-            y = clamp(self._active_edit_model.y, min_y, max_y)
+            x = clamp(self._active_edit_widget.x, min_x, max_x)
+            y = clamp(self._active_edit_widget.y, min_y, max_y)
 
             attribute_changes = {
                 "anchor": value,
@@ -341,5 +341,5 @@ class WidgetActions:
             if cmd.has_effect():
                 self._command_stack.execute(cmd)
         finally:
-            self._active_edit_model = None
+            self._active_edit_widget = None
             self._active_edit_command = None

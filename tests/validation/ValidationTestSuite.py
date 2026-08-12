@@ -7,13 +7,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))    #GUI_Builder/
 import tkinter as tk
 from commands import DragWidgets, EditWidget
 from events import EventBus
-from model import GridConfig, IdCounters, ProjectDocument, LabelWidgetData, BaseWidgetData
+from model import GridConfig, IdCounters, ProjectDocument, LabelWidget, BaseWidget
 from utility import WidgetType, Geometry, CONSTANTS
 from AppState import AppState
 from Designer import Designer
 from Theme import USER_THEME, PROGRAM_THEME
 
-FIRST_WIDGET_ID = 2
+FIRST_CANVAS_ITEM_ID = 2
 
 MINIMUM_CANVAS_WIDTH = CONSTANTS["canvas"]["min_width"]
 MINIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["min_height"]
@@ -103,20 +103,20 @@ def _create_valid_widget_data(**overrides) -> dict[str, object]:
     widget_data.update(overrides)
     return widget_data
 
-def _create_valid_widget_model(**overrides) -> LabelWidgetData:
+def _create_valid_widget(**overrides) -> LabelWidget:
     widget_data = _create_valid_widget_data(**overrides)
     widget_data.pop("type")
-    return LabelWidgetData(**widget_data)
+    return LabelWidget(**widget_data)
 
 def _create_edit_widget_command() -> EditWidget:
     return EditWidget(
-        model=_create_valid_widget_model(),
+        widget=_create_valid_widget(),
         app_state=AppState(ProjectDocument())
     )
 
 def _create_drag_widgets_command() -> DragWidgets:
     return DragWidgets(
-        models=(_create_valid_widget_model(),),
+        widgets=(_create_valid_widget(),),
         app_state=AppState(ProjectDocument())
     )
 
@@ -125,59 +125,59 @@ def action_subscribe_uncallable_to_app_state() -> None:
     app_state = AppState(ProjectDocument())
     app_state.subscribe("UNCALLABLE")
 
-def action_add_model_with_missing_id() -> None:
+def action_add_widget_with_missing_id() -> None:
     app_state = AppState(ProjectDocument())
-    model = _create_valid_widget_model(id=None)
-    app_state.add_model(model)
+    widget = _create_valid_widget(id=None)
+    app_state.add_widget(widget)
 
-def action_add_model_with_duplicate_id() -> None:
+def action_add_widget_with_duplicate_id() -> None:
     app_state = AppState(ProjectDocument())
-    model_1 = _create_valid_widget_model(id="DUPLICATE_ID")
-    model_2 = _create_valid_widget_model(id="DUPLICATE_ID")
-    app_state.add_model(model_1)
-    app_state.add_model(model_2)
+    widget_1 = _create_valid_widget(id="DUPLICATE_ID")
+    widget_2 = _create_valid_widget(id="DUPLICATE_ID")
+    app_state.add_widget(widget_1)
+    app_state.add_widget(widget_2)
 
-def action_remove_model_with_unknown_id() -> None:
+def action_remove_widget_with_unknown_id() -> None:
     app_state = AppState(ProjectDocument())
-    model = _create_valid_widget_model(id="UNKNOWN_ID")
-    app_state.remove_model(model)
+    widget = _create_valid_widget(id="UNKNOWN_ID")
+    app_state.remove_widget(widget)
 
-def action_update_model_position_absolute_with_unknown_id() -> None:
+def action_update_widget_position_absolute_with_unknown_id() -> None:
     app_state = AppState(ProjectDocument())
-    model = _create_valid_widget_model(id="UNKNOWN_ID")
-    app_state.set_model_position(model, 100, 100)
+    widget = _create_valid_widget(id="UNKNOWN_ID")
+    app_state.set_widget_position(widget, 100, 100)
 
-def action_update_model_position_relative_with_unknown_id() -> None:
+def action_update_widget_position_relative_with_unknown_id() -> None:
     app_state = AppState(ProjectDocument())
-    model = _create_valid_widget_model(id="UNKNOWN_ID")
-    app_state.offset_model_position(model, 10, 10)
+    widget = _create_valid_widget(id="UNKNOWN_ID")
+    app_state.offset_widget_position(widget, 10, 10)
 
-def action_update_model_attribute_with_unknown_id() -> None:
+def action_update_widget_attribute_with_unknown_id() -> None:
     app_state = AppState(ProjectDocument())
-    model = _create_valid_widget_model(id="UNKNOWN_ID")
-    app_state.set_model_attribute(model, "x", 0)
+    widget = _create_valid_widget(id="UNKNOWN_ID")
+    app_state.set_widget_attribute(widget, "x", 0)
 
-def action_update_unknown_model_attribute() -> None:
+def action_update_unknown_widget_attribute() -> None:
     app_state = AppState(ProjectDocument())
-    model = _create_valid_widget_model()
-    app_state.add_model(model)
-    app_state.set_model_attribute(model, "UNKNOWN_ATTRIBUTE", "VALUE")
+    widget = _create_valid_widget()
+    app_state.add_widget(widget)
+    app_state.set_widget_attribute(widget, "UNKNOWN_ATTRIBUTE", "VALUE")
 
-def action_select_model_with_unknown_id() -> None:
+def action_select_widget_with_unknown_id() -> None:
     app_state = AppState(ProjectDocument())
-    app_state.selection_handle_click(model_id="UNKNOWN_ID", is_additive=False)
+    app_state.selection_handle_click(widget_id="UNKNOWN_ID", is_additive=False)
 
-def action_look_up_model_with_unknown_id() -> None:
+def action_look_up_widget_with_unknown_id() -> None:
     app_state = AppState(ProjectDocument())
-    app_state.get_model_from_model_id("UNKNOWN_ID")
+    app_state.get_widget_from_widget_id("UNKNOWN_ID")
 
-def action_look_up_model_bounding_box_with_no_model_provided() -> None:
+def action_look_up_widget_bounding_box_with_no_widget_provided() -> None:
     app_state = AppState(ProjectDocument())
-    app_state.get_model_bounding_box(None)
+    app_state.get_widget_bounding_box(None)
 
-def action_look_up_model_group_bounding_box_with_no_models_provided() -> None:
+def action_look_up_widget_group_bounding_box_with_no_widgets_provided() -> None:
     app_state = AppState(ProjectDocument())
-    app_state.get_model_group_bounding_box([])
+    app_state.get_widget_group_bounding_box([])
 
 #Designer tests---------------------------------------------------------------------------------------------------------
 def action_handle_unsupported_attributes_panel_edit_phase(designer: Designer) -> None:
@@ -229,20 +229,20 @@ def action_execute_drag_widgets_command_without_recording_final_positions() -> N
 #AttributesPanel tests--------------------------------------------------------------------------------------------------
 def action_compute_spinbox_limits_for_unsupported_attribute(designer: Designer) -> None:
     designer._attributes_panel._compute_spinbox_limits(
-        model=_create_valid_widget_model(),
+        widget=_create_valid_widget(),
         attribute="UNSUPPORTED_ATTRIBUTE"
     )
 
 def action_create_colorpicker_for_unsupported_attribute(designer: Designer) -> None:
     designer._attributes_panel._create_colorpicker(
-        model=_create_valid_widget_model(),
+        widget=_create_valid_widget(),
         attribute="UNSUPPORTED_ATTRIBUTE",
         row=0
     )
 
 def action_create_combobox_for_unsupported_attribute(designer: Designer) -> None:
     designer._attributes_panel._create_combobox(
-        model=_create_valid_widget_model(),
+        widget=_create_valid_widget(),
         attribute="UNSUPPORTED_ATTRIBUTE",
         row=0
     )
@@ -463,70 +463,70 @@ def action_deserialize_project_data_with_widget_y_coordinate_outside_allowed_ran
     project_data = _create_valid_project_data(widgets=widget_data_list)
     ProjectDocument.from_json(project_data)
 
-#WidgetModel tests------------------------------------------------------------------------------------------------------
-def action_instantiate_widget_model_base_type() -> None:
+#Widget tests------------------------------------------------------------------------------------------------------
+def action_instantiate_widget_base_type() -> None:
     widget_data = _create_valid_widget_data()
     widget_data.pop("type")
     widget_data.pop("text")
-    BaseWidgetData(**widget_data)
+    BaseWidget(**widget_data)
 
 def action_deserialize_widget_data_with_invalid_input_type() -> None:
-    BaseWidgetData.from_dict(widget_data=[])
+    BaseWidget.from_dict(widget_data=[])
 
 def action_deserialize_widget_data_with_missing_type() -> None:
     widget_data = _create_valid_widget_data()
     widget_data.pop("type")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_type() -> None:
     widget_data = _create_valid_widget_data(type="INVALID_TYPE")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_missing_required_attribute() -> None:
     widget_data = _create_valid_widget_data()
     widget_data.pop("text")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_attribute_set() -> None:
     widget_data = _create_valid_widget_data()
     widget_data["UNEXPECTED_ATTRIBUTE"] = "value"
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_id() -> None:
     widget_data = _create_valid_widget_data(id=None)
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_x_coordinate() -> None:
     widget_data = _create_valid_widget_data(x="INVALID_X_COORDINATE")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_y_coordinate() -> None:
     widget_data = _create_valid_widget_data(y="INVALID_Y_COORDINATE")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_background_color() -> None:
     widget_data = _create_valid_widget_data(bg="INVALID_BACKGROUND_COLOR")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_foreground_color() -> None:
     widget_data = _create_valid_widget_data(fg="INVALID_FOREGROUND_COLOR")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_width() -> None:
     widget_data = _create_valid_widget_data(width="INVALID_WIDTH")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_height() -> None:
     widget_data = _create_valid_widget_data(height="INVALID_HEIGHT")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_anchor() -> None:
     widget_data = _create_valid_widget_data(anchor="INVALID_ANCHOR")
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 def action_deserialize_widget_data_with_invalid_text() -> None:
     widget_data = _create_valid_widget_data(text=None)
-    BaseWidgetData.from_dict(widget_data)
+    BaseWidget.from_dict(widget_data)
 
 #Geometry tests---------------------------------------------------------------------------------------------------------
 def action_compute_allowed_x_range_with_widget_width_exceeding_canvas_width() -> None:
@@ -558,7 +558,7 @@ def action_compute_allowed_y_range_with_invalid_anchor() -> None:
     )
 
 def action_compute_bounding_box_with_invalid_anchor() -> None:
-    Geometry.compute_model_bounding_box(
+    Geometry.compute_widget_bounding_box(
         x=0,
         y=0,
         width=50,
@@ -567,26 +567,26 @@ def action_compute_bounding_box_with_invalid_anchor() -> None:
     )
 
 #WidgetView tests-------------------------------------------------------------------------------------------------------
-def action_update_widget_with_missing_position(designer: Designer) -> None:
-    model = _create_valid_widget_model(x=None, y=None)
-    designer._widget_view.update_widget_for(model)
+def action_render_tk_widget_with_missing_position(designer: Designer) -> None:
+    widget = _create_valid_widget(x=None, y=None)
+    designer._widget_view.render_tk_widget_for(widget)
 
-def action_update_widget_with_unknown_widget_id(designer: Designer) -> None:
-    model = _create_valid_widget_model()
-    designer._widget_view.update_widget_for(model)
-    widget_id = designer._widget_view.get_widget_id_from_model_id(model.id)
-    designer._widget_view.widget_map[widget_id] = None
-    designer._widget_view.update_widget_for(model)
+def action_render_tk_widget_with_unknown_widget_id(designer: Designer) -> None:
+    widget = _create_valid_widget()
+    designer._widget_view.render_tk_widget_for(widget)
+    canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
+    designer._widget_view.widget_map[canvas_item_id] = None
+    designer._widget_view.render_tk_widget_for(widget)
 
 def action_instantiate_widget_with_unsupported_type(designer: Designer) -> None:
-    designer._widget_view._instantiate_widget("UNSUPPORTED_TYPE")
+    designer._widget_view._instantiate_tk_widget("UNSUPPORTED_TYPE")
 
-def action_look_up_widget_with_unknown_widget_id(designer: Designer) -> None:
-    model = _create_valid_widget_model()
-    designer._widget_view.update_widget_for(model)
-    widget_id = designer._widget_view.get_widget_id_from_model_id(model.id)
-    designer._widget_view.widget_map[widget_id] = None
-    designer._widget_view.get_widget_from_model_id(model.id)
+def action_look_up_tk_widget_with_unknown_widget_id(designer: Designer) -> None:
+    widget = _create_valid_widget()
+    designer._widget_view.render_tk_widget_for(widget)
+    canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
+    designer._widget_view.widget_map[canvas_item_id] = None
+    designer._widget_view.get_tk_widget_from_widget_id(widget.id)
 
 VALIDATION_TESTS = (
     ValidationTest(
@@ -595,59 +595,59 @@ VALIDATION_TESTS = (
         action=action_subscribe_uncallable_to_app_state
     ),
     ValidationTest(
-        name="Adding model with missing ID to AppState",
-        expected_error_message="AppState - model addition failed: missing ID",
-        action=action_add_model_with_missing_id
+        name="Adding widget with missing ID to AppState",
+        expected_error_message="AppState - widget addition failed: missing widget ID",
+        action=action_add_widget_with_missing_id
     ),
     ValidationTest(
-        name="Adding model with duplicate ID to AppState",
-        expected_error_message="AppState - model addition failed: duplicate ID \"DUPLICATE_ID\"",
-        action=action_add_model_with_duplicate_id
+        name="Adding widget with duplicate ID to AppState",
+        expected_error_message="AppState - widget addition failed: duplicate widget ID \"DUPLICATE_ID\"",
+        action=action_add_widget_with_duplicate_id
     ),
     ValidationTest(
-        name="Removing model with unknown ID from AppState",
-        expected_error_message="AppState - model removal failed: unknown ID \"UNKNOWN_ID\"",
-        action=action_remove_model_with_unknown_id
+        name="Removing widget with unknown ID from AppState",
+        expected_error_message="AppState - widget removal failed: unknown widget ID \"UNKNOWN_ID\"",
+        action=action_remove_widget_with_unknown_id
     ),
     ValidationTest(
-        name="Updating model position (absolute) with unknown ID",
-        expected_error_message="AppState - model position update failed: unknown ID \"UNKNOWN_ID\"",
-        action=action_update_model_position_absolute_with_unknown_id
+        name="Updating widget position (absolute) with unknown ID",
+        expected_error_message="AppState - widget position update failed: unknown widget ID \"UNKNOWN_ID\"",
+        action=action_update_widget_position_absolute_with_unknown_id
     ),
     ValidationTest(
-        name="Updating model position (relative) with unknown ID",
-        expected_error_message="AppState - model position update failed: unknown ID \"UNKNOWN_ID\"",
-        action=action_update_model_position_relative_with_unknown_id
+        name="Updating widget position (relative) with unknown ID",
+        expected_error_message="AppState - widget position update failed: unknown widget ID \"UNKNOWN_ID\"",
+        action=action_update_widget_position_relative_with_unknown_id
     ),
     ValidationTest(
-        name="Updating model attribute with unknown ID",
-        expected_error_message="AppState - model attribute update failed: unknown ID \"UNKNOWN_ID\"",
-        action=action_update_model_attribute_with_unknown_id
+        name="Updating widget attribute with unknown ID",
+        expected_error_message="AppState - widget attribute update failed: unknown widget ID \"UNKNOWN_ID\"",
+        action=action_update_widget_attribute_with_unknown_id
     ),
     ValidationTest(
-        name="Updating unknown model attribute",
-        expected_error_message="AppState - model attribute update failed: unknown attribute \"UNKNOWN_ATTRIBUTE\" [ID]",
-        action=action_update_unknown_model_attribute
+        name="Updating unknown widget attribute",
+        expected_error_message="AppState - widget attribute update failed: unknown attribute \"UNKNOWN_ATTRIBUTE\" [ID]",
+        action=action_update_unknown_widget_attribute
     ),
     ValidationTest(
-        name="Selecting model with unknown ID",
-        expected_error_message="AppState - model selection failed: unknown ID \"UNKNOWN_ID\"",
-        action=action_select_model_with_unknown_id
+        name="Selecting widget with unknown ID",
+        expected_error_message="AppState - widget selection failed: unknown widget ID \"UNKNOWN_ID\"",
+        action=action_select_widget_with_unknown_id
     ),
     ValidationTest(
-        name="Looking up model with unknown ID",
-        expected_error_message="AppState - model lookup failed: unknown ID \"UNKNOWN_ID\"",
-        action=action_look_up_model_with_unknown_id
+        name="Looking up widget with unknown ID",
+        expected_error_message="AppState - widget lookup failed: unknown widget ID \"UNKNOWN_ID\"",
+        action=action_look_up_widget_with_unknown_id
     ),
     ValidationTest(
-        name="Looking up model bounding box with no model provided",
-        expected_error_message="AppState - model bounding box lookup failed: no model provided",
-        action=action_look_up_model_bounding_box_with_no_model_provided
+        name="Looking up widget bounding box with no widget provided",
+        expected_error_message="AppState - widget bounding box lookup failed: no widget provided",
+        action=action_look_up_widget_bounding_box_with_no_widget_provided
     ),
     ValidationTest(
-        name="Looking up model group bounding box with no models provided",
-        expected_error_message="AppState - model group bounding box lookup failed: no models provided",
-        action=action_look_up_model_group_bounding_box_with_no_models_provided
+        name="Looking up widget group bounding box with no widgets provided",
+        expected_error_message="AppState - widget group bounding box lookup failed: no widgets provided",
+        action=action_look_up_widget_group_bounding_box_with_no_widgets_provided
     ),
     ValidationTest(
         name="Handling unsupported attributes panel edit phase",
@@ -891,78 +891,78 @@ VALIDATION_TESTS = (
         action=action_deserialize_project_data_with_widget_y_coordinate_outside_allowed_range
     ),
     ValidationTest(
-        name="Instantiating widget model base type",
-        expected_error_message="WidgetModels - widget model creation failed: base type (BaseWidgetData) cannot be instantiated directly",
-        action=action_instantiate_widget_model_base_type
+        name="Instantiating widget base type",
+        expected_error_message="Widgets - widget creation failed: base type (BaseWidget) cannot be instantiated directly",
+        action=action_instantiate_widget_base_type
     ),
     ValidationTest(
         name="Deserializing widget data with invalid input type",
-        expected_error_message="WidgetModels - widget data deserialization failed: widget data is not a dictionary",
+        expected_error_message="Widgets - widget data deserialization failed: widget data is not a dictionary",
         action=action_deserialize_widget_data_with_invalid_input_type
     ),
     ValidationTest(
         name="Deserializing widget data with missing type",
-        expected_error_message="WidgetModels - widget data deserialization failed: missing required attribute \"type\"",
+        expected_error_message="Widgets - widget data deserialization failed: missing required attribute \"type\"",
         action=action_deserialize_widget_data_with_missing_type
     ),
     ValidationTest(
         name="Deserializing widget data with invalid type",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid type \"INVALID_TYPE\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid type \"INVALID_TYPE\"",
         action=action_deserialize_widget_data_with_invalid_type
     ),
     ValidationTest(
         name="Deserializing widget data with missing required attribute",
-        expected_error_message="WidgetModels - widget data deserialization failed: missing required attribute \"text\"",
+        expected_error_message="Widgets - widget data deserialization failed: missing required attribute \"text\"",
         action=action_deserialize_widget_data_with_missing_required_attribute
     ),
     ValidationTest(
         name="Deserializing widget data with invalid attribute set",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid attribute set [got unexpected attribute \"UNEXPECTED_ATTRIBUTE\"]",
+        expected_error_message="Widgets - widget data deserialization failed: invalid attribute set [got unexpected attribute \"UNEXPECTED_ATTRIBUTE\"]",
         action=action_deserialize_widget_data_with_invalid_attribute_set
     ),
     ValidationTest(
         name="Deserializing widget data with invalid ID",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid ID \"None\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid ID \"None\"",
         action=action_deserialize_widget_data_with_invalid_id
     ),
     ValidationTest(
         name="Deserializing widget data with invalid X coordinate",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid X coordinate \"INVALID_X_COORDINATE\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid X coordinate \"INVALID_X_COORDINATE\"",
         action=action_deserialize_widget_data_with_invalid_x_coordinate
     ),
     ValidationTest(
         name="Deserializing widget data with invalid Y coordinate",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid Y coordinate \"INVALID_Y_COORDINATE\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid Y coordinate \"INVALID_Y_COORDINATE\"",
         action=action_deserialize_widget_data_with_invalid_y_coordinate
     ),
     ValidationTest(
         name="Deserializing widget data with invalid background color",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid background color \"INVALID_BACKGROUND_COLOR\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid background color \"INVALID_BACKGROUND_COLOR\"",
         action=action_deserialize_widget_data_with_invalid_background_color
     ),
     ValidationTest(
         name="Deserializing widget data with invalid foreground color",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid foreground color \"INVALID_FOREGROUND_COLOR\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid foreground color \"INVALID_FOREGROUND_COLOR\"",
         action=action_deserialize_widget_data_with_invalid_foreground_color
     ),
     ValidationTest(
         name="Deserializing widget data with invalid width",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid width \"INVALID_WIDTH\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid width \"INVALID_WIDTH\"",
         action=action_deserialize_widget_data_with_invalid_width
     ),
     ValidationTest(
         name="Deserializing widget data with invalid height",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid height \"INVALID_HEIGHT\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid height \"INVALID_HEIGHT\"",
         action=action_deserialize_widget_data_with_invalid_height
     ),
     ValidationTest(
         name="Deserializing widget data with invalid anchor",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid anchor \"INVALID_ANCHOR\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid anchor \"INVALID_ANCHOR\"",
         action=action_deserialize_widget_data_with_invalid_anchor
     ),
     ValidationTest(
         name="Deserializing widget data with invalid text",
-        expected_error_message="WidgetModels - widget data deserialization failed: invalid text \"None\"",
+        expected_error_message="Widgets - widget data deserialization failed: invalid text \"None\"",
         action=action_deserialize_widget_data_with_invalid_text
     ),
     ValidationTest(
@@ -991,31 +991,31 @@ VALIDATION_TESTS = (
         action=action_compute_bounding_box_with_invalid_anchor
     ),
     ValidationTest(
-        name="Updating widget with missing position",
-        expected_error_message="WidgetView - widget update failed: missing position for model \"ID\"",
+        name="Rendering Tk widget with missing position",
+        expected_error_message="WidgetView - Tk widget rendering failed: missing position for widget \"ID\"",
         setup=setup_designer,
-        action=action_update_widget_with_missing_position,
+        action=action_render_tk_widget_with_missing_position,
         teardown=teardown_designer
     ),
     ValidationTest(
-        name="Updating widget with unknown widget ID",
-        expected_error_message=f"WidgetView - widget update failed: unknown widget ID \"{FIRST_WIDGET_ID}\"",
+        name="Rendering Tk widget with unknown widget ID",
+        expected_error_message=f"WidgetView - Tk widget rendering failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
         setup=setup_designer,
-        action=action_update_widget_with_unknown_widget_id,
+        action=action_render_tk_widget_with_unknown_widget_id,
         teardown=teardown_designer
     ),
     ValidationTest(
         name="Instantiating widget with unsupported type",
-        expected_error_message="WidgetView - widget instantiation failed: unsupported type \"UNSUPPORTED_TYPE\"",
+        expected_error_message="WidgetView - Tk widget instantiation failed: unsupported type \"UNSUPPORTED_TYPE\"",
         setup=setup_designer,
         action=action_instantiate_widget_with_unsupported_type,
         teardown=teardown_designer
     ),
     ValidationTest(
-        name="Looking up widget with unknown widget ID",
-        expected_error_message=f"WidgetView - widget lookup failed: unknown widget ID \"{FIRST_WIDGET_ID}\"",
+        name="Looking up Tk widget with unknown widget ID",
+        expected_error_message=f"WidgetView - Tk widget lookup failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
         setup=setup_designer,
-        action=action_look_up_widget_with_unknown_widget_id,
+        action=action_look_up_tk_widget_with_unknown_widget_id,
         teardown=teardown_designer
     )
 )

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 from .GridConfig import GridConfig
 from .IdCounters import IdCounters
-from .WidgetModels import BaseWidgetData
+from .Widgets import BaseWidget
 
 from utility import CONSTANTS, allowed_x_range, allowed_y_range, is_positive_integer, is_non_empty_string
 
@@ -17,7 +17,7 @@ class ProjectDocument:
     icon_path: str | None = None
     grid: GridConfig = field(default_factory=GridConfig)
     theme: dict[str, dict[str, str]] = field(default_factory=dict)
-    widget_models: list[BaseWidgetData] = field(default_factory=list)
+    widgets: list[BaseWidget] = field(default_factory=list)
     id_counters: IdCounters = field(default_factory=IdCounters)
 
     def to_json(
@@ -33,8 +33,8 @@ class ProjectDocument:
             "grid": self.grid.to_dict(),
             "theme": self.theme,
             "widgets": [
-                model.to_dict()
-                for model in self.widget_models
+                widget.to_dict()
+                for widget in self.widgets
             ],
             "id_counters": self.id_counters.to_dict()
         }
@@ -47,7 +47,7 @@ class ProjectDocument:
         """Validate and deserialize project data into a project document."""
         cls._validate_project_data(project_data)
 
-        widget_models = cls._deserialize_widget_data_list(
+        widgets = cls._deserialize_widget_data_list(
             widget_data_list=project_data["widgets"],
             canvas_width=project_data["width"],
             canvas_height=project_data["height"]
@@ -63,7 +63,7 @@ class ProjectDocument:
             icon_path=project_data.get("icon_path"),
             grid=grid_config,
             theme=project_data["theme"],
-            widget_models=widget_models,
+            widgets=widgets,
             id_counters=id_counters
         )
 
@@ -134,46 +134,46 @@ class ProjectDocument:
         widget_data_list: list[dict],
         canvas_width: int,
         canvas_height: int
-    ) -> list[BaseWidgetData]:
+    ) -> list[BaseWidget]:
         """Deserialize the list of widget data and validate ID uniqueness and widget geometry."""
         seen_ids = set()
-        widget_models = []
+        widgets = []
 
         for widget_data in widget_data_list:
-            widget_model = BaseWidgetData.from_dict(widget_data)
+            widget = BaseWidget.from_dict(widget_data)
 
             #validate ID uniqueness
-            if widget_model.id in seen_ids:
-                raise ValueError(f"ProjectDocument - project data deserialization failed: duplicate widget ID \"{widget_model.id}\"")
-            seen_ids.add(widget_model.id)
+            if widget.id in seen_ids:
+                raise ValueError(f"ProjectDocument - project data deserialization failed: duplicate widget ID \"{widget.id}\"")
+            seen_ids.add(widget.id)
 
             #validate widget geometry
-            if widget_model.width > canvas_width:
-                raise ValueError(f"ProjectDocument - project data deserialization failed: widget width exceeds canvas width [{widget_model.width} > {canvas_width}, ID: \"{widget_model.id}\"]")
+            if widget.width > canvas_width:
+                raise ValueError(f"ProjectDocument - project data deserialization failed: widget width exceeds canvas width [{widget.width} > {canvas_width}, ID: \"{widget.id}\"]")
 
-            if widget_model.height > canvas_height:
-                raise ValueError(f"ProjectDocument - project data deserialization failed: widget height exceeds canvas height [{widget_model.height} > {canvas_height}, ID: \"{widget_model.id}\"]")
+            if widget.height > canvas_height:
+                raise ValueError(f"ProjectDocument - project data deserialization failed: widget height exceeds canvas height [{widget.height} > {canvas_height}, ID: \"{widget.id}\"]")
 
             min_x, max_x = allowed_x_range(
                 canvas_width=canvas_width,
-                widget_width=widget_model.width,
-                anchor=widget_model.anchor
+                widget_width=widget.width,
+                anchor=widget.anchor
             )
 
             min_y, max_y = allowed_y_range(
                 canvas_height=canvas_height,
-                widget_height=widget_model.height,
-                anchor=widget_model.anchor
+                widget_height=widget.height,
+                anchor=widget.anchor
             )
 
-            if not min_x <= widget_model.x <= max_x:
-                raise ValueError(f"ProjectDocument - project data deserialization failed: widget X coordinate outside allowed range [expected {min_x} - {max_x}, got {widget_model.x}, ID: \"{widget_model.id}\"]")
+            if not min_x <= widget.x <= max_x:
+                raise ValueError(f"ProjectDocument - project data deserialization failed: widget X coordinate outside allowed range [expected {min_x} - {max_x}, got {widget.x}, ID: \"{widget.id}\"]")
 
-            if not min_y <= widget_model.y <= max_y:
-                raise ValueError(f"ProjectDocument - project data deserialization failed: widget Y coordinate outside allowed range [expected {min_y} - {max_y}, got {widget_model.y}, ID: \"{widget_model.id}\"]")
+            if not min_y <= widget.y <= max_y:
+                raise ValueError(f"ProjectDocument - project data deserialization failed: widget Y coordinate outside allowed range [expected {min_y} - {max_y}, got {widget.y}, ID: \"{widget.id}\"]")
 
-            widget_models.append(widget_model)
-        return widget_models
+            widgets.append(widget)
+        return widgets
 
 
 _REQUIRED_ATTRIBUTES = {"version", "title", "width", "height", "grid", "theme", "widgets", "id_counters"}

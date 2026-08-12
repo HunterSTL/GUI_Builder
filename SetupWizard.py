@@ -379,7 +379,7 @@ class SetupWizard:
                 visible=False
             ),
             theme=self._user_theme,
-            widget_models=[],
+            widgets=[],
             id_counters=IdCounters()
         )
 
