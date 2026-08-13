@@ -288,8 +288,7 @@ class AppState:
         if is_additive:
             self.selection_toggle(widget_id)
         else:
-            if not self.selection_contains(widget_id):
-                self.selection_select_only(widget_id)
+            self.selection_select_only(widget_id)
 
     def apply_rectangle_selection(
         self,

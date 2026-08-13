@@ -70,7 +70,7 @@ class WidgetActions:
             app_state=self._app_state
         )
 
-    def apply_drag_delta(
+    def update_drag(
         self,
         dx: int,
         dy: int
@@ -92,10 +92,10 @@ class WidgetActions:
 
         self._active_drag_command.apply_drag_delta(dx, dy)
 
-    def commit_drag(
+    def end_drag(
         self
     ) -> None:
-        """Commit the active drag gesture if it had an effect."""
+        """End the active drag gesture and execute it if it had an effect."""
         cmd = self._active_drag_command
         if not cmd:
             return

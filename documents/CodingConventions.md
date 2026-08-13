@@ -9,7 +9,8 @@ Principles that apply globally and must not be violated.
 AppState owns application state and all mutations of models owned by AppState must go through AppState
 
 **Unidirectional data flow:**  
-User Input → Controller → Event → Designer → Action → Commands → CommandStack → AppState → View
+User Input → Controller → Event → Designer → Action → Commands → CommandStack → AppState → View  
+The flow defines the direction of data, not a list of steps that every operation must use.
 
 **Deterministic behaviour:**  
 Given the same inputs, the system must always produce the same results
@@ -185,10 +186,11 @@ Maintains a command history and provides undo and redo functionality.
 * Must maintain consistent undo and redo history
 
 ### 2.9 Rendering
-Updates the UI to reflect the current model state.
+Updates the UI to reflect the current model state and active user interactions.
 
-* Must be driven exclusively by AppState changes
-* Must be incremental
+* Rendering of application state must be driven exclusively by AppState changes
+* Rendering of application state must be incremental
+* Temporary UI elements used during an active user interaction may be rendered in response to events
 * The Designer must subscribe to AppState notifications and update the UI based on the provided change flags and changed model IDs
 * Dirty models must cause their widgets to be updated
 * Dirty selected models must additionally cause their selection outlines to be updated

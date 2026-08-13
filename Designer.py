@@ -4,7 +4,7 @@ from tkinter import messagebox, simpledialog, colorchooser, ttk
 from actions import Actions, EditActions, WidgetActions
 from commands import CommandStack
 from components import AttributesPanel
-from controller import CanvasController, SelectionController, ToolbarController
+from controller import CanvasController, ToolbarController
 from events import EventBus, EventRouter
 from model import ProjectDocument
 from utility import call_tracer, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType, CONSTANTS
@@ -89,22 +89,10 @@ class Designer:
 
         #Controllers----------------------------------------------------------------------------------------------------
         self._canvas_controller: CanvasController = CanvasController(
-            app_state=self.app_state,
-            canvas_view=self._canvas_view,
-            nudge_small=CONSTANTS["nudge"]["small"],
-            nudge_big=CONSTANTS["nudge"]["big"],
-            event_router=self._event_router
-        )
-        self._canvas_controller.bind_events()
-
-        self._selection_controller: SelectionController = SelectionController(
             canvas=self._canvas,
+            event_router=self._event_router,
             app_state=self.app_state,
-            selection_view=self._selection_view,
-            ctrl_key=CONSTANTS["ctrl_key"],
-            drag_threshold=CONSTANTS["drag_threshold"],
             resolve_canvas_item_id_to_widget_id=lambda canvas_item_id: self._widget_view.get_widget_id_from_canvas_item_id(canvas_item_id),
-            event_router=self._event_router
         )
 
         self._toolbar_controller: ToolbarController = ToolbarController(
@@ -384,7 +372,11 @@ class Designer:
         for widget in dirty_widgets:
             self._widget_view.render_tk_widget_for(widget)
             if state.selection_contains(widget.id):
-                self._selection_controller.render_outline_for(widget)   #controller derives required data from widget and AppState
+                self._selection_view.render_outline_for(
+                    widget_id=widget.id,
+                    bounding_box=self.app_state.get_widget_bounding_box(widget),
+                    is_last_selected=widget.id == self.app_state.get_last_selected_widget_id()
+                )
 
         #show or hide the attributes panel and refresh outlines based on the selection
         if state.selection_change:
@@ -392,11 +384,19 @@ class Designer:
             self._attributes_panel.set_selection(selected_widgets)
             self._selection_view.clear_all_outlines()
             for widget in selected_widgets:
-                self._selection_controller.render_outline_for(widget)
+                self._selection_view.render_outline_for(
+                    widget_id=widget.id,
+                    bounding_box=self.app_state.get_widget_bounding_box(widget),
+                    is_last_selected=widget.id == self.app_state.get_last_selected_widget_id()
+                )
 
         #render grid
         if state.grid_change:
-            self._canvas_controller.render_grid()
+            self._canvas_view.render_grid(
+                grid_size=self.app_state.project.grid.size,
+                grid_color=self.app_state.project.grid.color,
+                grid_visible=self.app_state.project.grid.visible
+            )
 
         #refresh attributes panel if the single selected widget changed
         if len(dirty_widgets) == 1:
@@ -412,7 +412,12 @@ class Designer:
         """Create Tk widgets for all domain widgets and render the grid."""
         for widget in self.app_state.get_all_widgets():
             self._widget_view.render_tk_widget_for(widget)
-        self._canvas_controller.render_grid()
+
+        self._canvas_view.render_grid(
+            grid_size=self.app_state.project.grid.size,
+            grid_color=self.app_state.project.grid.color,
+            grid_visible=self.app_state.project.grid.visible
+        )
 
     #Grid actions-------------------------------------------------------------------------------------------------------
     def _toggle_grid(
@@ -476,9 +481,9 @@ class Designer:
         self._designer_event_bus.subscribe("menu.show", self._show_menu)
 
         #selection events
-        self._designer_event_bus.subscribe("selection.handle_press", self._selection_controller.handle_canvas_press)
-        self._designer_event_bus.subscribe("selection.handle_drag", self._selection_controller.handle_canvas_drag)
-        self._designer_event_bus.subscribe("selection.handle_release", self._selection_controller.handle_canvas_release)
+        self._designer_event_bus.subscribe("selection.rectangle.start", lambda x1, y1: self._selection_view.render_selection_rectangle(x1, y1, x1, y1))
+        self._designer_event_bus.subscribe("selection.rectangle.update", lambda x1, y1, x2, y2: self._selection_view.render_selection_rectangle(x1, y1, x2, y2))
+        self._designer_event_bus.subscribe("selection.rectangle.end", self._selection_view.delete_selection_rectangle)
 
         #edit events
         self._designer_event_bus.subscribe("edit.delete", self._actions.edit.delete)
@@ -496,8 +501,8 @@ class Designer:
 
         #widget drag lifecycle events
         self._designer_event_bus.subscribe("widget.drag.start", self._actions.widget.start_drag)
-        self._designer_event_bus.subscribe("widget.drag.apply_delta", self._actions.widget.apply_drag_delta)
-        self._designer_event_bus.subscribe("widget.drag.commit", self._actions.widget.commit_drag)
+        self._designer_event_bus.subscribe("widget.drag.update", self._actions.widget.update_drag)
+        self._designer_event_bus.subscribe("widget.drag.end", self._actions.widget.end_drag)
 
         #widget edit lifecycle events
         self._designer_event_bus.subscribe("widget.edit.start", self._actions.widget.start_edit)

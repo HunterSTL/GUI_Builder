@@ -588,6 +588,13 @@ def action_look_up_tk_widget_with_unknown_widget_id(designer: Designer) -> None:
     designer._widget_view.widget_map[canvas_item_id] = None
     designer._widget_view.get_tk_widget_from_widget_id(widget.id)
 
+def action_look_up_widget_with_unknown_canvas_item_id(designer: Designer) -> None:
+    widget = _create_valid_widget()
+    designer._widget_view.render_tk_widget_for(widget)
+    canvas_item_id = designer._widget_view.widget_id_to_canvas_item_id[widget.id]
+    designer._widget_view.canvas_item_id_to_widget_id.pop(canvas_item_id)
+    designer._widget_view.get_widget_id_from_canvas_item_id(canvas_item_id)
+
 VALIDATION_TESTS = (
     ValidationTest(
         name="Subscribing uncallable to AppState",
@@ -1016,6 +1023,13 @@ VALIDATION_TESTS = (
         expected_error_message=f"WidgetView - Tk widget lookup failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
         setup=setup_designer,
         action=action_look_up_tk_widget_with_unknown_widget_id,
+        teardown=teardown_designer
+    ),
+    ValidationTest(
+        name="Looking up widget with unknown canvas item ID",
+        expected_error_message=f"WidgetView - widget lookup failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
+        setup=setup_designer,
+        action=action_look_up_widget_with_unknown_canvas_item_id,
         teardown=teardown_designer
     )
 )

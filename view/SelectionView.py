@@ -52,8 +52,14 @@ class SelectionView:
         self.canvas.delete("selection_outline")
         self._selection_outlines.clear()
 
-    def draw_selection_rectangle(self, x1: int, y1: int):
-        """begin drawing the selection rectangle (UI-element) used for the rectangle selection (gesture)"""
+    def render_selection_rectangle(
+        self,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int
+    ) -> None:
+        """Create or update the selection rectangle with the given canvas coordinates."""
         if self._selection_rectangle_id is None:
             self._selection_rectangle_id = self.canvas.create_rectangle(
                 x1, y1, x1, y1,
@@ -63,25 +69,14 @@ class SelectionView:
                 fill=""
             )
         else:
-            self.canvas.coords(
-                self._selection_rectangle_id,
-                x1,
-                y1,
-                x1,
-                y1
-            )
-
-        #ensure outline is on top
-        self.canvas.tag_raise(self._selection_rectangle_id)
-
-    def update_selection_rectangle(self, x1: int, y1: int, x2: int, y2: int):
-        """update the selection rectangle while dragging"""
-        if self._selection_rectangle_id is not None:
             self.canvas.coords(self._selection_rectangle_id, x1, y1, x2, y2)
-            self.canvas.tag_raise(self._selection_rectangle_id)
 
-    def clear_selection_rectangle(self):
-        """remove the selection rectangle"""
+        self.canvas.tag_raise(self._selection_rectangle_id)     #ensures outline is on top
+
+    def delete_selection_rectangle(
+        self
+    ) -> None:
+        """Delete the selection rectangle."""
         if self._selection_rectangle_id is not None:
             self.canvas.delete(self._selection_rectangle_id)
             self._selection_rectangle_id = None

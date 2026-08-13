@@ -8,7 +8,7 @@ class EventRouter:
         *Owned by the AppController
         *Persist for the entire application lifetime
         *App events must start with "app." or "project."
-    2. Designer events (e.g. "selection.handle_press", "widget.nudge"):
+    2. Designer events (e.g. "selection.rectangle.start", "widget.nudge"):
         *Owned by a single Designer instance
         *Must be discarded when the Designer window is destroyed
 

@@ -159,6 +159,9 @@ class WidgetView:
             raise ValueError(f"WidgetView - Tk widget lookup failed: unknown canvas item ID \"{canvas_item_id}\"")
         return entry["tk_widget"]
 
-    def get_widget_id_from_canvas_item_id(self, canvas_item_id: int) -> str | None:
+    def get_widget_id_from_canvas_item_id(self, canvas_item_id: int) -> str:
         """return the widget ID associated with the given canvas item ID"""
-        return self.canvas_item_id_to_widget_id.get(canvas_item_id)
+        try:
+            return self.canvas_item_id_to_widget_id[canvas_item_id]
+        except KeyError:
+            raise ValueError(f"WidgetView - widget lookup failed: unknown canvas item ID \"{canvas_item_id}\"")

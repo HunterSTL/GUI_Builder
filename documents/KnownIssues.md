@@ -78,7 +78,7 @@ For a widget with width=5: left = x-2, right = x+3. For width=6: left = x-3, rig
 
 ---
 
-## 10. `selection_handle_click` with non-additive mode does not deselect other widgets
+## 10. [Done] `selection_handle_click` with non-additive mode does not deselect other widgets
 
 In `AppState.selection_handle_click`:
 ```python
@@ -279,7 +279,7 @@ When `PasteWidgetsFromClipboard.execute()` is called, it calls `model.create_id(
 
 ---
 
-## 35. `SelectionController` uses `grab_set` / `grab_release` on the canvas without error recovery
+## 35. [Done] `SelectionController` uses `grab_set` / `grab_release` on the canvas without error recovery
 
 ```python
 try:
