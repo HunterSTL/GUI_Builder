@@ -27,14 +27,18 @@ class NudgeWidgets(Command):
             for widget in widgets
         }
 
+        self._final_positions: dict[str, tuple[int, int]] = {}
+        for widget in widgets:
+            self._final_positions[widget.id] = (widget.x + self._dx, widget.y + self._dy)
+
     def execute(
         self
     ) -> None:
-        """Apply the stored movement deltas to the widgets through AppState."""
+        """Apply the snapshotted final positions to the widgets through AppState."""
         with self._app_state.batch():
-            for widget_id in self._widget_ids:
+            for widget_id, (x, y) in self._final_positions.items():
                 widget = self._app_state.get_widget_from_widget_id(widget_id)
-                self._app_state.offset_widget_position(widget, self._dx, self._dy)
+                self._app_state.set_widget_position(widget, x, y)
 
     def undo(
         self
