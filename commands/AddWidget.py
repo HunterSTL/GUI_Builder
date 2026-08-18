@@ -11,25 +11,29 @@ class AddWidget(Command):
         widget: BaseWidget,
         app_state: AppState
     ) -> None:
-        self._widget: BaseWidget = widget
         self._app_state: AppState = app_state
+
+        self._snapshot: dict[str, str | int] = widget.to_dict()     #storing snapshot as commands must not depend on externally mutable state
 
     def execute(
         self
     ) -> None:
         """Add the widget to the project through AppState."""
-        self._app_state.add_widget(self._widget)
+        widget = BaseWidget.from_dict(self._snapshot)
+        self._app_state.add_widget(widget)
 
     def undo(
         self
     ) -> None:
         """Remove the previously added widget from the project through AppState."""
-        self._app_state.remove_widget(self._widget)
+        widget_id = self._snapshot["id"]
+        widget = self._app_state.get_widget_from_widget_id(widget_id)
+        self._app_state.remove_widget(widget)
 
     def __repr__(
         self
     ) -> str:
         """Return a debug representation of the command."""
         s = "[AddWidget]"
-        s += f"\n\twidget data:\t\t{self._widget.to_dict()}"
+        s += f"\n\twidget data:\t\t{self._snapshot}"
         return s
