@@ -152,7 +152,7 @@ class CanvasController:
         self._canvas.bind("<ButtonPress-1>", self._handle_canvas_press)
         self._canvas.bind("<B1-Motion>", self._handle_canvas_drag)
         self._canvas.bind("<ButtonRelease-1>", self._handle_canvas_release)
-        self._canvas.bind("<Button-3>", lambda e: self._event_router.emit("menu.show", event=e))
+        self._canvas.bind("<Button-3>", lambda e: self._event_router.emit("menu.show", tk_event=e))
 
         #project events
         self._canvas.bind("<Control-n>", lambda e: self._event_router.emit("project.new"))

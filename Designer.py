@@ -466,11 +466,11 @@ class Designer:
     #UI actions---------------------------------------------------------------------------------------------------------
     def _show_menu(
         self,
-        event: tk.Event
+        tk_event: tk.Event
     ) -> None:
         """Show the context menu at the current mouse position."""
-        self._last_right_click_coordinates = event.x, event.y
-        self._menu.post(event.x_root, event.y_root)
+        self._last_right_click_coordinates = tk_event.x, tk_event.y
+        self._menu.post(tk_event.x_root, tk_event.y_root)
 
     #Wiring-------------------------------------------------------------------------------------------------------------
     def _subscribe_functions_to_events(

@@ -729,12 +729,12 @@ VALIDATION_TESTS = (
     ),
     ValidationTest(
         name="Subscribing uncallable to EventBus",
-        expected_error_message="EventBus - subscription failed: subscriber must be callable [event: EVENT]",
+        expected_error_message="EventBus - subscription failed: handler must be callable [event: EVENT]",
         action=action_subscribe_uncallable_to_event_bus
     ),
     ValidationTest(
         name="Failing handler execution",
-        expected_error_message="EventBus - handler execution failed for event \"EVENT\": 1 handler raised an error:\n\t_handler: ERROR",
+        expected_error_message="EventBus - handler execution failed for event \"EVENT\": ERROR",
         action=action_fail_handler_execution
     ),
     ValidationTest(

@@ -1,57 +1,23 @@
 class EventBus:
-    """
-    Maps events (e.g. widget.nudge) to subscribers.
-
-    self._subscribers = {
-        "widget.nudge":     [function1, function2],
-        "edit.delete":      [function3],
-        "project.save":     [function4]
-    }
-    """
+    """Calls the handler for an emitted event."""
     def __init__(self):
-        self._subscribers = {}
+        self._handlers = {}
 
-    def subscribe(self, event_name, function):
-        """register a function to be called when the given event is emitted"""
-        if not callable(function):
-            raise ValueError(f"EventBus - subscription failed: subscriber must be callable [event: {event_name}]")
+    def subscribe(self, event, handler):
+        """register a handler to be called when the given event is emitted"""
+        if not callable(handler):
+            raise ValueError(f"EventBus - subscription failed: handler must be callable [event: {event}]")
 
-        #create list of subscribers if key doesn't exist yet
-        if event_name not in self._subscribers:
-            self._subscribers[event_name] = []
+        self._handlers[event] = handler
 
-        self._subscribers[event_name].append(function)
-
-    def unsubscribe(self, event_name, function):
-        """remove a function from the subscribers for the given event"""
-        if event_name not in self._subscribers:
-            return  #key doesn't exist → nothing to remove
-
-        subscribers = self._subscribers.get(event_name)
-
-        if function in subscribers:
-            subscribers.remove(function)
-
-    def emit(self, event_name, **kwargs):
-        """call all subscribers for the given event"""
-        if event_name not in self._subscribers:
+    def emit(self, event, **kwargs):
+        """call the handler for the given event"""
+        if event not in self._handlers:
             return  #key doesn't exist → nothing to call
 
-        subscribers = self._subscribers[event_name]
-        errors = []
+        handler = self._handlers[event]
 
-        for function in subscribers:
-            try:
-                function(**kwargs)
-            except Exception as e:
-                errors.append(f"\t{function.__name__}: {e}")
-
-        if errors:
-            count_errors = len(errors)
-            if count_errors == 1:
-                reason = "1 handler raised an error:\n"
-            else:
-                reason = f"{count_errors} handlers raised an error:\n"
-            reason += "\n".join(errors)
-
-            raise ValueError(f"EventBus - handler execution failed for event \"{event_name}\": {reason}")
+        try:
+            handler(**kwargs)
+        except Exception as error:
+            raise ValueError(f"EventBus - handler execution failed for event \"{event}\": {error}")
