@@ -71,14 +71,14 @@ class EditActions:
         if pointer_coordinates is None or self._copy_origin_coordinates is None:
             return
 
-        dx = pointer_coordinates[0] - self._copy_origin_coordinates[0]
-        dy = pointer_coordinates[1] - self._copy_origin_coordinates[1]
+        x_offset = pointer_coordinates[0] - self._copy_origin_coordinates[0]
+        y_offset = pointer_coordinates[1] - self._copy_origin_coordinates[1]
 
         self._command_stack.execute(
             PasteWidgetsFromClipboard(
                 clipboard=self._clipboard,
-                dx=dx,
-                dy=dy,
+                requested_x_offset=x_offset,
+                requested_y_offset=y_offset,
                 app_state=self._app_state
             )
         )

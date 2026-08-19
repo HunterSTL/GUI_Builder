@@ -367,8 +367,8 @@ class TestUndoRedoPasteWidgets(unittest.TestCase):
         command_stack.execute(
             PasteWidgetsFromClipboard(
                 clipboard=clipboard,
-                dx=50,
-                dy=50,
+                requested_x_offset=50,
+                requested_y_offset=50,
                 app_state=app_state
             )
         )

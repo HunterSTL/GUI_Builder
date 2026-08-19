@@ -44,12 +44,12 @@ class CommandStack:
         self
     ) -> str:
         """Return a debug representation of the command stacks."""
-        undo_contents = "\n".join(
+        undo_contents = "\n\n".join(
             str(command)
             for command in reversed(self._undo_stack)   #reversed order so newest command is at the top
         ) or "empty"
 
-        redo_contents = "\n".join(
+        redo_contents = "\n\n".join(
             str(command)
             for command in reversed(self._redo_stack)
         ) or "empty"

@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 
 from model import BaseWidget
+from utility import format_mapping
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -45,9 +46,17 @@ class DeleteWidgets(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[DeleteWidgets]"
-        s += f"\n\twidget IDs:\t\t\t{self._widget_ids}"
-        s += f"\n\twidget data:"
+        lines = [
+            "[DeleteWidgets]"
+        ]
+
         for widget_data in self._snapshot:
-            s += f"\n\t\t{widget_data}"
-        return s
+            widget_data = widget_data.copy()    #prevents mutating the snapshot
+            widget_id = widget_data.pop("id")
+            lines.append(
+                format_mapping(
+                    label=widget_id,
+                    mapping=widget_data
+                )
+            )
+        return "\n".join(lines)

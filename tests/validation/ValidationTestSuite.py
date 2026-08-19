@@ -89,7 +89,7 @@ def _create_valid_project_data(**overrides) -> dict[str, object]:
 
 def _create_valid_widget_data(**overrides) -> dict[str, object]:
     widget_data = {
-        "type": "Label",
+        "type": "label",
         "id": "ID",
         "x": 100,
         "y": 100,

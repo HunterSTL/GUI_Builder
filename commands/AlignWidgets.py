@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
 from model import BaseWidget
-from utility import Edge, BoundingBox, clamped_delta
+from utility import Edge, BoundingBox, clamped_delta, format_field, format_mapping_changes
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -91,10 +91,20 @@ class AlignWidgets(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[AlignWidgets]"
-        s += f"\n\twidget IDs:\t\t\t{self._widget_ids}"
-        s += f"\n\treference widget ID:\t{self._reference_widget_id}"
-        s += f"\n\tedge:\t\t\t\t{self._edge}"
-        s += f"\n\toriginal positions:\t{self._original_positions}"
-        s += f"\n\tfinal positions:\t{self._final_positions}"
-        return s
+        reference = self._edge.value + " edge of " + self._reference_widget_id
+        reference_coordinate = "x" if self._edge.value in {"left", "right"} else "y"
+        reference_value = getattr(self._reference_widget_bbox, self._edge.value)
+
+        lines = [
+            "[AlignWidgets]",
+            format_field(
+                label="reference",
+                value=f"{reference} [{reference_coordinate}={reference_value}]"
+            ),
+            format_mapping_changes(
+                label="positions",
+                before_mapping=self._original_positions,
+                after_mapping=self._final_positions
+            )
+        ]
+        return "\n".join(lines)

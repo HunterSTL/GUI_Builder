@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 
 from model import BaseWidget
+from utility import format_mapping_changes
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -87,8 +88,12 @@ class DragWidgets(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[DragWidgets]"
-        s += f"\n\twidget IDs:\t\t\t{self._widget_ids}"
-        s += f"\n\toriginal positions:\t{self._original_positions}"
-        s += f"\n\tfinal positions:\t{self._final_positions}"
-        return s
+        lines = [
+            "[DragWidgets]",
+            format_mapping_changes(
+                label="positions",
+                before_mapping=self._original_positions,
+                after_mapping=self._final_positions
+            )
+        ]
+        return "\n".join(lines)

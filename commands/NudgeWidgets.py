@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 
 from model import BaseWidget
+from utility import format_field
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -53,7 +54,15 @@ class NudgeWidgets(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[NudgeWidgets]"
-        s += f"\n\twidget IDs:\t\t\t{self._widget_ids}"
-        s += f"\n\tdx|dy:\t\t\t\t{self._dx}|{self._dy}"
-        return s
+        lines = [
+            "[NudgeWidgets]",
+            format_field(
+                label="ids",
+                value=self._widget_ids
+            ),
+            format_field(
+                label="delta",
+                value=f"({self._dx}, {self._dy})"
+            )
+        ]
+        return "\n".join(lines)

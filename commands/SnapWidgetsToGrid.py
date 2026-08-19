@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
 from model import BaseWidget
-from utility import allowed_x_range, allowed_y_range, nearest_in_bounds_grid_step
+from utility import allowed_x_range, allowed_y_range, nearest_in_bounds_grid_step, format_mapping_changes
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -63,8 +63,12 @@ class SnapWidgetsToGrid(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[SnapWidgetsToGrid]"
-        s += f"\n\twidget IDs:\t\t\t{self._widget_ids}"
-        s += f"\n\toriginal positions:\t{self._original_positions}"
-        s += f"\n\tfinal positions:\t{self._final_positions}"
-        return s
+        lines = [
+            "[SnapWidgetsToGrid]",
+            format_mapping_changes(
+                label="positions",
+                before_mapping=self._original_positions,
+                after_mapping=self._final_positions
+            )
+        ]
+        return "\n".join(lines)

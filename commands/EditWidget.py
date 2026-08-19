@@ -1,4 +1,5 @@
 from model import BaseWidget
+from utility import format_mapping_changes
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -84,8 +85,12 @@ class EditWidget(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[EditWidget]"
-        s += f"\n\twidget ID:\t\t\t{self._widget_id}"
-        s += f"\n\toriginal snapshot:\t{self._original_snapshot}"
-        s += f"\n\tfinal snapshot:\t{self._final_snapshot}"
-        return s
+        lines = [
+            "[EditWidget]",
+            format_mapping_changes(
+                label=self._original_snapshot["id"],
+                before_mapping=self._original_snapshot,
+                after_mapping=self._final_snapshot
+            )
+        ]
+        return "\n".join(lines)

@@ -1,7 +1,7 @@
 import copy
 
 from model import BaseWidget
-from utility import WidgetType, clamped_delta
+from utility import WidgetType, clamped_delta, format_field, format_mapping
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -12,16 +12,18 @@ class PasteWidgetsFromClipboard(Command):
     def __init__(
         self,
         clipboard: list[dict[str, str | int]],
-        dx: int,
-        dy: int,
+        requested_x_offset: int,
+        requested_y_offset: int,
         app_state: AppState
     ) -> None:
         self._clipboard: list[dict[str, str | int]] = copy.deepcopy(clipboard)
-        self._dx: int = dx
-        self._dy: int = dy
+        self._requested_x_offset: int = requested_x_offset
+        self._requested_y_offset: int = requested_y_offset
         self._app_state: AppState = app_state
 
         self._final_snapshot: list[dict[str, str | int]] | None = None  #populated on first execution to prevent mutating project state at construction (ID counters), reused on redo
+        self._clamped_x_offset: int | None = None
+        self._clamped_y_offset: int | None = None
 
     def _create_final_snapshot(
         self
@@ -42,18 +44,21 @@ class PasteWidgetsFromClipboard(Command):
             widget_data["id"] = widget_id   #clipboard data contains the source ID, but pasted widgets must receive new IDs
             created_widgets.append(BaseWidget.from_dict(widget_data))
 
-        x_offset, y_offset = clamped_delta(
+        clamped_x_offset, clamped_y_offset = clamped_delta(
             canvas_width=self._app_state.project.width,
             canvas_height=self._app_state.project.height,
             bounding_box=self._app_state.get_widget_group_bounding_box(created_widgets),
-            dx=self._dx,
-            dy=self._dy
+            dx=self._requested_x_offset,
+            dy=self._requested_y_offset
         )
+
+        self._clamped_x_offset = clamped_x_offset
+        self._clamped_y_offset = clamped_y_offset
 
         final_snapshot = []
         for widget in created_widgets:
-            widget.x += x_offset    #widgets can be safely edited because they are not yet owned by AppState
-            widget.y += y_offset
+            widget.x += clamped_x_offset    #widgets can be safely edited because they are not yet owned by AppState
+            widget.y += clamped_y_offset
             final_snapshot.append(widget.to_dict())
 
         return final_snapshot
@@ -92,12 +97,28 @@ class PasteWidgetsFromClipboard(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[PasteWidgetsFromClipboard]"
-        s += f"\n\tdx|dy:\t\t\t\t{self._dx}|{self._dy}"
+        lines = [
+            "[PasteWidgetsFromClipboard]",
+            format_field(
+                label="requested offset",
+                value=f"({self._requested_x_offset}, {self._requested_y_offset})"
+            ),
+            format_field(
+                label="clamped offset",
+                value=f"({self._clamped_x_offset}, {self._clamped_y_offset})"
+            )
+        ]
 
         if self._final_snapshot is None:
-            return s
+            return "\n".join(lines)
 
         for widget_data in self._final_snapshot:
-            s += f"\n\t{widget_data}"
-        return s
+            widget_data = widget_data.copy()    #prevents mutating the snapshot
+            widget_id = widget_data.pop("id")
+            lines.append(
+                format_mapping(
+                    label=widget_id,
+                    mapping=widget_data
+                )
+            )
+        return "\n".join(lines)

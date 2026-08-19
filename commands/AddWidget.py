@@ -1,4 +1,5 @@
 from model import BaseWidget
+from utility import format_mapping
 
 from AppState import AppState
 from .BaseCommand import Command
@@ -34,6 +35,13 @@ class AddWidget(Command):
         self
     ) -> str:
         """Return a debug representation of the command."""
-        s = "[AddWidget]"
-        s += f"\n\twidget data:\t\t{self._snapshot}"
-        return s
+        widget_data = self._snapshot.copy()     #prevents mutating the snapshot
+        widget_id = widget_data.pop("id")
+        lines = [
+            "[AddWidget]",
+            format_mapping(
+                label=widget_id,
+                mapping=widget_data
+            )
+        ]
+        return "\n".join(lines)
