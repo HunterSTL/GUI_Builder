@@ -40,7 +40,7 @@ class Designer:
         self.app_state.subscribe(self._on_changed_state)
 
         self._command_stack: CommandStack = CommandStack()
-        self._clipboard: list[dict[str, str | int | None]] = []
+        self._clipboard: list[dict[str, str | int]] = []
         self._grid_visible_variable: tk.BooleanVar = tk.BooleanVar(value=self.app_state.project.grid.visible)
         self._last_right_click_coordinates: tuple[int, int] | None = None
 

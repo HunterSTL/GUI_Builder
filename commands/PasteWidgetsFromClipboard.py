@@ -11,42 +11,36 @@ class PasteWidgetsFromClipboard(Command):
     """Encapsulates widget pasting as an undoable command."""
     def __init__(
         self,
-        clipboard: list[dict[str, str | int | None]],
+        clipboard: list[dict[str, str | int]],
         dx: int,
         dy: int,
         app_state: AppState
     ) -> None:
-        self._clipboard: list[dict[str, str | int | None]] = copy.deepcopy(clipboard)
+        self._clipboard: list[dict[str, str | int]] = copy.deepcopy(clipboard)
         self._dx: int = dx
         self._dy: int = dy
         self._app_state: AppState = app_state
 
-        self._first_execution: bool = True
-        self._pasted_ids: list[str] = []    #populated on first execution, reused on redo
+        self._final_snapshot: list[dict[str, str | int]] | None = None  #populated on first execution to prevent mutating project state at construction (ID counters), reused on redo
 
-    def execute(
+    def _create_final_snapshot(
         self
-    ) -> None:
+    ) -> list[dict[str, str | int]]:
         """
-        Create widgets from the snapshotted clipboard data,
+        Copy widget data from the clipboard,
+        replace the source ID with a newly created one,
+        create widgets from the widget data,
         clamp the requested paste offset to canvas bounds,
-        apply the offset, add the widgets to the project and select them.
+        apply the clamped offset and serialize the widgets into the final snapshot.
         """
         created_widgets: list[BaseWidget] = []
 
-        for i, clipboard_data in enumerate(self._clipboard):
+        for clipboard_data in self._clipboard:
             widget_data = clipboard_data.copy()
-
-            if self._first_execution:       #generates new IDs during the first execution
-                widget_type = WidgetType(widget_data["type"])
-                widget_id = self._app_state.project.id_counters.generate_id(widget_type)
-                self._pasted_ids.append(widget_id)
-            else:                           #reuses generated IDs during subsequent executions
-                widget_id = self._pasted_ids[i]
-
+            widget_type = WidgetType(widget_data["type"])
+            widget_id = self._app_state.project.id_counters.generate_id(widget_type)
             widget_data["id"] = widget_id   #clipboard data contains the source ID, but pasted widgets must receive new IDs
-            widget = BaseWidget.from_dict(widget_data)
-            created_widgets.append(widget)
+            created_widgets.append(BaseWidget.from_dict(widget_data))
 
         x_offset, y_offset = clamped_delta(
             canvas_width=self._app_state.project.width,
@@ -56,27 +50,42 @@ class PasteWidgetsFromClipboard(Command):
             dy=self._dy
         )
 
+        final_snapshot = []
         for widget in created_widgets:
             widget.x += x_offset    #widgets can be safely edited because they are not yet owned by AppState
             widget.y += y_offset
+            final_snapshot.append(widget.to_dict())
+
+        return final_snapshot
+
+    def execute(
+        self
+    ) -> None:
+        """
+        Create the final snapshot if it doesn't already exist,
+        then create widgets from the final snapshot,
+        add them to the project through AppState
+        and select all created widgets.
+        """
+        if self._final_snapshot is None:
+            self._final_snapshot = self._create_final_snapshot()
 
         with self._app_state.batch():
-            for widget in created_widgets:
+            for widget_data in self._final_snapshot:
+                widget = BaseWidget.from_dict(widget_data)
                 self._app_state.add_widget(widget)  #selects only the added widget
 
             self._app_state.selection_clear()
-            for widget in created_widgets:
-                self._app_state.selection_toggle(widget.id)
-
-        self._first_execution = False
+            for widget_data in self._final_snapshot:
+                self._app_state.selection_toggle(widget_data["id"])
 
     def undo(
         self
     ) -> None:
         """Remove previously created widgets from the project through AppState."""
         with self._app_state.batch():
-            for pasted_id in self._pasted_ids:
-                widget = self._app_state.get_widget_from_widget_id(pasted_id)
+            for widget_data in self._final_snapshot:
+                widget = self._app_state.get_widget_from_widget_id(widget_data["id"])
                 self._app_state.remove_widget(widget)
 
     def __repr__(
@@ -84,8 +93,11 @@ class PasteWidgetsFromClipboard(Command):
     ) -> str:
         """Return a debug representation of the command."""
         s = "[PasteWidgetsFromClipboard]"
-        for widget_data in self._clipboard:
-            s += f"\n\t{widget_data}"
         s += f"\n\tdx|dy:\t\t\t\t{self._dx}|{self._dy}"
-        s += f"\n\tpasted IDs:\t\t{self._pasted_ids}"
+
+        if self._final_snapshot is None:
+            return s
+
+        for widget_data in self._final_snapshot:
+            s += f"\n\t{widget_data}"
         return s

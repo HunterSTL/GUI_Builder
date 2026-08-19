@@ -11,13 +11,13 @@ class EditActions:
         self,
         app_state: AppState,
         command_stack: CommandStack,
-        clipboard: list[dict[str, str | int | None]],
+        clipboard: list[dict[str, str | int]],
         confirm_delete_callback: Callable[[int], bool],
         commit_active_attributes_panel_edit_callback: Callable[[], None]
     ) -> None:
         self._app_state: AppState = app_state
         self._command_stack: CommandStack = command_stack
-        self._clipboard: list[dict[str, str | int | None]] = clipboard   #shared clipboard owned by Designer
+        self._clipboard: list[dict[str, str | int]] = clipboard     #shared clipboard owned by Designer
         self._confirm_delete_callback: Callable[[int], bool] = confirm_delete_callback
         self._commit_active_attributes_panel_edit_callback: Callable[[], None] = commit_active_attributes_panel_edit_callback
 
