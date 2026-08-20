@@ -207,7 +207,7 @@ for model_id in model_ids:
 
 ---
 
-## 25. `CallTracer` uses `sys.setprofile` globally, which affects all threads
+## 25. [Done] `CallTracer` uses `sys.setprofile` globally, which affects all threads
 
 `CallTracer.enable()` calls `sys.setprofile(self._profiler)`. This sets the profiling function for the calling thread only (the main thread), which is correct. However, the `threading.local()` depth counter is per-thread, and if Tkinter ever calls anything on another thread, those calls will not be traced. More importantly, `sys.setprofile` is a global call — if any other library also uses `setprofile`, `CallTracer` will silently override it. This is a debug tool so the severity is low, but it's worth noting.
 

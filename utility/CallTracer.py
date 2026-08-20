@@ -1,62 +1,67 @@
-import logging, sys, threading
+import sys
+from types import FrameType
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s.%(msecs)03d  %(message)s",
-    datefmt="%H:%M:%S"
+_INDENTATION = "    "
+_TRACE_TARGETS = (
+    "actions",
+    "commands",
+    "components",
+    "controller",
+    "events",
+    "model",
+    "utility",
+    "view",
+    "AppController",
+    "AppState",
+    "Designer"
 )
 
-log = logging.getLogger("GUIBuilder")
+#terminal colors
+RED = "\033[31m"
+GREEN = "\033[32m"
+RESET = "\033[39m"
+
 
 class CallTracer:
-    def __init__(self):
-        self.enabled = False
-        self.local = threading.local()
+    def __init__(
+        self
+    ) -> None:
+        self._enabled: bool = False
+        self._depth: int = 0
 
-    def _ensure(self):
-        if not hasattr(self.local, "depth"):
-            self.local.depth = 0
+    def toggle(
+        self
+    ) -> None:
+        if self._enabled:
+            self._enabled = False
+            self._depth = 0
+            sys.setprofile(None)
+            print("CALL TRACING DISABLED")
+        else:
+            self._enabled = True
+            sys.setprofile(self._trace)
+            print("CALL TRACING ENABLED")
 
-    def _profiler(self, frame, event, arg):
-        if event not in ("call", "return"):
+    def _trace(
+        self,
+        frame: FrameType,
+        event: str,
+        _arg: object
+    ) -> None:
+        if event not in {"call", "return"}:
             return
 
-        mod = frame.f_globals.get("__name__", "")
-        if not mod.startswith(("Designer", "AppState", "view", "controller", "commands", "events", "actions")):
+        module = frame.f_globals.get("__name__", "")
+        if not module.startswith(_TRACE_TARGETS):
             return
 
-        self._ensure()
-        func = frame.f_code.co_name
+        function_name = frame.f_code.co_qualname
 
         if event == "call":
-            self.local.depth += 1
-            indent = "  " * (self.local.depth - 1)
-            log.info(f"{indent}→ {mod}.{func}")
-        else:
-            indent = "  " * (self.local.depth - 1)
-            log.info(f"{indent}← {mod}.{func}")
-            self.local.depth -= 1
-
-    def enable(self):
-        if not self.enabled:
-            sys.setprofile(self._profiler)
-            self.enabled = True
-            log.info("CALL TRACING ENABLED")
-
-    def disable(self):
-        if self.enabled:
-            sys.setprofile(None)
-            self.enabled = False
-            log.info("CALL TRACING DISABLED")
-
-    def toggle(self):
-        if self.enabled:
-            self.disable()
-        else:
-            self.enable()
-
-    def log_event(self, message):
-        if self.enabled:
-            log.info(message)
+            print(GREEN + f"→{_INDENTATION * self._depth}{function_name}" + RESET)
+            self._depth += 1
+        elif self._depth > 0:
+            self._depth -= 1
+            print(RED + f"←{_INDENTATION * self._depth}{function_name}" + RESET)
 
 call_tracer = CallTracer()
