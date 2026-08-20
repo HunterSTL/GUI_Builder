@@ -8,6 +8,7 @@ RED = "\033[31m"
 GREEN = "\033[32m"
 RESET = "\033[39m"
 
+
 @dataclass
 class ValidationTest:
     name: str
@@ -15,6 +16,7 @@ class ValidationTest:
     action: Callable[..., None]
     setup: Callable[[], dict[str, Any]] | None = None
     teardown: Callable[..., None] | None = None
+
 
 @dataclass
 class ValidationTestResult:
@@ -25,7 +27,7 @@ class ValidationTestResult:
 def run_validation_tests(
     tests: tuple[ValidationTest, ...]
 ) -> tuple[list[ValidationTestResult], int]:
-    """run all validation tests and return both a list of their results and the execution time in ms"""
+    """Run all validation tests and return both a list of their results and the execution time in ms."""
     start_time = perf_counter()
     test_results: list[ValidationTestResult] = []
 
@@ -67,7 +69,7 @@ def print_validation_test_results(
     test_results: list[ValidationTestResult],
     execution_time_ms: int
 ) -> None:
-    """format and print the results"""
+    """Format and print the results."""
     def separator() -> None:
         print("-" * 200)
 
