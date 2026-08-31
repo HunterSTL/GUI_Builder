@@ -3,11 +3,13 @@ VALID_ANCHORS = {"n", "ne", "e", "se", "s", "sw", "w", "nw", "center"}
 def is_non_empty_string(
     value: object
 ) -> bool:
+    """Return whether the given value is a non empty string."""
     return isinstance(value, str) and value != ""
 
 def is_valid_hex_color_code(
     value: object
 ) -> bool:
+    """Return whether the given value is a hexadecimal color code."""
     if not isinstance(value, str):
         return False
     if not len(value) == 7:
@@ -22,14 +24,17 @@ def is_valid_hex_color_code(
 def is_valid_integer(
     value: object
 ) -> bool:
+    """Return whether the given value is an integer."""
     return isinstance(value, int) and not isinstance(value, bool)
 
 def is_positive_integer(
     value: object
 ) -> bool:
+    """Return whether the given value is a positive integer."""
     return is_valid_integer(value) and value >= 1
 
 def is_valid_anchor(
     value: object
 ) -> bool:
+    """Return whether the given value is a valid anchor."""
     return isinstance(value, str) and value in VALID_ANCHORS

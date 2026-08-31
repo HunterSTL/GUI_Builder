@@ -17,12 +17,13 @@ _TRACE_TARGETS = (
 )
 
 #terminal colors
-RED = "\033[31m"
-GREEN = "\033[32m"
-RESET = "\033[39m"
+_RED = "\033[31m"
+_GREEN = "\033[32m"
+_RESET = "\033[39m"
 
 
 class CallTracer:
+    """Controls diagnostic tracing of calls within application modules."""
     def __init__(
         self
     ) -> None:
@@ -32,6 +33,7 @@ class CallTracer:
     def toggle(
         self
     ) -> None:
+        """Enable or disable call tracing and report the resulting state."""
         if self._enabled:
             self._enabled = False
             self._depth = 0
@@ -48,6 +50,7 @@ class CallTracer:
         event: str,
         _arg: object
     ) -> None:
+        """Print nested call and return events for configured application modules."""
         if event not in {"call", "return"}:
             return
 
@@ -58,10 +61,10 @@ class CallTracer:
         function_name = frame.f_code.co_qualname
 
         if event == "call":
-            print(GREEN + f"→{_INDENTATION * self._depth}{function_name}" + RESET)
+            print(_GREEN + f"→{_INDENTATION * self._depth}{function_name}" + _RESET)
             self._depth += 1
         elif self._depth > 0:
             self._depth -= 1
-            print(RED + f"←{_INDENTATION * self._depth}{function_name}" + RESET)
+            print(_RED + f"←{_INDENTATION * self._depth}{function_name}" + _RESET)
 
 call_tracer = CallTracer()

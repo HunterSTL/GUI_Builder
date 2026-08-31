@@ -2,9 +2,14 @@ import os
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from typing import Union
+from collections.abc import Callable
 
-def load_icon(path: str, size: tuple[int, int], parent: tk.Misc | None = None) -> ImageTk.PhotoImage | None:
+def load_icon(
+    path: str,
+    size: tuple[int, int],
+    parent: tk.Misc | None = None
+) -> ImageTk.PhotoImage | None:
+    """Load and resize an icon, displaying an error dialog if loading fails."""
     try:
         if path and os.path.exists(path):
             icon = Image.open(path).convert("RGBA")
@@ -18,90 +23,92 @@ def load_icon(path: str, size: tuple[int, int], parent: tk.Misc | None = None) -
         )
         return None
 
+
 class CustomTitlebar:
     def __init__(
         self,
-        parent: Union[tk.Tk, tk.Toplevel],
+        parent: tk.Tk | tk.Toplevel,
         title: str,
         height: int,
         bg_color: str,
         fg_color: str,
         icon_path: str | None,
-        on_close
-    ):
-        self.parent = parent
-        self.title = title
-        self.height = height
-        self.bg_color = bg_color
-        self.fg_color = fg_color
-        self.icon_path = icon_path
-        self.on_close = on_close
+        on_close: Callable[[], None]
+    ) -> None:
+        self._parent: tk.Tk | tk.Toplevel = parent
+        self._title: str = title
+        self._height: int = height
+        self._bg_color: str = bg_color
+        self._fg_color: str = fg_color
+        self._icon_path: str | None = icon_path
+        self._on_close: Callable[[], None] = on_close
 
-        self.drag_start_x = None
-        self.drag_start_y = None
-        self.window_x = None
-        self.window_y = None
+        self._parent.overrideredirect(True)
 
-        #create frame
-        self.parent.overrideredirect(True)
-        self.frame = tk.Frame(
-            self.parent,
-            height=self.height,
-            bg=self.bg_color
+        self._drag_anchor_x: int | None = None
+        self._drag_anchor_y: int | None = None
+        self._window_x: int | None = None
+        self._window_y: int | None = None
+
+        self._frame: tk.Frame = tk.Frame(
+            self._parent,
+            height=self._height,
+            bg=self._bg_color
         )
-        self.frame.pack_propagate(False)    #ensures height is respected
+        self._frame.pack_propagate(False)    #ensures height is respected
+        self._frame.bind("<Button-1>", self._start_move)
+        self._frame.bind("<B1-Motion>", self._do_move)
 
-        #bind drag handlers
-        self.frame.bind("<Button-1>", self._start_move)
-        self.frame.bind("<B1-Motion>", self._do_move)
-
-        #add icon
-        if icon_path:
-            self.icon = load_icon(
+        if self._icon_path:
+            icon = load_icon(
                 path=icon_path,
                 size=(20, 20),
-                parent=self.parent
+                parent=self._parent
             )
 
-            if self.icon:
-                self.icon_label = tk.Label(
-                    self.frame,
-                    image=self.icon,
-                    bg=self.bg_color
+            if icon:
+                self._icon_label = tk.Label(
+                    self._frame,
+                    image=icon,
+                    bg=self._bg_color
                 )
-                self.icon_label.pack(side="left", padx=2, pady=2)
-                self.icon_label.bind("<Button-1>", self._start_move)
-                self.icon_label.bind("<B1-Motion>", self._do_move)
+                self._icon_label.pack(side="left", padx=2, pady=2)
+                self._icon_label.bind("<Button-1>", self._start_move)
+                self._icon_label.bind("<B1-Motion>", self._do_move)
 
-        #add text
-        self.label = tk.Label(
-            self.frame,
-            text=self.title,
-            bg=self.bg_color,
-            fg=self.fg_color
+        self._label: tk.Label = tk.Label(
+            self._frame,
+            text=self._title,
+            bg=self._bg_color,
+            fg=self._fg_color
         )
-        self.label.pack(side="left")
-        self.label.bind("<Button-1>", self._start_move)
-        self.label.bind("<B1-Motion>", self._do_move)
+        self._label.pack(side="left")
+        self._label.bind("<Button-1>", self._start_move)
+        self._label.bind("<B1-Motion>", self._do_move)
 
-        #add close button
-        self.close_button = tk.Button(
-            self.frame,
+        self._close_button: tk.Button = tk.Button(
+            self._frame,
             text=" X ",
-            bg=self.bg_color,
-            fg=self.fg_color,
+            bg=self._bg_color,
+            fg=self._fg_color,
             relief="flat",
-            command=self.on_close
+            command=self._on_close
         )
-        self.close_button.pack(side="right")
+        self._close_button.pack(side="right")
 
-    def _start_move(self, event):
-        """store the initial mouse position relative to the titlebar as the drag anchor"""
-        self.drag_anchor_x = event.x
-        self.drag_anchor_y = event.y
+    def _start_move(
+        self,
+        tk_event: tk.Event
+    ) -> None:
+        """Store the initial mouse position relative to the titlebar as the drag anchor."""
+        self._drag_anchor_x = tk_event.x
+        self._drag_anchor_y = tk_event.y
 
-    def _do_move(self, event):
-        """move the window by the widget-relative mouse movement since drag start"""
-        dx = event.x - self.drag_anchor_x
-        dy = event.y - self.drag_anchor_y
-        self.parent.geometry(f"+{self.parent.winfo_x() + dx}+{self.parent.winfo_y() + dy}")
+    def _do_move(
+        self,
+        tk_event: tk.Event
+    ) -> None:
+        """Move the window by the widget relative mouse movement since drag start."""
+        dx = tk_event.x - self._drag_anchor_x
+        dy = tk_event.y - self._drag_anchor_y
+        self._parent.geometry(f"+{self._parent.winfo_x() + dx}+{self._parent.winfo_y() + dy}")

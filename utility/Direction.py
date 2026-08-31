@@ -1,9 +1,8 @@
 from enum import Enum
 
+
 class Direction(Enum):
-    """
-    Represents a movement direction used for nudging widgets.
-    """
+    """Represents a movement direction used for nudging widgets."""
     LEFT = (-1, 0)
     RIGHT = (1, 0)
     UP = (0, -1)
@@ -11,8 +10,10 @@ class Direction(Enum):
 
     @property
     def dx(self) -> int:
+        """Return the horizontal component of the direction."""
         return self.value[0]
 
     @property
     def dy(self) -> int:
+        """Return the vertical component of the direction."""
         return self.value[1]
