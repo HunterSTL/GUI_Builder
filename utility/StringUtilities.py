@@ -7,6 +7,7 @@ def format_field(
     label_column_width: int = _DEFAULT_LABEL_COLUMN_WIDTH,
     indentation: str = _DEFAULT_INDENTATION
 ) -> str:
+    """Format a labeled value with horizontal alignment."""
     if isinstance(value, list):
         value = ", ".join(value)
     return f"{indentation}{label + ':':<{label_column_width - len(indentation)}}{value}"
@@ -17,6 +18,7 @@ def format_mapping(
     label_column_width: int = _DEFAULT_LABEL_COLUMN_WIDTH,
     indentation: str = _DEFAULT_INDENTATION
 ) -> str:
+    """Format a labeled mapping with horizontal alignment."""
     child_indentation = indentation * 2
     lines = []
 
@@ -33,6 +35,7 @@ def format_mapping_changes(
     label_column_width: int = _DEFAULT_LABEL_COLUMN_WIDTH,
     indentation: str = _DEFAULT_INDENTATION
 ) -> str:
+    """Format labeled mapping changes with horizontal alignment, omitting values that remained equal."""
     child_indentation = indentation * 2
     lines = []
 

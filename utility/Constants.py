@@ -23,6 +23,7 @@ class SelectionConstants(TypedDict):
 
 
 class GridConstants(TypedDict):
+    """Defines the default and allowed grid sizes."""
     default_size: int
     min_size: int
     max_size: int
