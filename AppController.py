@@ -5,7 +5,7 @@ from tkinter import messagebox, filedialog
 
 from events import EventBus
 from model import ProjectDocument
-from utility import screen_offset_to_center_window, CustomTitlebar, atomic_write_json, CONSTANTS
+from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, atomic_write_json
 
 from Designer import Designer
 from SetupWizard import SetupWizard
@@ -36,41 +36,33 @@ class AppController:
 
         self._build_startup_ui()
 
-    def _center_window(
-        self
-    ) -> None:
-        """Center the startup window on the screen."""
-        self._root.update_idletasks()
-        x_offset, y_offset = screen_offset_to_center_window(
-            self._root.winfo_screenwidth(),
-            self._root.winfo_screenheight(),
-            self._root.winfo_width(),
-            self._root.winfo_height()
-        )
-        self._root.geometry(f"+{x_offset}+{y_offset}")
+        self._root.title("Startup")
+        self._root.config(bg=self._program_theme["background"]["color"])
+        self._root.wm_protocol("WM_DELETE_WINDOW", self._exit_app)
+
+        force_dark_title_bar(window=self._root)
+        set_title_bar_icon(window=self._root, path="icon.ico")
+        set_minimum_window_size_from_ui(window=self._root, padding=50)
+        center_window(window=self._root)
+
+        self._root.deiconify()
 
     def _build_startup_ui(
         self
     ) -> None:
         """Build the startup UI with [New], [Open] and [Exit] buttons."""
-        self._root.config(bg=self._program_theme["background"]["color"])
-        self._root.wm_minsize(200, 100)
-
-        titlebar = CustomTitlebar(
-            parent=self._root,
-            title="Tkinter GUI Builder – Startup",
-            height=CONSTANTS["titlebar_height"],
-            bg_color=self._program_theme["titlebar"]["bg"],
-            fg_color=self._program_theme["titlebar"]["fg"],
-            icon_path=None,
-            on_close=self._exit_app
+        centered_frame = tk.Frame(
+            master=self._root,
+            bg=self._program_theme["background"]["color"]
         )
-        titlebar.frame.pack(fill="x")
+        centered_frame.grid(row=0, column=0)
+        self._root.columnconfigure(0, weight=1)
+        self._root.rowconfigure(0, weight=1)
 
         button_open_project = tk.Button(
-            self._root,
+            centered_frame,
             text="Open project",
-            width=10,
+            width=30,
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
             command=self._open_project
@@ -78,26 +70,24 @@ class AppController:
         button_open_project.pack()
 
         button_new_project = tk.Button(
-            self._root,
+            centered_frame,
             text="New project",
-            width=10,
+            width=30,
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
             command=self._new_project
         )
-        button_new_project.pack()
+        button_new_project.pack(pady=10)
 
         button_exit = tk.Button(
-            self._root,
+            centered_frame,
             text="Exit",
-            width=10,
+            width=30,
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
             command=self._exit_app
         )
         button_exit.pack()
-
-        self._center_window()
 
     def _copy_user_theme(
         self

@@ -1,7 +1,5 @@
 #initial values for user theme (can be changed in setup wizard)
 user_BACKGROUND_COLOR = "#404040"
-user_TITLEBAR_COLOR = "#202020"
-user_TITLEBAR_TEXT_COLOR = "#FFFFFF"
 user_LABEL_COLOR = "#404040"
 user_LABEL_TEXT_COLOR = "#FFFFFF"
 user_ENTRY_COLOR = "#606060"
@@ -12,10 +10,6 @@ user_BUTTON_TEXT_COLOR = "#FFFFFF"
 USER_THEME = {
     "background": {
         "color": user_BACKGROUND_COLOR
-    },
-    "titlebar": {
-        "bg": user_TITLEBAR_COLOR,
-        "fg": user_TITLEBAR_TEXT_COLOR
     },
     "label": {
         "bg": user_LABEL_COLOR,
@@ -33,8 +27,6 @@ USER_THEME = {
 
 #theme for program theme (static)
 program_BACKGROUND_COLOR = "#404040"
-program_TITLEBAR_COLOR = "#202020"
-program_TITLEBAR_TEXT_COLOR = "#FFFFFF"
 program_TOOLBAR_COLOR = "#666666"
 program_TOOLBAR_TEXT_COLOR = "#FFFFFF"
 program_MENU_COLOR = "#666666"
@@ -59,10 +51,6 @@ program_SCROLLBAR_BORDER_COLOR = "#000000"
 PROGRAM_THEME = {
     "background": {
         "color": program_BACKGROUND_COLOR
-    },
-    "titlebar": {
-        "bg": program_TITLEBAR_COLOR,
-        "fg": program_TITLEBAR_TEXT_COLOR
     },
     "toolbar": {
         "bg": program_TOOLBAR_COLOR,

@@ -1,5 +1,6 @@
 import os
 import json
+from PIL import Image, ImageTk
 
 _TEMP_FILE_EXTENSION = ".tmp"
 
@@ -22,3 +23,17 @@ def atomic_write_json(
             except OSError:
                 pass
         raise
+
+def load_icon(
+    path: str,
+    size: tuple[int, int]
+) -> ImageTk.PhotoImage | None:
+    """Return a resized photo image of the icon at the given path, or None if loading fails."""
+    try:
+        if path and os.path.exists(path):
+            icon = Image.open(path)
+            icon = icon.convert("RGBA")
+            icon = icon.resize(size, Image.Resampling.LANCZOS)
+            return ImageTk.PhotoImage(icon)
+    except Exception:
+        return None

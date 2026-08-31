@@ -7,7 +7,7 @@ from components import AttributesPanel
 from controller import CanvasController, ToolbarController
 from events import EventBus, EventRouter
 from model import ProjectDocument
-from utility import call_tracer, clamp, screen_offset_to_center_window, CustomTitlebar, WidgetType, CONSTANTS
+from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, call_tracer, WidgetType, CONSTANTS
 from view import CanvasView, SelectionView, ToolbarView, WidgetView
 
 from AppState import AppState
@@ -22,7 +22,6 @@ class Designer:
         program_theme: dict[str, dict[str, str]],
         app_event_bus: EventBus
     ) -> None:
-        self._parent: tk.Tk = parent
         self._program_theme: dict[str, dict[str, str]] = program_theme
 
         #Event system---------------------------------------------------------------------------------------------------
@@ -45,8 +44,15 @@ class Designer:
         self._last_right_click_coordinates: tuple[int, int] | None = None
 
         #UI construction------------------------------------------------------------------------------------------------
+        self.top: tk.Toplevel = tk.Toplevel(parent)
+        self.top.withdraw()     #prevents flashing from applying the dark title bar by starting out withdrawn
+
         self._build_designer_ui()
         self._create_context_menu()
+
+        self.top.title(self.app_state.project.title)
+        self.top.config(bg=self._program_theme["background"]["color"])
+        self.top.wm_protocol("WM_DELETE_WINDOW", lambda: self._event_router.emit("app.exit"))
 
         #Views----------------------------------------------------------------------------------------------------------
         self._canvas_view: CanvasView = CanvasView(
@@ -128,28 +134,17 @@ class Designer:
         #Startup--------------------------------------------------------------------------------------------------------
         self._initial_render()
 
+        force_dark_title_bar(window=self.top)
+        set_title_bar_icon(window=self.top, path=self.app_state.project.icon_path)
+        set_minimum_window_size_from_ui(window=self.top)
+        center_window(window=self.top)
+
+        self.top.deiconify()
+
     def _build_designer_ui(
         self
     ) -> None:
         """Construct the designer UI layout and its components."""
-        self.top: tk.Toplevel = tk.Toplevel(self._parent)
-        self.top.wm_minsize(
-            CONSTANTS["window"]["min_width"],
-            CONSTANTS["window"]["min_height"]
-        )
-
-        titlebar = CustomTitlebar(
-            parent=self.top,
-            title=self.app_state.project.title,
-            height=CONSTANTS["titlebar_height"],
-            bg_color=self._program_theme["titlebar"]["bg"],
-            fg_color=self._program_theme["titlebar"]["fg"],
-            icon_path=self.app_state.project.icon_path,
-            on_close=lambda: self._event_router.emit("app.exit")
-        )
-        titlebar.frame.pack(fill="x")
-        self._titlebar_label: tk.Label = titlebar.label
-
         self._main_frame: tk.Frame = tk.Frame(           #hosts work area (column 0) and attributes panel (column 1)
             self.top,
             bg=self.app_state.project.theme["background"]["color"]
@@ -209,53 +204,31 @@ class Designer:
         self.top.geometry(f"{window_width}x{window_height}")
 
         self._viewer.bind("<Configure>", lambda e: self._refresh_scrollbars())
-        self._center_window()
 
     def _compute_initial_window_dimensions(
         self
     ) -> tuple[int, int]:
         """Compute initial designer window size based on canvas and constraints."""
-        self.top.update_idletasks()     #ensures geometry is up-to-date
+        self.top.update_idletasks()
+        requested_viewport_width = self.app_state.project.width
+        requested_viewport_height = self.app_state.project.height
 
-        requested_canvas_width = self.app_state.project.width
-        requested_canvas_height = self.app_state.project.height
+        maximum_viewport_width = CONSTANTS["viewport"]["max_width"]
+        maximum_viewport_height = CONSTANTS["viewport"]["max_height"]
 
-        panel_width = CONSTANTS["attributes_panel_width"]
-        titlebar_height = CONSTANTS["titlebar_height"]
-        toolbar_height = CONSTANTS["toolbar_height"]
+        viewport_width = min(requested_viewport_width, maximum_viewport_width)
+        viewport_height = min(requested_viewport_height, maximum_viewport_height)
 
-        vertical_scrollbar_thickness = self._vertical_scrollbar.winfo_reqwidth()
-        horizontal_scrollbar_thickness = self._horizontal_scrollbar.winfo_reqheight()
+        required_window_width = viewport_width + CONSTANTS["attributes_panel_width"]
+        required_window_height = viewport_height + CONSTANTS["toolbar_height"]
 
-        minimum_window_width = CONSTANTS["window"]["min_width"]
-        maximum_window_width = CONSTANTS["window"]["max_width"]
-        minimum_window_height = CONSTANTS["window"]["min_height"]
-        maximum_window_height = CONSTANTS["window"]["max_height"]
+        if requested_viewport_width > maximum_viewport_width:
+            required_window_height += self._horizontal_scrollbar.winfo_reqheight()
 
-        required_window_width = requested_canvas_width + panel_width
-        required_window_height = requested_canvas_height + toolbar_height + titlebar_height
-        actual_window_width = clamp(required_window_width, minimum_window_width, maximum_window_width)
-        actual_window_height = clamp(required_window_height, minimum_window_height, maximum_window_height)
+        if requested_viewport_height > maximum_viewport_height:
+            required_window_width += self._vertical_scrollbar.winfo_reqwidth()
 
-        viewport_width = max(0, actual_window_width - panel_width)
-        viewport_height = max(0, actual_window_height - (toolbar_height + titlebar_height))
-        need_horizontal_scrollbar = requested_canvas_width > viewport_width
-        need_vertical_scrollbar = requested_canvas_height > viewport_height
-
-        window_width_new, window_height_new = actual_window_width, actual_window_height
-
-        for _ in range(2):  #one scrollbar can make the other one necessary
-            if need_vertical_scrollbar:
-                window_width_new = clamp(actual_window_width + vertical_scrollbar_thickness, minimum_window_width, maximum_window_width)
-                viewport_width = max(0, window_width_new - panel_width)
-                need_horizontal_scrollbar = requested_canvas_width > viewport_width
-
-            if need_horizontal_scrollbar:
-                window_height_new = clamp(actual_window_height + horizontal_scrollbar_thickness, minimum_window_height, maximum_window_height)
-                viewport_height = max(0, window_height_new - (toolbar_height + titlebar_height))
-                need_vertical_scrollbar = requested_canvas_height > viewport_height
-
-        return window_width_new, window_height_new
+        return required_window_width, required_window_height
 
     def _configure_scrollbar_style(
         self
@@ -338,19 +311,6 @@ class Designer:
         tk_widget.bind("<MouseWheel>", lambda e: self._viewer.yview_scroll(-1 * int(e.delta / 120), "units"))
         tk_widget.bind("<Shift-MouseWheel>", lambda e: self._viewer.xview_scroll(-1 * int(e.delta / 120), "units"))
 
-    def _center_window(
-        self
-    ) -> None:
-        """Center the designer window on screen."""
-        self.top.update_idletasks()
-        x_offset, y_offset = screen_offset_to_center_window(
-            self.top.winfo_screenwidth(),
-            self.top.winfo_screenheight(),
-            self.top.winfo_width(),
-            self.top.winfo_height()
-        )
-        self.top.geometry(f"+{x_offset}+{y_offset}")
-
     #Rendering----------------------------------------------------------------------------------------------------------
     def _on_changed_state(
         self,
@@ -358,9 +318,9 @@ class Designer:
     ) -> None:
         """Render incremental UI updates from AppState state change notification."""
         if state.is_dirty():
-            self._titlebar_label.configure(text=self.app_state.project.title + "*")
+            self.top.title(self.app_state.project.title + "*")
         else:
-            self._titlebar_label.configure(text=self.app_state.project.title)
+            self.top.title(self.app_state.project.title)
 
         #delete Tk widgets and outlines for removed widgets
         for widget_id in state.get_removed_widget_ids():
