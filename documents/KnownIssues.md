@@ -134,7 +134,7 @@ For any attribute that doesn't match the four branches, the method returns `None
 
 ---
 
-## 16. `CustomTitlebar._do_move` uses widget-relative coordinates, causing jitter during drag
+## 16. [Done] `CustomTitlebar._do_move` uses widget-relative coordinates, causing jitter during drag
 
 ```python
 def _do_move(self, event):

@@ -33,20 +33,11 @@ WIDGET_HEIGHT = 20
 
 #Lifecycle management---------------------------------------------------------------------------------------------------
 def _setup_designer() -> dict[str, Designer]:
-    def _init_and_withdraw(
-        self: tk.Toplevel,
-        *args,
-        **kwargs
-    ):
-        original_init(self, *args, **kwargs)
-        self.withdraw()
-
     root = tk.Tk()
     root.withdraw()
 
-    #withdraw Toplevel after __init__ to prevent the window from showing up during tests
-    original_init = tk.Toplevel.__init__
-    tk.Toplevel.__init__ = _init_and_withdraw
+    original_deiconify = tk.Toplevel.deiconify
+    tk.Toplevel.deiconify = lambda self: None   #temporarily deactivates Toplevel.deiconify to prevent the designer window from showing during tests
 
     try:
         designer = Designer(
@@ -59,7 +50,7 @@ def _setup_designer() -> dict[str, Designer]:
         root.destroy()
         raise
     finally:
-        tk.Toplevel.__init__ = original_init
+        tk.Toplevel.deiconify = original_deiconify
 
     return {
         "designer": designer
@@ -68,7 +59,7 @@ def _setup_designer() -> dict[str, Designer]:
 def _teardown_designer(
     designer: Designer
 ) -> None:
-    root = designer._parent
+    root = designer.top.master
     root.destroy()
 
 #Helpers----------------------------------------------------------------------------------------------------------------

@@ -1,6 +1,12 @@
 from typing import TypedDict
 
 
+class ViewportConstants(TypedDict):
+    """Defines maximum viewport dimensions."""
+    max_width: int
+    max_height: int
+
+
 class DimensionConstants(TypedDict):
     """Defines minimum and maximum dimensions."""
     min_width: int
@@ -31,12 +37,11 @@ class GridConstants(TypedDict):
 
 class ApplicationConstants(TypedDict):
     """Defines the structure of application constants."""
-    window: DimensionConstants
+    viewport: ViewportConstants
     canvas: DimensionConstants
     nudge: NudgeConstants
     selection: SelectionConstants
     grid: GridConstants
-    titlebar_height: int
     toolbar_height: int
     attributes_panel_width: int
     ctrl_key: int
@@ -44,9 +49,7 @@ class ApplicationConstants(TypedDict):
 
 
 CONSTANTS: ApplicationConstants = {
-    "window": {
-        "min_width": 600,
-        "min_height": 400,
+    "viewport": {
         "max_width": 1200,
         "max_height": 800
     },
@@ -70,7 +73,6 @@ CONSTANTS: ApplicationConstants = {
         "min_size": 5,
         "max_size": 100
     },
-    "titlebar_height": 25,
     "toolbar_height": 25,
     "attributes_panel_width": 200,
     "ctrl_key": 0x0004,

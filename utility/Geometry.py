@@ -65,15 +65,6 @@ def clamped_delta(
     max_dx, max_dy = canvas_width - x1, canvas_height - y1
     return clamp(dx, min_dx, max_dx), clamp(dy, min_dy, max_dy)
 
-def screen_offset_to_center_window(
-    screen_width: int,
-    screen_height: int,
-    window_width: int,
-    window_height: int
-) -> tuple[int, int]:
-    """Return the X and Y offset needed to center the window on the screen."""
-    return (screen_width // 2) - (window_width // 2), (screen_height // 2) - (window_height // 2)
-
 def nearest_in_bounds_grid_step(
     value: int,
     grid_size: int,
