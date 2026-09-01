@@ -146,7 +146,7 @@ def _do_move(self, event):
 
 ---
 
-## 17. `CanvasView.render_grid` is O(n) deletion via ID list, not tag-based
+## 17. [Done] `CanvasView.render_grid` is O(n) deletion via ID list, not tag-based
 
 Grid lines are deleted by iterating `self.grid_lines` list individually. If the canvas has many items, this is slower than `self.canvas.delete("grid_tag")`. More importantly, if the canvas is recreated (full render), the `grid_lines` list is not cleared, so subsequent `_clear_grid` calls try to delete stale IDs that no longer exist (which Tk silently ignores, but the list grows without bound if grid is toggled many times on large canvases).
 
