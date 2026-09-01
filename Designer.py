@@ -57,8 +57,8 @@ class Designer:
         #Views----------------------------------------------------------------------------------------------------------
         self._canvas_view: CanvasView = CanvasView(
             parent=self._viewer,
-            canvas_width=self.app_state.project.width,
-            canvas_height=self.app_state.project.height,
+            width=self.app_state.project.width,
+            height=self.app_state.project.height,
             background_color=self.app_state.project.theme["background"]["color"],
             boundary_color=self._program_theme["selection"]["color"]
         )
@@ -350,12 +350,12 @@ class Designer:
                     is_last_selected=widget.id == self.app_state.get_last_selected_widget_id()
                 )
 
-        #render grid
+        #synchronize grid
         if state.grid_change:
-            self._canvas_view.render_grid(
-                grid_size=self.app_state.project.grid.size,
-                grid_color=self.app_state.project.grid.color,
-                grid_visible=self.app_state.project.grid.visible
+            self._canvas_view.sync_grid(
+                size=self.app_state.project.grid.size,
+                color=self.app_state.project.grid.color,
+                visible=self.app_state.project.grid.visible
             )
 
         #refresh attributes panel if the single selected widget changed
@@ -373,10 +373,10 @@ class Designer:
         for widget in self.app_state.get_all_widgets():
             self._widget_view.render_tk_widget_for(widget)
 
-        self._canvas_view.render_grid(
-            grid_size=self.app_state.project.grid.size,
-            grid_color=self.app_state.project.grid.color,
-            grid_visible=self.app_state.project.grid.visible
+        self._canvas_view.sync_grid(
+            size=self.app_state.project.grid.size,
+            color=self.app_state.project.grid.color,
+            visible=self.app_state.project.grid.visible
         )
 
     #Grid actions-------------------------------------------------------------------------------------------------------
