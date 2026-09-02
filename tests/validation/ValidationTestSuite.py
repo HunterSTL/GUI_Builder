@@ -9,21 +9,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))    #adds GUI_Builde
 from commands import DragWidgets, EditWidget
 from events import EventBus
 from model import GridConfig, IdCounters, ProjectDocument, LabelWidget, BaseWidget
-from utility import WidgetType, Geometry, CONSTANTS
+from utility import WidgetType, Geometry
+from utility.Constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT, GRID_MIN_SIZE, GRID_MAX_SIZE
 
 from AppState import AppState
 from Designer import Designer
 from Theme import USER_THEME, PROGRAM_THEME
 
 FIRST_CANVAS_ITEM_ID = 2
-
-MINIMUM_CANVAS_WIDTH = CONSTANTS["canvas"]["min_width"]
-MINIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["min_height"]
-MAXIMUM_CANVAS_WIDTH = CONSTANTS["canvas"]["max_width"]
-MAXIMUM_CANVAS_HEIGHT = CONSTANTS["canvas"]["max_height"]
-
-MINIMUM_GRID_SIZE = CONSTANTS["grid"]["min_size"]
-MAXIMUM_GRID_SIZE = CONSTANTS["grid"]["max_size"]
 
 CANVAS_WIDTH = 800
 CANVAS_HEIGHT = 600
@@ -426,11 +419,11 @@ def _action_deserialize_project_data_with_invalid_height() -> None:
     ProjectDocument.from_json(project_data)
 
 def _action_deserialize_project_data_with_width_outside_allowed_range() -> None:
-    project_data = _create_valid_project_data(width=MAXIMUM_CANVAS_WIDTH + 1)
+    project_data = _create_valid_project_data(width=CANVAS_MAX_WIDTH + 1)
     ProjectDocument.from_json(project_data)
 
 def _action_deserialize_project_data_with_height_outside_allowed_range() -> None:
-    project_data = _create_valid_project_data(height=MAXIMUM_CANVAS_HEIGHT + 1)
+    project_data = _create_valid_project_data(height=CANVAS_MAX_HEIGHT + 1)
     ProjectDocument.from_json(project_data)
 
 def _action_deserialize_project_data_with_invalid_icon_path() -> None:
@@ -779,7 +772,7 @@ VALIDATION_TESTS = (
     ),
     ValidationTest(
         name="Deserializing grid data with size outside allowed range",
-        expected_error_message=f"GridConfig - grid data deserialization failed: size outside allowed range [expected {MINIMUM_GRID_SIZE} - {MAXIMUM_GRID_SIZE}, got 1]",
+        expected_error_message=f"GridConfig - grid data deserialization failed: size outside allowed range [expected {GRID_MIN_SIZE} - {GRID_MAX_SIZE}, got 1]",
         action=_action_deserialize_grid_data_with_size_outside_allowed_range
     ),
     ValidationTest(
@@ -869,12 +862,12 @@ VALIDATION_TESTS = (
     ),
     ValidationTest(
         name="Deserializing project data with width outside allowed range",
-        expected_error_message=f"ProjectDocument - project data deserialization failed: width outside allowed range [expected {MINIMUM_CANVAS_WIDTH} - {MAXIMUM_CANVAS_WIDTH}, got {MAXIMUM_CANVAS_WIDTH + 1}]",
+        expected_error_message=f"ProjectDocument - project data deserialization failed: width outside allowed range [expected {CANVAS_MIN_WIDTH} - {CANVAS_MAX_WIDTH}, got {CANVAS_MAX_WIDTH + 1}]",
         action=_action_deserialize_project_data_with_width_outside_allowed_range
     ),
     ValidationTest(
         name="Deserializing project data with height outside allowed range",
-        expected_error_message=f"ProjectDocument - project data deserialization failed: height outside allowed range [expected {MINIMUM_CANVAS_HEIGHT} - {MAXIMUM_CANVAS_HEIGHT}, got {MAXIMUM_CANVAS_HEIGHT + 1}]",
+        expected_error_message=f"ProjectDocument - project data deserialization failed: height outside allowed range [expected {CANVAS_MIN_HEIGHT} - {CANVAS_MAX_HEIGHT}, got {CANVAS_MAX_HEIGHT + 1}]",
         action=_action_deserialize_project_data_with_height_outside_allowed_range
     ),
     ValidationTest(

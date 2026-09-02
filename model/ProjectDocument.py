@@ -4,7 +4,8 @@ from .GridConfig import GridConfig
 from .IdCounters import IdCounters
 from .Widgets import BaseWidget
 
-from utility import CONSTANTS, allowed_x_range, allowed_y_range, is_positive_integer, is_non_empty_string
+from utility import allowed_x_range, allowed_y_range, is_positive_integer, is_non_empty_string
+from utility.Constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
 
 
 @dataclass
@@ -90,10 +91,6 @@ class ProjectDocument:
         title = project_data["title"]
         canvas_width = project_data["width"]
         canvas_height = project_data["height"]
-        min_width = CONSTANTS["canvas"]["min_width"]
-        min_height = CONSTANTS["canvas"]["min_height"]
-        max_width = CONSTANTS["canvas"]["max_width"]
-        max_height = CONSTANTS["canvas"]["max_height"]
         icon_path = project_data.get("icon_path")
         theme = project_data["theme"]
         widget_data_list = project_data["widgets"]
@@ -113,11 +110,11 @@ class ProjectDocument:
         if not is_positive_integer(canvas_height):
             raise ValueError(f"ProjectDocument - project data deserialization failed: invalid height \"{canvas_height}\"")
 
-        if not min_width <= canvas_width <= max_width:
-            raise ValueError(f"ProjectDocument - project data deserialization failed: width outside allowed range [expected {min_width} - {max_width}, got {canvas_width}]")
+        if not CANVAS_MIN_WIDTH <= canvas_width <= CANVAS_MAX_WIDTH:
+            raise ValueError(f"ProjectDocument - project data deserialization failed: width outside allowed range [expected {CANVAS_MIN_WIDTH} - {CANVAS_MAX_WIDTH}, got {canvas_width}]")
 
-        if not min_height <= canvas_height <= max_height:
-            raise ValueError(f"ProjectDocument - project data deserialization failed: height outside allowed range [expected {min_height} - {max_height}, got {canvas_height}]")
+        if not CANVAS_MIN_HEIGHT <= canvas_height <= CANVAS_MAX_HEIGHT:
+            raise ValueError(f"ProjectDocument - project data deserialization failed: height outside allowed range [expected {CANVAS_MIN_HEIGHT} - {CANVAS_MAX_HEIGHT}, got {canvas_height}]")
 
         if icon_path is not None and not isinstance(icon_path, str):
             raise ValueError(f"ProjectDocument - project data deserialization failed: invalid icon path \"{icon_path}\"")

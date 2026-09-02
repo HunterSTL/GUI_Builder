@@ -1,5 +1,7 @@
 import tkinter as tk
 
+from utility.Constants import TOOLBAR_HEIGHT
+
 class ToolbarView:
     """
     Tk-only view that builds the toolbar and provides an API
@@ -9,7 +11,6 @@ class ToolbarView:
     def __init__(
         self,
         parent: tk.Toplevel,
-        height: int,
         toolbar_color: str,
         button_color: str,
         button_text_color: str,
@@ -19,7 +20,6 @@ class ToolbarView:
     ):
         """store parent and theme"""
         self.parent = parent
-        self.height = height
         self.toolbar_color = toolbar_color
         self.button_color = button_color
         self.button_text_color = button_text_color
@@ -34,7 +34,7 @@ class ToolbarView:
         """construct and pack the toolbar frame"""
         self.toolbar = tk.Frame(
             self.parent,
-            height=self.height,
+            height=TOOLBAR_HEIGHT,
             bg=self.toolbar_color
         )
         self.toolbar.pack(side="top", fill="x")

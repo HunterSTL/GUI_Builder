@@ -7,7 +7,8 @@ from components import AttributesPanel
 from controller import CanvasController, ToolbarController
 from events import EventBus, EventRouter
 from model import ProjectDocument
-from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, call_tracer, WidgetType, CONSTANTS
+from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, call_tracer, WidgetType
+from utility.Constants import TOOLBAR_HEIGHT, ATTRIBUTES_PANEL_WIDTH, VIEWPORT_MAX_WIDTH, VIEWPORT_MAX_HEIGHT, GRID_MIN_SIZE, GRID_MAX_SIZE
 from view import CanvasView, SelectionView, ToolbarView, WidgetView
 
 from AppState import AppState
@@ -72,15 +73,11 @@ class Designer:
         self._selection_view: SelectionView = SelectionView(
             canvas=self._canvas,
             selection_color=self._program_theme["selection"]["color"],
-            last_selected_color=self._program_theme["selection"]["last_selected_color"],
-            selection_width=CONSTANTS["selection"]["width"],
-            selection_dash=CONSTANTS["selection"]["dash"],
-            selection_padding=CONSTANTS["selection"]["padding"]
+            last_selected_color=self._program_theme["selection"]["last_selected_color"]
         )
 
         self._toolbar_view: ToolbarView = ToolbarView(
             parent=self.top,
-            height=CONSTANTS["toolbar_height"],
             toolbar_color=self._program_theme["toolbar"]["bg"],
             button_color=self._program_theme["button"]["bg"],
             button_text_color=self._program_theme["button"]["fg"],
@@ -165,7 +162,6 @@ class Designer:
             parent=self._main_frame,
             canvas_width=self.app_state.project.width,
             canvas_height=self.app_state.project.height,
-            panel_width=CONSTANTS["attributes_panel_width"],
             panel_color=self._program_theme["attributes_panel"]["color"],
             widget_color=self._program_theme["attributes_panel"]["widget_color"],
             text_color=self._program_theme["attributes_panel"]["text_color"],
@@ -213,19 +209,16 @@ class Designer:
         requested_viewport_width = self.app_state.project.width
         requested_viewport_height = self.app_state.project.height
 
-        maximum_viewport_width = CONSTANTS["viewport"]["max_width"]
-        maximum_viewport_height = CONSTANTS["viewport"]["max_height"]
+        viewport_width = min(requested_viewport_width, VIEWPORT_MAX_WIDTH)
+        viewport_height = min(requested_viewport_height, VIEWPORT_MAX_HEIGHT)
 
-        viewport_width = min(requested_viewport_width, maximum_viewport_width)
-        viewport_height = min(requested_viewport_height, maximum_viewport_height)
+        required_window_width = viewport_width + ATTRIBUTES_PANEL_WIDTH
+        required_window_height = viewport_height + TOOLBAR_HEIGHT
 
-        required_window_width = viewport_width + CONSTANTS["attributes_panel_width"]
-        required_window_height = viewport_height + CONSTANTS["toolbar_height"]
-
-        if requested_viewport_width > maximum_viewport_width:
+        if requested_viewport_width > VIEWPORT_MAX_WIDTH:
             required_window_height += self._horizontal_scrollbar.winfo_reqheight()
 
-        if requested_viewport_height > maximum_viewport_height:
+        if requested_viewport_height > VIEWPORT_MAX_HEIGHT:
             required_window_width += self._vertical_scrollbar.winfo_reqwidth()
 
         return required_window_width, required_window_height
@@ -394,8 +387,8 @@ class Designer:
         new_grid_size = simpledialog.askinteger(
             "Grid size",
             "Enter new grid size:",
-            minvalue=CONSTANTS["grid"]["min_size"],
-            maxvalue=CONSTANTS["grid"]["max_size"],
+            minvalue=GRID_MIN_SIZE,
+            maxvalue=GRID_MAX_SIZE,
             parent=self.top
         )
 

@@ -3,7 +3,8 @@ from tkinter import colorchooser, messagebox, filedialog
 from collections.abc import Callable
 
 from model import ProjectDocument, GridConfig, IdCounters
-from utility import load_icon, force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, CONSTANTS
+from utility import load_icon, force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
+from utility.Constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT, GRID_DEFAULT_SIZE
 
 class SetupWizard:
     """Collects project settings and constructs a project document."""
@@ -334,24 +335,20 @@ class SetupWizard:
             )
             return
 
-        minimum_canvas_width = CONSTANTS["canvas"]["min_width"]
-        minimum_canvas_height = CONSTANTS["canvas"]["min_height"]
-        maximum_canvas_width = CONSTANTS["canvas"]["max_width"]
-        maximum_canvas_height = CONSTANTS["canvas"]["max_height"]
         width = int(width_input)
         height = int(height_input)
 
-        if width < minimum_canvas_width or height < minimum_canvas_height:
+        if width < CANVAS_MIN_WIDTH or height < CANVAS_MIN_HEIGHT:
             messagebox.showerror(
                 "Input Error",
-                f"Minimum canvas size: {minimum_canvas_width} x {minimum_canvas_height} pixels!",
+                f"Minimum canvas size: {CANVAS_MIN_WIDTH} x {CANVAS_MIN_HEIGHT} pixels!",
                 parent=self._top
             )
             return
-        elif width > maximum_canvas_width or height > maximum_canvas_height:
+        elif width > CANVAS_MAX_WIDTH or height > CANVAS_MAX_HEIGHT:
             messagebox.showerror(
                 "Input Error",
-                f"Maximum canvas size: {maximum_canvas_width} x {maximum_canvas_height} pixels!",
+                f"Maximum canvas size: {CANVAS_MAX_WIDTH} x {CANVAS_MAX_HEIGHT} pixels!",
                 parent=self._top
             )
             return
@@ -365,7 +362,7 @@ class SetupWizard:
             height=height,
             icon_path=self._icon_path,
             grid=GridConfig(
-                size=CONSTANTS["grid"]["default_size"],
+                size=GRID_DEFAULT_SIZE,
                 color=self._program_theme["grid"]["color"],
                 visible=False
             ),
