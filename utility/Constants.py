@@ -1,80 +1,25 @@
-from typing import TypedDict
+VIEWPORT_MAX_WIDTH = 1200
+VIEWPORT_MAX_HEIGHT = 800
 
+CANVAS_MIN_WIDTH = 200
+CANVAS_MIN_HEIGHT = 200
+CANVAS_MAX_WIDTH = 5000
+CANVAS_MAX_HEIGHT = 5000
 
-class ViewportConstants(TypedDict):
-    """Defines maximum viewport dimensions."""
-    max_width: int
-    max_height: int
+NUDGE_SMALL = 1
+NUDGE_BIG = 10
 
+SELECTION_WIDTH = 2
+SELECTION_DASH = (3, 2)
+SELECTION_PADDING = 3
 
-class DimensionConstants(TypedDict):
-    """Defines minimum and maximum dimensions."""
-    min_width: int
-    min_height: int
-    max_width: int
-    max_height: int
+GRID_DEFAULT_SIZE = 10
+GRID_MIN_SIZE = 5
+GRID_MAX_SIZE = 100
 
+ATTRIBUTES_PANEL_WIDTH = 200
+TOOLBAR_HEIGHT = 25
 
-class NudgeConstants(TypedDict):
-    """Defines movement amounts for widget nudging."""
-    small: int
-    big: int
+CTRL_KEY_MASK = 0x0004
 
-
-class SelectionConstants(TypedDict):
-    """Defines selection outline dimensions and appearance."""
-    width: int
-    padding: int
-    dash: tuple[int, int]
-
-
-class GridConstants(TypedDict):
-    """Defines the default and allowed grid sizes."""
-    default_size: int
-    min_size: int
-    max_size: int
-
-
-class ApplicationConstants(TypedDict):
-    """Defines the structure of application constants."""
-    viewport: ViewportConstants
-    canvas: DimensionConstants
-    nudge: NudgeConstants
-    selection: SelectionConstants
-    grid: GridConstants
-    toolbar_height: int
-    attributes_panel_width: int
-    ctrl_key: int
-    drag_threshold: int
-
-
-CONSTANTS: ApplicationConstants = {
-    "viewport": {
-        "max_width": 1200,
-        "max_height": 800
-    },
-    "canvas": {
-        "min_width": 200,
-        "min_height": 200,
-        "max_width": 5000,
-        "max_height": 5000
-    },
-    "nudge": {
-        "small": 1,
-        "big": 10
-    },
-    "selection": {
-        "width": 2,
-        "padding": 3,
-        "dash": (3, 2)
-    },
-    "grid": {
-        "default_size": 10,
-        "min_size": 5,
-        "max_size": 100
-    },
-    "toolbar_height": 25,
-    "attributes_panel_width": 200,
-    "ctrl_key": 0x0004,
-    "drag_threshold": 10
-}
+DRAG_THRESHOLD = 10

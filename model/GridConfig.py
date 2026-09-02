@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 
-from utility import CONSTANTS, is_valid_integer, is_valid_hex_color_code
+from utility import is_valid_integer, is_valid_hex_color_code
+from utility.Constants import GRID_DEFAULT_SIZE, GRID_MIN_SIZE, GRID_MAX_SIZE
 
 
 @dataclass
 class GridConfig:
     """Stores grid settings."""
-    size: int = 10
+    size: int = GRID_DEFAULT_SIZE
     color: str = "#888888"
     visible: bool = False
 
@@ -55,14 +56,12 @@ class GridConfig:
         size = grid_data["size"]
         color = grid_data["color"]
         visible = grid_data["visible"]
-        min_size = CONSTANTS["grid"]["min_size"]
-        max_size = CONSTANTS["grid"]["max_size"]
 
         if not is_valid_integer(size):
             raise ValueError(f"GridConfig - grid data deserialization failed: invalid size \"{size}\"")
 
-        if not min_size <= size <= max_size:
-            raise ValueError(f"GridConfig - grid data deserialization failed: size outside allowed range [expected {min_size} - {max_size}, got {size}]")
+        if not GRID_MIN_SIZE <= size <= GRID_MAX_SIZE:
+            raise ValueError(f"GridConfig - grid data deserialization failed: size outside allowed range [expected {GRID_MIN_SIZE} - {GRID_MAX_SIZE}, got {size}]")
 
         if not is_valid_hex_color_code(color):
             raise ValueError(f"GridConfig - grid data deserialization failed: invalid color \"{color}\"")

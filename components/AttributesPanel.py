@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import colorchooser
 from model import BaseWidget
 from utility import allowed_x_range, allowed_y_range, WidgetType
+from utility.Constants import ATTRIBUTES_PANEL_WIDTH
 
 class AttributesPanel:
     """
@@ -17,7 +18,6 @@ class AttributesPanel:
         parent: tk.Frame,
         canvas_width: int,
         canvas_height: int,
-        panel_width: int,
         panel_color: str,
         widget_color: str,
         text_color: str,
@@ -26,7 +26,6 @@ class AttributesPanel:
         """initialize the panel layout, styling and registries"""
         self._canvas_width = canvas_width
         self._canvas_height = canvas_height
-        self._panel_width = panel_width
         self._panel_color = panel_color
         self._widget_color = widget_color
         self._text_color = text_color
@@ -40,7 +39,7 @@ class AttributesPanel:
 
         self._frame = tk.Frame(
             parent,
-            width=self._panel_width,
+            width=ATTRIBUTES_PANEL_WIDTH,
             bg=self._panel_color
         )
         self._frame.grid_propagate(False)   #fixed width

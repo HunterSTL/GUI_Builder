@@ -1,5 +1,6 @@
 import tkinter as tk
 from utility import BoundingBox
+from utility.Constants import SELECTION_WIDTH, SELECTION_DASH, SELECTION_PADDING
 
 class SelectionView:
     """
@@ -10,18 +11,12 @@ class SelectionView:
         self,
         canvas: tk.Canvas,
         selection_color: str,
-        last_selected_color: str,
-        selection_width: int,
-        selection_dash: tuple[int, int],
-        selection_padding: int
+        last_selected_color: str
     ):
         """store canvas and appearance settings"""
         self.canvas = canvas
         self.selection_color = selection_color
         self.last_selected_color = last_selected_color
-        self.selection_width = selection_width
-        self.selection_dash = selection_dash
-        self.selection_padding = selection_padding
 
         self._selection_rectangle_id: int | None = None
         self._selection_outlines: dict[str, int] = {}   #{widget.id: rectangle_id}
@@ -29,8 +24,8 @@ class SelectionView:
     #Rendering API------------------------------------------------------------------------------------------------------
     def render_outline_for(self, widget_id: str, bounding_box: BoundingBox, is_last_selected: bool):
         """create or update the selection outline for a widget ID using the given bounding box"""
-        x1, y1 = bounding_box.left - self.selection_padding, bounding_box.top - self.selection_padding      #top-left corner of selection outline
-        x2, y2 = bounding_box.right + self.selection_padding, bounding_box.bottom + self.selection_padding  #bottom-right corner of selection outline
+        x1, y1 = bounding_box.left - SELECTION_PADDING, bounding_box.top - SELECTION_PADDING        #top-left corner of selection outline
+        x2, y2 = bounding_box.right + SELECTION_PADDING, bounding_box.bottom + SELECTION_PADDING    #bottom-right corner of selection outline
 
         outline_color = self.last_selected_color if is_last_selected else self.selection_color
         rectangle_id = self._selection_outlines.get(widget_id)
@@ -64,8 +59,8 @@ class SelectionView:
             self._selection_rectangle_id = self.canvas.create_rectangle(
                 x1, y1, x1, y1,
                 outline=self.selection_color,
-                width=self.selection_width,
-                dash=self.selection_dash,
+                width=SELECTION_WIDTH,
+                dash=SELECTION_DASH,
                 fill=""
             )
         else:
@@ -95,8 +90,8 @@ class SelectionView:
         self.canvas.itemconfig(
             rectangle_id,
             outline=outline_color,
-            width=self.selection_width,
-            dash=self.selection_dash,
+            width=SELECTION_WIDTH,
+            dash=SELECTION_DASH,
             fill="",
             tags="selection_outline"
         )

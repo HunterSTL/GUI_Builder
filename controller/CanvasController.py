@@ -3,7 +3,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from events import EventRouter
-from utility import Direction, Edge, CONSTANTS
+from utility import Direction, Edge
+from utility.Constants import CTRL_KEY_MASK, DRAG_THRESHOLD, NUDGE_SMALL, NUDGE_BIG
 
 from AppState import AppState
 
@@ -47,7 +48,7 @@ class CanvasController:
             press_coordinates=(canvas_x, canvas_y),
             press_widget_id=self._widget_id_at(canvas_x, canvas_y),
             applied_delta=(0, 0),
-            is_additive=bool(event.state & CONSTANTS["ctrl_key"]),
+            is_additive=bool(event.state & CTRL_KEY_MASK),
             is_dragging=False
         )
 
@@ -69,8 +70,7 @@ class CanvasController:
 
         if not gesture.is_dragging:
             total_delta = abs(total_dx) + abs(total_dy)
-            threshold = CONSTANTS["drag_threshold"]
-            if total_delta < threshold:
+            if total_delta < DRAG_THRESHOLD:
                 return
 
             gesture.is_dragging = True
@@ -172,14 +172,14 @@ class CanvasController:
         self._canvas.bind("<Control-y>", lambda e: self._event_router.emit("edit.redo"))
 
         #widget events
-        self._canvas.bind("<Left>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.LEFT, amount=CONSTANTS["nudge"]["small"]))
-        self._canvas.bind("<Right>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.RIGHT, amount=CONSTANTS["nudge"]["small"]))
-        self._canvas.bind("<Up>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.UP, amount=CONSTANTS["nudge"]["small"]))
-        self._canvas.bind("<Down>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.DOWN, amount=CONSTANTS["nudge"]["small"]))
-        self._canvas.bind("<Shift-Left>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.LEFT, amount=CONSTANTS["nudge"]["big"]))
-        self._canvas.bind("<Shift-Right>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.RIGHT, amount=CONSTANTS["nudge"]["big"]))
-        self._canvas.bind("<Shift-Up>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.UP, amount=CONSTANTS["nudge"]["big"]))
-        self._canvas.bind("<Shift-Down>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.DOWN, amount=CONSTANTS["nudge"]["big"]))
+        self._canvas.bind("<Left>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.LEFT, amount=NUDGE_SMALL))
+        self._canvas.bind("<Right>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.RIGHT, amount=NUDGE_SMALL))
+        self._canvas.bind("<Up>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.UP, amount=NUDGE_SMALL))
+        self._canvas.bind("<Down>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.DOWN, amount=NUDGE_SMALL))
+        self._canvas.bind("<Shift-Left>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.LEFT, amount=NUDGE_BIG))
+        self._canvas.bind("<Shift-Right>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.RIGHT, amount=NUDGE_BIG))
+        self._canvas.bind("<Shift-Up>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.UP, amount=NUDGE_BIG))
+        self._canvas.bind("<Shift-Down>", lambda e: self._event_router.emit("widget.nudge", direction=Direction.DOWN, amount=NUDGE_BIG))
         self._canvas.bind("<Key-s>", lambda e: self._event_router.emit("widget.snap_to_grid"))
         self._canvas.bind("<Control-Left>", lambda e: self._event_router.emit("widget.align", edge=Edge.LEFT))
         self._canvas.bind("<Control-Right>", lambda e: self._event_router.emit("widget.align", edge=Edge.RIGHT))
