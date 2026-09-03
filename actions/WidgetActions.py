@@ -188,8 +188,8 @@ class WidgetActions:
                 id=widget_id,
                 x=x,
                 y=y,
-                bg=self._app_state.project.theme["label"]["bg"],
-                fg=self._app_state.project.theme["label"]["fg"],
+                bg=self._app_state.project.theme.label_color,
+                fg=self._app_state.project.theme.label_text_color,
                 width=width,
                 height=height,
                 text=text
@@ -199,8 +199,8 @@ class WidgetActions:
                 id=widget_id,
                 x=x,
                 y=y,
-                bg=self._app_state.project.theme["entry"]["bg"],
-                fg=self._app_state.project.theme["entry"]["fg"],
+                bg=self._app_state.project.theme.entry_color,
+                fg=self._app_state.project.theme.entry_text_color,
                 width=width,
                 height=height
             )
@@ -209,8 +209,8 @@ class WidgetActions:
                 id=widget_id,
                 x=x,
                 y=y,
-                bg=self._app_state.project.theme["button"]["bg"],
-                fg=self._app_state.project.theme["button"]["fg"],
+                bg=self._app_state.project.theme.button_color,
+                fg=self._app_state.project.theme.button_text_color,
                 width=width,
                 height=height,
                 text=text

@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from .GridConfig import GridConfig
 from .IdCounters import IdCounters
+from .ProjectTheme import ProjectTheme
 from .Widgets import BaseWidget
 
 from utility import allowed_x_range, allowed_y_range, is_positive_integer, is_non_empty_string
@@ -17,7 +18,7 @@ class ProjectDocument:
     height: int = 600
     icon_path: str | None = None
     grid: GridConfig = field(default_factory=GridConfig)
-    theme: dict[str, dict[str, str]] = field(default_factory=dict)
+    theme: ProjectTheme = field(default_factory=ProjectTheme)
     widgets: list[BaseWidget] = field(default_factory=list)
     id_counters: IdCounters = field(default_factory=IdCounters)
 
@@ -32,7 +33,7 @@ class ProjectDocument:
             "height": self.height,
             "icon_path": self.icon_path,
             "grid": self.grid.to_dict(),
-            "theme": self.theme,
+            "theme": self.theme.to_dict(),
             "widgets": [
                 widget.to_dict()
                 for widget in self.widgets
@@ -54,6 +55,7 @@ class ProjectDocument:
             canvas_height=project_data["height"]
         )
         grid_config = GridConfig.from_dict(project_data["grid"])
+        theme = ProjectTheme.from_dict(project_data["theme"])
         id_counters = IdCounters.from_dict(project_data["id_counters"])
 
         return cls(
@@ -63,7 +65,7 @@ class ProjectDocument:
             height=project_data["height"],
             icon_path=project_data.get("icon_path"),
             grid=grid_config,
-            theme=project_data["theme"],
+            theme=theme,
             widgets=widgets,
             id_counters=id_counters
         )
@@ -92,7 +94,6 @@ class ProjectDocument:
         canvas_width = project_data["width"]
         canvas_height = project_data["height"]
         icon_path = project_data.get("icon_path")
-        theme = project_data["theme"]
         widget_data_list = project_data["widgets"]
 
         if not is_positive_integer(version):
@@ -118,9 +119,6 @@ class ProjectDocument:
 
         if icon_path is not None and not isinstance(icon_path, str):
             raise ValueError(f"ProjectDocument - project data deserialization failed: invalid icon path \"{icon_path}\"")
-
-        if not isinstance(theme, dict):
-            raise ValueError("ProjectDocument - project data deserialization failed: theme is not a dictionary")
 
         if not isinstance(widget_data_list, list):
             raise ValueError("ProjectDocument - project data deserialization failed: widget data is not a list")

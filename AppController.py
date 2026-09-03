@@ -9,7 +9,7 @@ from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window
 
 from Designer import Designer
 from SetupWizard import SetupWizard
-from Theme import USER_THEME, PROGRAM_THEME
+from Theme import PROGRAM_THEME
 
 
 class AppController:
@@ -21,10 +21,6 @@ class AppController:
         self._root: tk.Tk = root
 
         self._program_theme: dict[str, dict[str, str]] = PROGRAM_THEME
-        self._user_theme: dict[str, dict[str, str]] = { #prevents mutation of the global theme
-            key: value.copy()
-            for key, value in USER_THEME.items()
-        }
 
         self._app_event_bus: EventBus = EventBus()      #persists across Designer instances
         self._register_event_handlers()
@@ -88,12 +84,6 @@ class AppController:
             command=self._exit_app
         )
         button_exit.pack()
-
-    def _copy_user_theme(
-        self
-    ) -> dict[str, dict[str, str]]:
-        """Return a copy of the user theme and its nested mappings."""
-        return {key: value.copy() for key, value in self._user_theme.items()}
 
     def _launch_designer_from_project_document(
         self,
@@ -178,7 +168,6 @@ class AppController:
 
         self._setup_wizard = SetupWizard(
             parent=self._root,
-            user_theme=self._copy_user_theme(),
             program_theme=self._program_theme,
             on_done_callback=self._launch_designer_from_project_document,
             on_cancel_callback=self._cancel_new_project_creation

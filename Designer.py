@@ -60,7 +60,7 @@ class Designer:
             parent=self._viewer,
             width=self.app_state.project.width,
             height=self.app_state.project.height,
-            background_color=self.app_state.project.theme["background"]["color"],
+            background_color=self.app_state.project.theme.background_color,
             boundary_color=self._program_theme["selection"]["color"]
         )
         self._canvas: tk.Canvas = self._canvas_view.canvas
@@ -144,7 +144,7 @@ class Designer:
         """Construct the designer UI layout and its components."""
         self._main_frame: tk.Frame = tk.Frame(           #hosts work area (column 0) and attributes panel (column 1)
             self.top,
-            bg=self.app_state.project.theme["background"]["color"]
+            bg=self.app_state.project.theme.background_color
         )
         self._main_frame.columnconfigure(0, weight=1)    #work area expands
         self._main_frame.columnconfigure(1, weight=0)    #attributes panel fixed width
@@ -152,7 +152,7 @@ class Designer:
 
         self._work_area: tk.Frame = tk.Frame(
             master=self._main_frame,
-            bg=self.app_state.project.theme["background"]["color"]
+            bg=self.app_state.project.theme.background_color
         )
         self._work_area.grid(row=0, column=0, sticky="nsew")
         self._work_area.columnconfigure(0, weight=1)
@@ -171,7 +171,7 @@ class Designer:
 
         self._viewer: tk.Canvas = tk.Canvas(
             master=self._work_area,
-            bg=self.app_state.project.theme["background"]["color"],
+            bg=self.app_state.project.theme.background_color,
             highlightthickness=0
         )
         self._viewer.grid(row=0, column=0, sticky="nsew")

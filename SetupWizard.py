@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import colorchooser, messagebox, filedialog
 from collections.abc import Callable
 
-from model import ProjectDocument, GridConfig, IdCounters
+from model import ProjectDocument, GridConfig, IdCounters, ProjectTheme
 from utility import load_icon, force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
 from utility.Constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT, GRID_DEFAULT_SIZE
 
@@ -11,15 +11,15 @@ class SetupWizard:
     def __init__(
         self,
         parent: tk.Tk,
-        user_theme: dict[str, dict[str, str]],
         program_theme: dict[str, dict[str, str]],
         on_done_callback: Callable[[ProjectDocument], None],
         on_cancel_callback: Callable[[], None]
     ) -> None:
-        self._user_theme: dict[str, dict[str, str]] = user_theme
         self._program_theme: dict[str, dict[str, str]] = program_theme
         self._on_done_callback: Callable[[ProjectDocument], None] = on_done_callback
         self._on_cancel_callback: Callable[[], None] = on_cancel_callback
+
+        self._project_theme: ProjectTheme = ProjectTheme()
 
         self._icon: tk.PhotoImage | None = None
         self._icon_path: str = "icon.ico"
@@ -117,7 +117,7 @@ class SetupWizard:
 
         self._label_preview_background: tk.Label = tk.Label(
             centered_frame,
-            bg=self._user_theme["background"]["color"]
+            bg=self._project_theme.background_color
         )
         self._label_preview_background.grid(row=2, column=1, columnspan=2, padx=1, sticky="EW")
 
@@ -126,7 +126,11 @@ class SetupWizard:
             text="Select",
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
-            command=lambda: self._choose_color("background", "color")
+            command=lambda: self._choose_color(
+                theme_attribute="background_color",
+                preview_widget=self._label_preview_background,
+                preview_option="bg"
+            )
         )
         button_background_color.grid(row=2, column=3, padx=5, pady=2, sticky="EW")
 
@@ -141,8 +145,8 @@ class SetupWizard:
         self._label_preview_label: tk.Label = tk.Label(
             centered_frame,
             text="Preview",
-            bg=self._user_theme["label"]["bg"],
-            fg=self._user_theme["label"]["fg"],
+            bg=self._project_theme.label_color,
+            fg=self._project_theme.label_text_color,
             anchor="w"
         )
         self._label_preview_label.grid(row=3, column=1, columnspan=2, padx=1, sticky="EW")
@@ -152,7 +156,11 @@ class SetupWizard:
             text="Background",
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
-            command=lambda: self._choose_color("label", "bg")
+            command=lambda: self._choose_color(
+                theme_attribute="label_color",
+                preview_widget=self._label_preview_label,
+                preview_option="bg"
+            )
         )
         button_label_background_color.grid(row=3, column=3, padx=5, pady=2, sticky="EW")
 
@@ -161,7 +169,11 @@ class SetupWizard:
             text="Text",
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
-            command=lambda: self._choose_color("label", "fg")
+            command=lambda: self._choose_color(
+                theme_attribute="label_text_color",
+                preview_widget=self._label_preview_label,
+                preview_option="fg"
+            )
         )
         button_label_text_color.grid(row=3, column=4, padx=5, pady=2, sticky="EW")
 
@@ -175,8 +187,8 @@ class SetupWizard:
 
         self._entry_preview_entry: tk.Entry = tk.Entry(
             centered_frame,
-            bg=self._user_theme["entry"]["bg"],
-            fg=self._user_theme["entry"]["fg"]
+            bg=self._project_theme.entry_color,
+            fg=self._project_theme.entry_text_color
         )
         self._entry_preview_entry.insert(0, "Example")
         self._entry_preview_entry.grid(row=4, column=1, columnspan=2, sticky="EW")
@@ -186,7 +198,11 @@ class SetupWizard:
             text="Background",
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
-            command=lambda: self._choose_color("entry", "bg")
+            command=lambda: self._choose_color(
+                theme_attribute="entry_color",
+                preview_widget=self._entry_preview_entry,
+                preview_option="bg"
+            )
         )
         button_entry_background_color.grid(row=4, column=3, padx=5, pady=2, sticky="EW")
 
@@ -195,7 +211,11 @@ class SetupWizard:
             text="Text",
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
-            command=lambda: self._choose_color("entry", "fg")
+            command=lambda: self._choose_color(
+                theme_attribute="entry_text_color",
+                preview_widget=self._entry_preview_entry,
+                preview_option="fg"
+            )
         )
         button_entry_text_color.grid(row=4, column=4, padx=5, pady=2, sticky="EW")
 
@@ -210,8 +230,8 @@ class SetupWizard:
         self._button_preview_button_color: tk.Button = tk.Button(
             centered_frame,
             text="Preview",
-            bg=self._user_theme["button"]["bg"],
-            fg=self._user_theme["button"]["fg"]
+            bg=self._project_theme.button_color,
+            fg=self._project_theme.button_text_color
         )
         self._button_preview_button_color.grid(row=5, column=1, columnspan=2, sticky="EW")
 
@@ -220,7 +240,11 @@ class SetupWizard:
             text="Background",
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
-            command=lambda: self._choose_color("button", "bg")
+            command=lambda: self._choose_color(
+                theme_attribute="button_color",
+                preview_widget=self._button_preview_button_color,
+                preview_option="bg"
+            )
         )
         button_button_background_color.grid(row=5, column=3, padx=5, pady=2, sticky="EW")
 
@@ -229,16 +253,13 @@ class SetupWizard:
             text="Text",
             bg=self._program_theme["button"]["bg"],
             fg=self._program_theme["button"]["fg"],
-            command=lambda: self._choose_color("button", "fg")
+            command=lambda: self._choose_color(
+                theme_attribute="button_text_color",
+                preview_widget=self._button_preview_button_color,
+                preview_option="fg"
+            )
         )
         button_button_text_color.grid(row=5, column=4, padx=5, pady=2, sticky="EW")
-
-        self._preview_widgets: dict[str, tk.Label | tk.Entry | tk.Button] = {
-            "background": self._label_preview_background,
-            "label": self._label_preview_label,
-            "entry": self._entry_preview_entry,
-            "button": self._button_preview_button_color
-        }
 
         label_icon = tk.Label(
             centered_frame,
@@ -280,21 +301,17 @@ class SetupWizard:
 
     def _choose_color(
         self,
-        element_type: str,
-        attribute: str
+        theme_attribute: str,
+        preview_widget: tk.Label | tk.Entry | tk.Button,
+        preview_option: str
     ) -> None:
         """Update a theme color and its preview widget."""
         color = colorchooser.askcolor(parent=self._top)[1]
         if not color:
             return
 
-        self._user_theme[element_type][attribute] = color
-
-        preview_widget = self._preview_widgets[element_type]
-        if element_type == "background" and attribute == "color":
-            preview_widget.config(bg=color)
-        else:
-            preview_widget.config({attribute: color})
+        setattr(self._project_theme, theme_attribute, color)
+        preview_widget.config({preview_option: color})
 
     def _select_icon(
         self
@@ -366,7 +383,7 @@ class SetupWizard:
                 color=self._program_theme["grid"]["color"],
                 visible=False
             ),
-            theme=self._user_theme,
+            theme=self._project_theme,
             widgets=[],
             id_counters=IdCounters()
         )
