@@ -322,7 +322,7 @@ class Designer:
         if state.selection_change:
             selected_widgets = state.get_selected_widgets()
             self._attributes_panel.set_selection(selected_widgets)
-            self._selection_view.clear_all_outlines()
+            self._selection_view.delete_all_outlines()
             for widget in selected_widgets:
                 self._selection_view.render_outline_for(
                     widget_id=widget.id,
