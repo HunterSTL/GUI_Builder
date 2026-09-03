@@ -6,10 +6,10 @@ from tkinter import messagebox, filedialog
 from events import EventBus
 from model import ProjectDocument
 from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, atomic_write_json
+from utility.AppTheme import WINDOW_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR
 
 from Designer import Designer
 from SetupWizard import SetupWizard
-from Theme import PROGRAM_THEME
 
 
 class AppController:
@@ -19,8 +19,6 @@ class AppController:
         root: tk.Tk
     ) -> None:
         self._root: tk.Tk = root
-
-        self._program_theme: dict[str, dict[str, str]] = PROGRAM_THEME
 
         self._app_event_bus: EventBus = EventBus()      #persists across Designer instances
         self._register_event_handlers()
@@ -33,7 +31,7 @@ class AppController:
         self._build_startup_ui()
 
         self._root.title("Startup")
-        self._root.config(bg=self._program_theme["background"]["color"])
+        self._root.config(bg=WINDOW_COLOR)
         self._root.wm_protocol("WM_DELETE_WINDOW", self._exit_app)
 
         force_dark_title_bar(window=self._root)
@@ -49,7 +47,7 @@ class AppController:
         """Build the startup UI with [New], [Open] and [Exit] buttons."""
         centered_frame = tk.Frame(
             master=self._root,
-            bg=self._program_theme["background"]["color"]
+            bg=WINDOW_COLOR
         )
         centered_frame.grid(row=0, column=0)
         self._root.columnconfigure(0, weight=1)
@@ -59,8 +57,8 @@ class AppController:
             centered_frame,
             text="Open project",
             width=30,
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=self._open_project
         )
         button_open_project.pack()
@@ -69,8 +67,8 @@ class AppController:
             centered_frame,
             text="New project",
             width=30,
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=self._new_project
         )
         button_new_project.pack(pady=10)
@@ -79,8 +77,8 @@ class AppController:
             centered_frame,
             text="Exit",
             width=30,
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=self._exit_app
         )
         button_exit.pack()
@@ -97,7 +95,6 @@ class AppController:
         self._designer = Designer(
             parent=self._root,
             project_document=project_document,
-            program_theme=self._program_theme,
             app_event_bus=self._app_event_bus
         )
 
@@ -168,7 +165,6 @@ class AppController:
 
         self._setup_wizard = SetupWizard(
             parent=self._root,
-            program_theme=self._program_theme,
             on_done_callback=self._launch_designer_from_project_document,
             on_cancel_callback=self._cancel_new_project_creation
         )

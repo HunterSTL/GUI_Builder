@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import colorchooser
 from model import BaseWidget
 from utility import allowed_x_range, allowed_y_range, WidgetType
+from utility.AppTheme import ATTRIBUTES_PANEL_COLOR, ATTRIBUTES_PANEL_WIDGET_COLOR, ATTRIBUTES_PANEL_TEXT_COLOR
 from utility.Constants import ATTRIBUTES_PANEL_WIDTH
 
 class AttributesPanel:
@@ -18,17 +19,11 @@ class AttributesPanel:
         parent: tk.Frame,
         canvas_width: int,
         canvas_height: int,
-        panel_color: str,
-        widget_color: str,
-        text_color: str,
         on_attribute_panel_edit_callback
     ) -> None:
         """initialize the panel layout, styling and registries"""
         self._canvas_width = canvas_width
         self._canvas_height = canvas_height
-        self._panel_color = panel_color
-        self._widget_color = widget_color
-        self._text_color = text_color
         self._on_attribute_panel_edit_callback = on_attribute_panel_edit_callback
 
         self._variables: dict[str, tk.Variable] = {}
@@ -40,7 +35,7 @@ class AttributesPanel:
         self._frame = tk.Frame(
             parent,
             width=ATTRIBUTES_PANEL_WIDTH,
-            bg=self._panel_color
+            bg=ATTRIBUTES_PANEL_COLOR
         )
         self._frame.grid_propagate(False)   #fixed width
         self._frame.columnconfigure(0, minsize=50)
@@ -223,8 +218,8 @@ class AttributesPanel:
         tk.Label(
             self._frame,
             text=self._display_names.get(attribute),
-            bg=self._panel_color,
-            fg=self._text_color,
+            bg=ATTRIBUTES_PANEL_COLOR,
+            fg=ATTRIBUTES_PANEL_TEXT_COLOR,
             pady=3
         ).grid(column=0, row=row, sticky="W")
 
@@ -233,8 +228,8 @@ class AttributesPanel:
         tk.Label(
             self._frame,
             text=getattr(widget, attribute),
-            bg=self._panel_color,
-            fg=self._text_color
+            bg=ATTRIBUTES_PANEL_COLOR,
+            fg=ATTRIBUTES_PANEL_TEXT_COLOR
         ).grid(column=1, row=row, sticky="W")
 
     def _create_entry(self, widget: BaseWidget, attribute: str, row: int) -> None:
@@ -242,8 +237,8 @@ class AttributesPanel:
         variable = tk.StringVar(value=str(getattr(widget, attribute)))
         entry = tk.Entry(
             self._frame,
-            bg=self._widget_color,
-            fg=self._text_color,
+            bg=ATTRIBUTES_PANEL_WIDGET_COLOR,
+            fg=ATTRIBUTES_PANEL_TEXT_COLOR,
             width=18,
             textvariable=variable
         )
@@ -268,9 +263,9 @@ class AttributesPanel:
             from_=min_value,
             to=max_value,
             width=5,
-            bg=self._widget_color,
-            fg=self._text_color,
-            buttonbackground=self._widget_color,
+            bg=ATTRIBUTES_PANEL_WIDGET_COLOR,
+            fg=ATTRIBUTES_PANEL_TEXT_COLOR,
+            buttonbackground=ATTRIBUTES_PANEL_WIDGET_COLOR,
             increment=1,
             textvariable=variable,
             validate="key",
@@ -309,15 +304,15 @@ class AttributesPanel:
             menu_button = tk.Menubutton(
                 self._frame,
                 textvariable=variable,
-                bg=self._widget_color,
-                fg=self._text_color,
+                bg=ATTRIBUTES_PANEL_WIDGET_COLOR,
+                fg=ATTRIBUTES_PANEL_TEXT_COLOR,
                 relief="raised",
                 width=5
             )
             menu = tk.Menu(
                 menu_button,
-                bg=self._widget_color,
-                fg=self._text_color,
+                bg=ATTRIBUTES_PANEL_WIDGET_COLOR,
+                fg=ATTRIBUTES_PANEL_TEXT_COLOR,
                 tearoff=0
             )
             menu_button.config(menu=menu)

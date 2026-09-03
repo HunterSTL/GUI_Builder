@@ -4,18 +4,18 @@ from collections.abc import Callable
 
 from model import ProjectDocument, GridConfig, IdCounters, ProjectTheme
 from utility import load_icon, force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
-from utility.Constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT, GRID_DEFAULT_SIZE
+from utility.AppTheme import WINDOW_COLOR, LABEL_COLOR, LABEL_TEXT_COLOR, ENTRY_COLOR, ENTRY_TEXT_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR
+from utility.Constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
+
 
 class SetupWizard:
     """Collects project settings and constructs a project document."""
     def __init__(
         self,
         parent: tk.Tk,
-        program_theme: dict[str, dict[str, str]],
         on_done_callback: Callable[[ProjectDocument], None],
         on_cancel_callback: Callable[[], None]
     ) -> None:
-        self._program_theme: dict[str, dict[str, str]] = program_theme
         self._on_done_callback: Callable[[ProjectDocument], None] = on_done_callback
         self._on_cancel_callback: Callable[[], None] = on_cancel_callback
 
@@ -30,7 +30,7 @@ class SetupWizard:
         self._build_setup_ui()
 
         self._top.title("Setup")
-        self._top.config(bg=self._program_theme["background"]["color"])
+        self._top.config(bg=WINDOW_COLOR)
         self._top.wm_protocol("WM_DELETE_WINDOW", self._on_cancel_callback)
 
         force_dark_title_bar(window=self._top)
@@ -52,7 +52,7 @@ class SetupWizard:
         """Build the setup wizard UI."""
         centered_frame = tk.Frame(
             master=self._top,
-            bg=self._program_theme["background"]["color"]
+            bg=WINDOW_COLOR
         )
         centered_frame.grid(row=0, column=0)
         self._top.columnconfigure(0, weight=1)
@@ -61,31 +61,31 @@ class SetupWizard:
         label_window_title = tk.Label(
             centered_frame,
             text="Window Title:",
-            bg=self._program_theme["label"]["bg"],
-            fg=self._program_theme["label"]["fg"]
+            bg=LABEL_COLOR,
+            fg=LABEL_TEXT_COLOR
         )
         label_window_title.grid(row=0, column=0, padx=5, sticky="W")
 
         self._entry_window_title: tk.Entry = tk.Entry(
             centered_frame,
-            bg=self._program_theme["entry"]["bg"],
-            fg=self._program_theme["entry"]["fg"]
+            bg=ENTRY_COLOR,
+            fg=ENTRY_TEXT_COLOR
         )
         self._entry_window_title.grid(row=0, column=1, columnspan=3, pady=3, sticky="EW")
 
         label_window_width = tk.Label(
             centered_frame,
             text="Window Width:",
-            bg=self._program_theme["label"]["bg"],
-            fg=self._program_theme["label"]["fg"]
+            bg=LABEL_COLOR,
+            fg=LABEL_TEXT_COLOR
         )
         label_window_width.grid(row=1, column=0, padx=5, sticky="W")
 
         self._entry_window_width: tk.Entry = tk.Entry(
             centered_frame,
             width=15,
-            bg=self._program_theme["entry"]["bg"],
-            fg=self._program_theme["entry"]["fg"]
+            bg=ENTRY_COLOR,
+            fg=ENTRY_TEXT_COLOR
         )
         self._entry_window_width.insert(0, "800")
         self._entry_window_width.grid(row=1, column=1, pady=3, sticky="EW")
@@ -93,16 +93,16 @@ class SetupWizard:
         label_window_height = tk.Label(
             centered_frame,
             text="Height:",
-            bg=self._program_theme["label"]["bg"],
-            fg=self._program_theme["label"]["fg"]
+            bg=LABEL_COLOR,
+            fg=LABEL_TEXT_COLOR
         )
         label_window_height.grid(row=1, column=2, padx=5, sticky="E")
 
         self._entry_window_height: tk.Entry = tk.Entry(
             centered_frame,
             width=15,
-            bg=self._program_theme["entry"]["bg"],
-            fg=self._program_theme["entry"]["fg"]
+            bg=ENTRY_COLOR,
+            fg=ENTRY_TEXT_COLOR
         )
         self._entry_window_height.insert(0, "600")
         self._entry_window_height.grid(row=1, column=3, pady=3, sticky="EW")
@@ -110,8 +110,8 @@ class SetupWizard:
         label_background_color = tk.Label(
             centered_frame,
             text="Background Color:",
-            bg=self._program_theme["label"]["bg"],
-            fg=self._program_theme["label"]["fg"]
+            bg=LABEL_COLOR,
+            fg=LABEL_TEXT_COLOR
         )
         label_background_color.grid(row=2, column=0, padx=5, sticky="W")
 
@@ -124,8 +124,8 @@ class SetupWizard:
         button_background_color = tk.Button(
             centered_frame,
             text="Select",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="background_color",
                 preview_widget=self._label_preview_background,
@@ -137,8 +137,8 @@ class SetupWizard:
         label_label_color = tk.Label(
             centered_frame,
             text="Label Color:",
-            bg=self._program_theme["label"]["bg"],
-            fg=self._program_theme["label"]["fg"]
+            bg=LABEL_COLOR,
+            fg=LABEL_TEXT_COLOR
         )
         label_label_color.grid(row=3, column=0, padx=5, sticky="W")
 
@@ -154,8 +154,8 @@ class SetupWizard:
         button_label_background_color = tk.Button(
             centered_frame,
             text="Background",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="label_color",
                 preview_widget=self._label_preview_label,
@@ -167,8 +167,8 @@ class SetupWizard:
         button_label_text_color = tk.Button(
             centered_frame,
             text="Text",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="label_text_color",
                 preview_widget=self._label_preview_label,
@@ -180,8 +180,8 @@ class SetupWizard:
         label_entry_color = tk.Label(
             centered_frame,
             text="Entry Color:",
-            bg=self._program_theme["label"]["bg"],
-            fg=self._program_theme["label"]["fg"]
+            bg=LABEL_COLOR,
+            fg=LABEL_TEXT_COLOR
         )
         label_entry_color.grid(row=4, column=0, padx=5, sticky="W")
 
@@ -196,8 +196,8 @@ class SetupWizard:
         button_entry_background_color = tk.Button(
             centered_frame,
             text="Background",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="entry_color",
                 preview_widget=self._entry_preview_entry,
@@ -209,8 +209,8 @@ class SetupWizard:
         button_entry_text_color = tk.Button(
             centered_frame,
             text="Text",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="entry_text_color",
                 preview_widget=self._entry_preview_entry,
@@ -222,8 +222,8 @@ class SetupWizard:
         label_button_color = tk.Label(
             centered_frame,
             text="Button Color:",
-            bg=self._program_theme["label"]["bg"],
-            fg=self._program_theme["label"]["fg"]
+            bg=LABEL_COLOR,
+            fg=LABEL_TEXT_COLOR
         )
         label_button_color.grid(row=5, column=0, padx=5, sticky="W")
 
@@ -238,8 +238,8 @@ class SetupWizard:
         button_button_background_color = tk.Button(
             centered_frame,
             text="Background",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="button_color",
                 preview_widget=self._button_preview_button_color,
@@ -251,8 +251,8 @@ class SetupWizard:
         button_button_text_color = tk.Button(
             centered_frame,
             text="Text",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="button_text_color",
                 preview_widget=self._button_preview_button_color,
@@ -264,8 +264,8 @@ class SetupWizard:
         label_icon = tk.Label(
             centered_frame,
             text="Icon:",
-            bg=self._program_theme["label"]["bg"],
-            fg=self._program_theme["label"]["fg"]
+            bg=LABEL_COLOR,
+            fg=LABEL_TEXT_COLOR
         )
         label_icon.grid(row=6, column=0, padx=5, sticky="W")
 
@@ -277,15 +277,15 @@ class SetupWizard:
         self._label_icon_preview: tk.Label = tk.Label(
             centered_frame,
             image=self._icon if self._icon else "",
-            bg=self._program_theme["label"]["bg"]
+            bg=LABEL_COLOR
         )
         self._label_icon_preview.grid(row=6, column=1, sticky="W")
 
         button_select_icon = tk.Button(
             centered_frame,
             text="Select",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=self._select_icon
         )
         button_select_icon.grid(row=6, column=3, padx=5, pady=2, sticky="EW")
@@ -293,8 +293,8 @@ class SetupWizard:
         button_create_gui_window = tk.Button(
             centered_frame,
             text="Launch designer",
-            bg=self._program_theme["button"]["bg"],
-            fg=self._program_theme["button"]["fg"],
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             command=self._build_project_document
         )
         button_create_gui_window.grid(row=7, column=0, padx=5, pady=5, sticky="W")
@@ -378,11 +378,7 @@ class SetupWizard:
             width=width,
             height=height,
             icon_path=self._icon_path,
-            grid=GridConfig(
-                size=GRID_DEFAULT_SIZE,
-                color=self._program_theme["grid"]["color"],
-                visible=False
-            ),
+            grid=GridConfig(),
             theme=self._project_theme,
             widgets=[],
             id_counters=IdCounters()

@@ -8,6 +8,7 @@ from controller import CanvasController, ToolbarController
 from events import EventBus, EventRouter
 from model import ProjectDocument
 from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, call_tracer, WidgetType
+from utility.AppTheme import WINDOW_COLOR, SCROLLBAR_COLOR, SCROLLBAR_TROUGH_COLOR, SCROLLBAR_BORDER_COLOR, SCROLLBAR_ARROW_COLOR, MENU_COLOR, MENU_TEXT_COLOR
 from utility.Constants import TOOLBAR_HEIGHT, ATTRIBUTES_PANEL_WIDTH, VIEWPORT_MAX_WIDTH, VIEWPORT_MAX_HEIGHT, GRID_MIN_SIZE, GRID_MAX_SIZE
 from view import CanvasView, SelectionView, ToolbarView, WidgetView
 
@@ -20,11 +21,8 @@ class Designer:
         self,
         parent: tk.Tk,
         project_document: ProjectDocument,
-        program_theme: dict[str, dict[str, str]],
         app_event_bus: EventBus
     ) -> None:
-        self._program_theme: dict[str, dict[str, str]] = program_theme
-
         #Event system---------------------------------------------------------------------------------------------------
         self._app_event_bus: EventBus = app_event_bus   #lives for the entire application lifetime (owned by AppController)
         self._designer_event_bus: EventBus = EventBus() #discarded when the Designer window is destroyed
@@ -52,7 +50,7 @@ class Designer:
         self._create_context_menu()
 
         self.top.title(self.app_state.project.title)
-        self.top.config(bg=self._program_theme["background"]["color"])
+        self.top.config(bg=WINDOW_COLOR)
         self.top.wm_protocol("WM_DELETE_WINDOW", lambda: self._event_router.emit("app.exit"))
 
         #Views----------------------------------------------------------------------------------------------------------
@@ -60,8 +58,7 @@ class Designer:
             parent=self._viewer,
             width=self.app_state.project.width,
             height=self.app_state.project.height,
-            background_color=self.app_state.project.theme.background_color,
-            boundary_color=self._program_theme["selection"]["color"]
+            background_color=self.app_state.project.theme.background_color
         )
         self._canvas: tk.Canvas = self._canvas_view.canvas
         self._viewer.create_window(     #embeds inner canvas into the scrollable viewer
@@ -71,18 +68,11 @@ class Designer:
         )
 
         self._selection_view: SelectionView = SelectionView(
-            canvas=self._canvas,
-            selection_color=self._program_theme["selection"]["color"],
-            last_selected_color=self._program_theme["selection"]["last_selected_color"]
+            canvas=self._canvas
         )
 
         self._toolbar_view: ToolbarView = ToolbarView(
             parent=self.top,
-            toolbar_color=self._program_theme["toolbar"]["bg"],
-            button_color=self._program_theme["button"]["bg"],
-            button_text_color=self._program_theme["button"]["fg"],
-            menu_color=self._program_theme["menu"]["bg"],
-            menu_text_color=self._program_theme["menu"]["fg"],
             grid_visible_variable=self._grid_visible_variable
         )
 
@@ -144,7 +134,7 @@ class Designer:
         """Construct the designer UI layout and its components."""
         self._main_frame: tk.Frame = tk.Frame(           #hosts work area (column 0) and attributes panel (column 1)
             self.top,
-            bg=self.app_state.project.theme.background_color
+            bg=WINDOW_COLOR
         )
         self._main_frame.columnconfigure(0, weight=1)    #work area expands
         self._main_frame.columnconfigure(1, weight=0)    #attributes panel fixed width
@@ -152,7 +142,7 @@ class Designer:
 
         self._work_area: tk.Frame = tk.Frame(
             master=self._main_frame,
-            bg=self.app_state.project.theme.background_color
+            bg=WINDOW_COLOR
         )
         self._work_area.grid(row=0, column=0, sticky="nsew")
         self._work_area.columnconfigure(0, weight=1)
@@ -162,16 +152,13 @@ class Designer:
             parent=self._main_frame,
             canvas_width=self.app_state.project.width,
             canvas_height=self.app_state.project.height,
-            panel_color=self._program_theme["attributes_panel"]["color"],
-            widget_color=self._program_theme["attributes_panel"]["widget_color"],
-            text_color=self._program_theme["attributes_panel"]["text_color"],
             on_attribute_panel_edit_callback=self._handle_attribute_panel_edit_phase
         )
         self._attributes_panel.frame.grid(row=0, column=1, sticky="ns")
 
         self._viewer: tk.Canvas = tk.Canvas(
             master=self._work_area,
-            bg=self.app_state.project.theme.background_color,
+            bg=WINDOW_COLOR,
             highlightthickness=0
         )
         self._viewer.grid(row=0, column=0, sticky="nsew")
@@ -231,17 +218,17 @@ class Designer:
         style.theme_use("default")  #allows colors
         style.configure(
             "Designer.Vertical.TScrollbar",
-            troughcolor=self._program_theme["scrollbar"]["trough_color"],
-            background=self._program_theme["scrollbar"]["background_color"],
-            arrowcolor=self._program_theme["scrollbar"]["arrow_color"],
-            bordercolor=self._program_theme["scrollbar"]["border_color"]
+            troughcolor=SCROLLBAR_TROUGH_COLOR,
+            background=SCROLLBAR_COLOR,
+            arrowcolor=SCROLLBAR_ARROW_COLOR,
+            bordercolor=SCROLLBAR_BORDER_COLOR
         )
         style.configure(
             "Designer.Horizontal.TScrollbar",
-            troughcolor=self._program_theme["scrollbar"]["trough_color"],
-            background=self._program_theme["scrollbar"]["background_color"],
-            arrowcolor=self._program_theme["scrollbar"]["arrow_color"],
-            bordercolor=self._program_theme["scrollbar"]["border_color"]
+            troughcolor=SCROLLBAR_TROUGH_COLOR,
+            background=SCROLLBAR_COLOR,
+            arrowcolor=SCROLLBAR_ARROW_COLOR,
+            bordercolor=SCROLLBAR_BORDER_COLOR
         )
 
     def _refresh_scrollbars(
@@ -528,8 +515,8 @@ class Designer:
         """Create the context menu for adding widgets."""
         self._menu: tk.Menu = tk.Menu(
             self.top,
-            bg=self._program_theme["toolbar"]["bg"],
-            fg=self._program_theme["toolbar"]["fg"],
+            bg=MENU_COLOR,
+            fg=MENU_TEXT_COLOR,
             tearoff=0
         )
 

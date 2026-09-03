@@ -1,5 +1,7 @@
 import tkinter as tk
 
+from utility.AppTheme import BOUNDARY_COLOR
+
 
 class CanvasView:
     """Owns the canvas and synchronizes the grid."""
@@ -8,8 +10,7 @@ class CanvasView:
         parent: tk.Canvas,
         width: int,
         height: int,
-        background_color: str,
-        boundary_color: str
+        background_color: str
     ) -> None:
         self._width: int = width
         self._height: int = height
@@ -25,7 +26,7 @@ class CanvasView:
 
         self.canvas.create_rectangle(
             1, 1, self._width - 1, self._height - 1,
-            outline=boundary_color,
+            outline=BOUNDARY_COLOR,
             width=1,
             dash=(2, 2)
         )

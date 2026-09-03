@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 
 from utility import is_valid_integer, is_valid_hex_color_code
-from utility.Constants import GRID_DEFAULT_SIZE, GRID_MIN_SIZE, GRID_MAX_SIZE
+from utility.Constants import GRID_DEFAULT_SIZE, GRID_DEFAULT_COLOR, GRID_DEFAULT_VISIBILITY, GRID_MIN_SIZE, GRID_MAX_SIZE
 
 
 @dataclass
 class GridConfig:
     """Stores grid settings."""
     size: int = GRID_DEFAULT_SIZE
-    color: str = "#888888"
-    visible: bool = False
+    color: str = GRID_DEFAULT_COLOR
+    visible: bool = GRID_DEFAULT_VISIBILITY
 
     def to_dict(
         self
