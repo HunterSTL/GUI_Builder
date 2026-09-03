@@ -1,5 +1,6 @@
 import tkinter as tk
 
+from utility.AppTheme import TOOLBAR_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR, MENU_COLOR, MENU_TEXT_COLOR
 from utility.Constants import TOOLBAR_HEIGHT
 
 class ToolbarView:
@@ -11,20 +12,10 @@ class ToolbarView:
     def __init__(
         self,
         parent: tk.Toplevel,
-        toolbar_color: str,
-        button_color: str,
-        button_text_color: str,
-        menu_color: str,
-        menu_text_color: str,
         grid_visible_variable
     ):
         """store parent and theme"""
         self.parent = parent
-        self.toolbar_color = toolbar_color
-        self.button_color = button_color
-        self.button_text_color = button_text_color
-        self.menu_color = menu_color
-        self.menu_text_color = menu_text_color
         self.grid_visible_variable = grid_visible_variable
 
         self.toolbar = None
@@ -35,7 +26,7 @@ class ToolbarView:
         self.toolbar = tk.Frame(
             self.parent,
             height=TOOLBAR_HEIGHT,
-            bg=self.toolbar_color
+            bg=TOOLBAR_COLOR
         )
         self.toolbar.pack(side="top", fill="x")
         self.toolbar.pack_propagate(False)
@@ -45,15 +36,15 @@ class ToolbarView:
         menu_button = tk.Menubutton(
             self.toolbar,
             text=menu_name,
-            bg=self.button_color,
-            fg=self.button_text_color,
+            bg=BUTTON_COLOR,
+            fg=BUTTON_TEXT_COLOR,
             relief="raised",
             width=10
         )
         menu = tk.Menu(
             menu_button,
-            bg=self.menu_color,
-            fg=self.menu_text_color,
+            bg=MENU_COLOR,
+            fg=MENU_TEXT_COLOR,
             tearoff=0
         )
         menu_button.config(menu=menu)

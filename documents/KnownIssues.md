@@ -273,7 +273,7 @@ When `PasteWidgetsFromClipboard.execute()` is called, it calls `model.create_id(
 
 ---
 
-## 34. `Theme.py` exports unused module-level constants as bare names before building the dict
+## 34. [Done] `Theme.py` exports unused module-level constants as bare names before building the dict
 
 `user_BACKGROUND_COLOR`, `user_TITLEBAR_COLOR` etc. are module-level variables that are only used to build `USER_THEME`. They are exported as part of the module namespace. Any code that does `from Theme import *` would pick up these implementation-detail variables. They should either be used only inside the dict literal or prefixed with `_` to mark them private.
 

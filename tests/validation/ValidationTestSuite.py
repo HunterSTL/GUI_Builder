@@ -14,7 +14,6 @@ from utility.Constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WI
 
 from AppState import AppState
 from Designer import Designer
-from Theme import PROGRAM_THEME
 
 FIRST_CANVAS_ITEM_ID = 2
 
@@ -36,7 +35,6 @@ def _setup_designer() -> dict[str, Designer]:
         designer = Designer(
             parent=root,
             project_document=ProjectDocument(),
-            program_theme=PROGRAM_THEME,
             app_event_bus=EventBus()
         )
     except Exception:

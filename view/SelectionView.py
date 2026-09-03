@@ -1,6 +1,8 @@
 import tkinter as tk
 from utility import BoundingBox
+from utility.AppTheme import SELECTION_COLOR, LAST_SELECTED_COLOR
 from utility.Constants import SELECTION_WIDTH, SELECTION_DASH, SELECTION_PADDING
+
 
 class SelectionView:
     """
@@ -9,14 +11,10 @@ class SelectionView:
     #Construction-------------------------------------------------------------------------------------------------------
     def __init__(
         self,
-        canvas: tk.Canvas,
-        selection_color: str,
-        last_selected_color: str
+        canvas: tk.Canvas
     ):
         """store canvas and appearance settings"""
         self.canvas = canvas
-        self.selection_color = selection_color
-        self.last_selected_color = last_selected_color
 
         self._selection_rectangle_id: int | None = None
         self._selection_outlines: dict[str, int] = {}   #{widget.id: rectangle_id}
@@ -27,7 +25,7 @@ class SelectionView:
         x1, y1 = bounding_box.left - SELECTION_PADDING, bounding_box.top - SELECTION_PADDING        #top-left corner of selection outline
         x2, y2 = bounding_box.right + SELECTION_PADDING, bounding_box.bottom + SELECTION_PADDING    #bottom-right corner of selection outline
 
-        outline_color = self.last_selected_color if is_last_selected else self.selection_color
+        outline_color = LAST_SELECTED_COLOR if is_last_selected else SELECTION_COLOR
         rectangle_id = self._selection_outlines.get(widget_id)
 
         if rectangle_id is None:
@@ -58,7 +56,7 @@ class SelectionView:
         if self._selection_rectangle_id is None:
             self._selection_rectangle_id = self.canvas.create_rectangle(
                 x1, y1, x1, y1,
-                outline=self.selection_color,
+                outline=SELECTION_COLOR,
                 width=SELECTION_WIDTH,
                 dash=SELECTION_DASH,
                 fill=""
