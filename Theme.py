@@ -1,31 +1,3 @@
-#initial values for user theme (can be changed in setup wizard)
-user_BACKGROUND_COLOR = "#404040"
-user_LABEL_COLOR = "#404040"
-user_LABEL_TEXT_COLOR = "#FFFFFF"
-user_ENTRY_COLOR = "#606060"
-user_ENTRY_TEXT_COLOR = "#FFFFFF"
-user_BUTTON_COLOR = "#505050"
-user_BUTTON_TEXT_COLOR = "#FFFFFF"
-
-USER_THEME = {
-    "background": {
-        "color": user_BACKGROUND_COLOR
-    },
-    "label": {
-        "bg": user_LABEL_COLOR,
-        "fg": user_LABEL_TEXT_COLOR
-    },
-    "entry": {
-        "bg": user_ENTRY_COLOR,
-        "fg": user_ENTRY_TEXT_COLOR
-    },
-    "button": {
-        "bg": user_BUTTON_COLOR,
-        "fg": user_BUTTON_TEXT_COLOR
-    }
-}
-
-#theme for program theme (static)
 program_BACKGROUND_COLOR = "#404040"
 program_TOOLBAR_COLOR = "#666666"
 program_TOOLBAR_TEXT_COLOR = "#FFFFFF"

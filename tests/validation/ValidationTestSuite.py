@@ -8,13 +8,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))    #adds GUI_Builde
 
 from commands import DragWidgets, EditWidget
 from events import EventBus
-from model import GridConfig, IdCounters, ProjectDocument, LabelWidget, BaseWidget
+from model import GridConfig, IdCounters, ProjectDocument, ProjectTheme, LabelWidget, BaseWidget
 from utility import WidgetType, Geometry
 from utility.Constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT, GRID_MIN_SIZE, GRID_MAX_SIZE
 
 from AppState import AppState
 from Designer import Designer
-from Theme import USER_THEME, PROGRAM_THEME
+from Theme import PROGRAM_THEME
 
 FIRST_CANVAS_ITEM_ID = 2
 
@@ -35,7 +35,7 @@ def _setup_designer() -> dict[str, Designer]:
     try:
         designer = Designer(
             parent=root,
-            project_document=ProjectDocument(theme=USER_THEME),
+            project_document=ProjectDocument(),
             program_theme=PROGRAM_THEME,
             app_event_bus=EventBus()
         )
@@ -69,7 +69,7 @@ def _create_valid_project_data(
             "color": "#ffffff",
             "visible": False
         },
-        "theme": {},
+        "theme": ProjectTheme().to_dict(),
         "widgets": [],
         "id_counters": {
             "label": 1,
@@ -430,10 +430,6 @@ def _action_deserialize_project_data_with_invalid_icon_path() -> None:
     project_data = _create_valid_project_data(icon_path=1)
     ProjectDocument.from_json(project_data)
 
-def _action_deserialize_project_data_with_invalid_theme_type() -> None:
-    project_data = _create_valid_project_data(theme=[])
-    ProjectDocument.from_json(project_data)
-
 def _action_deserialize_project_data_with_invalid_widget_data_list_type() -> None:
     project_data = _create_valid_project_data(widgets={})
     ProjectDocument.from_json(project_data)
@@ -476,7 +472,50 @@ def _action_deserialize_project_data_with_widget_y_coordinate_outside_allowed_ra
     project_data = _create_valid_project_data(widgets=widget_data_list)
     ProjectDocument.from_json(project_data)
 
-#Widget tests------------------------------------------------------------------------------------------------------
+#ProjectTheme tests-----------------------------------------------------------------------------------------------------
+def _action_deserialize_theme_data_with_invalid_input_type() -> None:
+    ProjectTheme.from_dict([])
+
+def _action_deserialize_theme_data_with_missing_required_attribute() -> None:
+    ProjectTheme.from_dict(
+        theme_data={
+            "background_color": "#000000",
+            "label_color": "#000000",
+            "label_text_color": "#000000",
+            "entry_color": "#000000",
+            "entry_text_color": "#000000",
+            "button_color": "#000000"
+        }
+    )
+
+def _action_deserialize_theme_data_with_invalid_attribute_set() -> None:
+    ProjectTheme.from_dict(
+        theme_data={
+            "background_color": "#000000",
+            "label_color": "#000000",
+            "label_text_color": "#000000",
+            "entry_color": "#000000",
+            "entry_text_color": "#000000",
+            "button_color": "#000000",
+            "button_text_color": "#000000",
+            "UNEXPECTED_ATTRIBUTE": "value"
+        }
+    )
+
+def _action_deserialize_theme_data_with_invalid_color() -> None:
+    ProjectTheme.from_dict(
+        theme_data={
+            "background_color": "INVALID_COLOR",
+            "label_color": "#000000",
+            "label_text_color": "#000000",
+            "entry_color": "#000000",
+            "entry_text_color": "#000000",
+            "button_color": "#000000",
+            "button_text_color": "#000000"
+        }
+    )
+
+#Widget tests-----------------------------------------------------------------------------------------------------------
 def _action_instantiate_widget_base_type() -> None:
     widget_data = _create_valid_widget_data()
     widget_data.pop("type")
@@ -876,11 +915,6 @@ VALIDATION_TESTS = (
         action=_action_deserialize_project_data_with_invalid_icon_path
     ),
     ValidationTest(
-        name="Deserializing project data with invalid theme type",
-        expected_error_message="ProjectDocument - project data deserialization failed: theme is not a dictionary",
-        action=_action_deserialize_project_data_with_invalid_theme_type
-    ),
-    ValidationTest(
         name="Deserializing project data with invalid widget data list type",
         expected_error_message="ProjectDocument - project data deserialization failed: widget data is not a list",
         action=_action_deserialize_project_data_with_invalid_widget_data_list_type
@@ -909,6 +943,26 @@ VALIDATION_TESTS = (
         name="Deserializing project data with widget Y coordinate outside allowed range",
         expected_error_message=f"ProjectDocument - project data deserialization failed: widget Y coordinate outside allowed range [expected {WIDGET_HEIGHT} - {CANVAS_HEIGHT}, got {CANVAS_HEIGHT + 1}, ID: \"ID\"]",
         action=_action_deserialize_project_data_with_widget_y_coordinate_outside_allowed_range
+    ),
+    ValidationTest(
+        name="Deserializing theme data with invalid input type",
+        expected_error_message="ProjectTheme - theme data deserialization failed: theme data is not a dictionary",
+        action=_action_deserialize_theme_data_with_invalid_input_type
+    ),
+    ValidationTest(
+        name="Deserializing theme data with missing required attribute",
+        expected_error_message="ProjectTheme - theme data deserialization failed: missing required attribute \"button_text_color\"",
+        action=_action_deserialize_theme_data_with_missing_required_attribute
+    ),
+    ValidationTest(
+        name="Deserializing theme data with invalid attribute set",
+        expected_error_message="ProjectTheme - theme data deserialization failed: invalid attribute set [got unexpected attribute \"UNEXPECTED_ATTRIBUTE\"]",
+        action=_action_deserialize_theme_data_with_invalid_attribute_set
+    ),
+    ValidationTest(
+        name="Deserializing theme data with invalid color",
+        expected_error_message="ProjectTheme - theme data deserialization failed: invalid background color \"INVALID_COLOR\"",
+        action=_action_deserialize_theme_data_with_invalid_color
     ),
     ValidationTest(
         name="Instantiating widget base type",

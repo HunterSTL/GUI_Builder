@@ -3,7 +3,7 @@ import unittest
 import tkinter as tk
 
 from commands import CommandStack, AddWidget, DeleteWidgets, NudgeWidgets, DragWidgets, PasteWidgetsFromClipboard
-from model import ProjectDocument, GridConfig, LabelWidget, EntryWidget, ButtonWidget
+from model import ProjectDocument, GridConfig, ProjectTheme, LabelWidget, EntryWidget, ButtonWidget
 from utility import WidgetType
 from view import WidgetView
 
@@ -24,7 +24,15 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
                 color="#888888",
                 visible=True
             ),
-            theme={},
+            theme=ProjectTheme(
+                background_color="#000000",
+                label_color="#000000",
+                label_text_color="#000000",
+                entry_color="#000000",
+                entry_text_color="#000000",
+                button_color="#000000",
+                button_text_color="#000000"
+            ),
             widgets=[]
         )
 
@@ -62,20 +70,7 @@ class TestProjectDocumentRoundtrip(unittest.TestCase):
         data = json.loads(blob)
         new_project_document = ProjectDocument.from_json(data)
 
-        self.assertEqual(new_project_document.title, "Roundtrip Test")
-        self.assertEqual(new_project_document.width, 640)
-        self.assertEqual(new_project_document.height, 480)
-        self.assertEqual(new_project_document.grid.size, 50)
-        self.assertEqual(new_project_document.grid.color, "#888888")
-        self.assertEqual(new_project_document.grid.visible, True)
-
-        self.assertEqual(len(new_project_document.widgets), 3)
-        types = [widget.type for widget in new_project_document.widgets]
-        self.assertEqual(types, [WidgetType.LABEL, WidgetType.ENTRY, WidgetType.BUTTON])
-
-        self.assertGreaterEqual(project_document.id_counters.label, 2)
-        self.assertGreaterEqual(project_document.id_counters.entry, 2)
-        self.assertGreaterEqual(project_document.id_counters.button, 2)
+        self.assertEqual(new_project_document, project_document)
 
 
 class TestRenderWidget(unittest.TestCase):
@@ -85,7 +80,7 @@ class TestRenderWidget(unittest.TestCase):
         root = tk.Tk()
         root.withdraw()
         canvas = tk.Canvas(root, width=300, height=200)
-        project_document = ProjectDocument(width=300, height=200, theme={})
+        project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
         app_state = AppState(project_document)
 
         widget_view = WidgetView(
@@ -122,7 +117,7 @@ class TestMoveWidget(unittest.TestCase):
         root = tk.Tk()
         root.withdraw()
         canvas = tk.Canvas(root, width=300, height=200)
-        project_document = ProjectDocument(width=300, height=200, theme={})
+        project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
         app_state = AppState(project_document)
 
         widget_view = WidgetView(
@@ -168,7 +163,7 @@ class TestUndoRedoAddWidget(unittest.TestCase):
     def test_undo_redo_add_widget(
         self
     ) -> None:
-        project_document = ProjectDocument(width=300, height=200, theme={})
+        project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
         app_state = AppState(project_document)
 
         widget = LabelWidget(
@@ -197,7 +192,7 @@ class TestUndoRedoDeleteWidget(unittest.TestCase):
     def test_undo_redo_delete_widget(
         self
     ) -> None:
-        project_document = ProjectDocument(width=300, height=200, theme={})
+        project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
         app_state = AppState(project_document)
 
         widget = LabelWidget(
@@ -227,7 +222,7 @@ class TestUndoRedoNudgeWidget(unittest.TestCase):
     def test_undo_redo_nudge_widget(
         self
     ) -> None:
-        project_document = ProjectDocument(width=300, height=200, theme={})
+        project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
         app_state = AppState(project_document)
 
         widget = LabelWidget(
@@ -261,7 +256,7 @@ class TestUndoRedoDragWidget(unittest.TestCase):
     def test_undo_redo_drag_widget(
         self
     ) -> None:
-        project_document = ProjectDocument(width=300, height=200, theme={})
+        project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
         app_state = AppState(project_document)
 
         widget = LabelWidget(
@@ -301,7 +296,7 @@ class TestUndoRedoPasteWidgets(unittest.TestCase):
     def test_undo_redo_paste_widgets(
         self
     ) -> None:
-        project_document = ProjectDocument(width=300, height=200, theme={})
+        project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
         app_state = AppState(project_document)
 
         widget_1 = LabelWidget(
