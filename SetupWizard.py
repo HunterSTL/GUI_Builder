@@ -29,7 +29,7 @@ class SetupWizard:
 
         self._build_setup_ui()
 
-        self._top.title("Setup")
+        self._top.title("Project Setup")
         self._top.config(bg=WINDOW_COLOR)
         self._top.wm_protocol("WM_DELETE_WINDOW", self._on_cancel_callback)
 
@@ -57,68 +57,69 @@ class SetupWizard:
         self._top.columnconfigure(0, weight=1)
         self._top.rowconfigure(0, weight=1)
 
-        label_window_title = tk.Label(
+        label_title = tk.Label(
             centered_frame,
-            text="Window Title:",
+            text="Title:",
             bg=LABEL_COLOR,
             fg=LABEL_TEXT_COLOR
         )
-        label_window_title.grid(row=0, column=0, padx=5, sticky="W")
+        label_title.grid(row=0, column=0, padx=5, sticky="W")
 
-        self._entry_window_title: tk.Entry = tk.Entry(
+        self._entry_title: tk.Entry = tk.Entry(
             centered_frame,
             bg=ENTRY_COLOR,
             fg=ENTRY_TEXT_COLOR
         )
-        self._entry_window_title.grid(row=0, column=1, columnspan=3, pady=3, sticky="EW")
+        self._entry_title.insert(0, "Untitled Project")
+        self._entry_title.grid(row=0, column=1, columnspan=3, pady=3, sticky="EW")
 
-        label_window_width = tk.Label(
+        label_width = tk.Label(
             centered_frame,
-            text="Window Width:",
+            text="Width:",
             bg=LABEL_COLOR,
             fg=LABEL_TEXT_COLOR
         )
-        label_window_width.grid(row=1, column=0, padx=5, sticky="W")
+        label_width.grid(row=1, column=0, padx=5, sticky="W")
 
-        self._entry_window_width: tk.Entry = tk.Entry(
+        self._entry_width: tk.Entry = tk.Entry(
             centered_frame,
             width=15,
             bg=ENTRY_COLOR,
             fg=ENTRY_TEXT_COLOR
         )
-        self._entry_window_width.insert(0, "800")
-        self._entry_window_width.grid(row=1, column=1, pady=3, sticky="EW")
+        self._entry_width.insert(0, "800")
+        self._entry_width.grid(row=1, column=1, pady=3, sticky="EW")
 
-        label_window_height = tk.Label(
+        label_height = tk.Label(
             centered_frame,
             text="Height:",
             bg=LABEL_COLOR,
             fg=LABEL_TEXT_COLOR
         )
-        label_window_height.grid(row=1, column=2, padx=5, sticky="E")
+        label_height.grid(row=1, column=2, padx=5, sticky="E")
 
-        self._entry_window_height: tk.Entry = tk.Entry(
+        self._entry_height: tk.Entry = tk.Entry(
             centered_frame,
             width=15,
             bg=ENTRY_COLOR,
             fg=ENTRY_TEXT_COLOR
         )
-        self._entry_window_height.insert(0, "600")
-        self._entry_window_height.grid(row=1, column=3, pady=3, sticky="EW")
+        self._entry_height.insert(0, "600")
+        self._entry_height.grid(row=1, column=3, pady=3, sticky="EW")
 
         label_background_color = tk.Label(
             centered_frame,
-            text="Background Color:",
+            text="Background:",
             bg=LABEL_COLOR,
             fg=LABEL_TEXT_COLOR
         )
         label_background_color.grid(row=2, column=0, padx=5, sticky="W")
 
-        self._label_preview_background: tk.Label = tk.Label(
+        preview_background: tk.Label = tk.Label(
             centered_frame,
             bg=self._project_theme.background_color
         )
-        self._label_preview_background.grid(row=2, column=1, columnspan=2, padx=1, sticky="EW")
+        preview_background.grid(row=2, column=1, columnspan=2, padx=1, sticky="EW")
 
         button_background_color = tk.Button(
             centered_frame,
@@ -127,7 +128,7 @@ class SetupWizard:
             fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="background_color",
-                preview_widget=self._label_preview_background,
+                preview_widget=preview_background,
                 preview_option="bg"
             )
         )
@@ -135,20 +136,20 @@ class SetupWizard:
 
         label_label_color = tk.Label(
             centered_frame,
-            text="Label Color:",
+            text="Label:",
             bg=LABEL_COLOR,
             fg=LABEL_TEXT_COLOR
         )
         label_label_color.grid(row=3, column=0, padx=5, sticky="W")
 
-        self._label_preview_label: tk.Label = tk.Label(
+        preview_label: tk.Label = tk.Label(
             centered_frame,
             text="Preview",
             bg=self._project_theme.label_color,
             fg=self._project_theme.label_text_color,
             anchor="w"
         )
-        self._label_preview_label.grid(row=3, column=1, columnspan=2, padx=1, sticky="EW")
+        preview_label.grid(row=3, column=1, columnspan=2, padx=1, sticky="EW")
 
         button_label_background_color = tk.Button(
             centered_frame,
@@ -157,7 +158,7 @@ class SetupWizard:
             fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="label_color",
-                preview_widget=self._label_preview_label,
+                preview_widget=preview_label,
                 preview_option="bg"
             )
         )
@@ -170,7 +171,7 @@ class SetupWizard:
             fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="label_text_color",
-                preview_widget=self._label_preview_label,
+                preview_widget=preview_label,
                 preview_option="fg"
             )
         )
@@ -178,19 +179,19 @@ class SetupWizard:
 
         label_entry_color = tk.Label(
             centered_frame,
-            text="Entry Color:",
+            text="Entry:",
             bg=LABEL_COLOR,
             fg=LABEL_TEXT_COLOR
         )
         label_entry_color.grid(row=4, column=0, padx=5, sticky="W")
 
-        self._entry_preview_entry: tk.Entry = tk.Entry(
+        preview_entry: tk.Entry = tk.Entry(
             centered_frame,
             bg=self._project_theme.entry_color,
             fg=self._project_theme.entry_text_color
         )
-        self._entry_preview_entry.insert(0, "Example")
-        self._entry_preview_entry.grid(row=4, column=1, columnspan=2, sticky="EW")
+        preview_entry.insert(0, "Preview")
+        preview_entry.grid(row=4, column=1, columnspan=2, sticky="EW")
 
         button_entry_background_color = tk.Button(
             centered_frame,
@@ -199,7 +200,7 @@ class SetupWizard:
             fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="entry_color",
-                preview_widget=self._entry_preview_entry,
+                preview_widget=preview_entry,
                 preview_option="bg"
             )
         )
@@ -212,7 +213,7 @@ class SetupWizard:
             fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="entry_text_color",
-                preview_widget=self._entry_preview_entry,
+                preview_widget=preview_entry,
                 preview_option="fg"
             )
         )
@@ -220,19 +221,19 @@ class SetupWizard:
 
         label_button_color = tk.Label(
             centered_frame,
-            text="Button Color:",
+            text="Button:",
             bg=LABEL_COLOR,
             fg=LABEL_TEXT_COLOR
         )
         label_button_color.grid(row=5, column=0, padx=5, sticky="W")
 
-        self._button_preview_button_color: tk.Button = tk.Button(
+        preview_button: tk.Button = tk.Button(
             centered_frame,
             text="Preview",
             bg=self._project_theme.button_color,
             fg=self._project_theme.button_text_color
         )
-        self._button_preview_button_color.grid(row=5, column=1, columnspan=2, sticky="EW")
+        preview_button.grid(row=5, column=1, columnspan=2, sticky="EW")
 
         button_button_background_color = tk.Button(
             centered_frame,
@@ -241,7 +242,7 @@ class SetupWizard:
             fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="button_color",
-                preview_widget=self._button_preview_button_color,
+                preview_widget=preview_button,
                 preview_option="bg"
             )
         )
@@ -254,7 +255,7 @@ class SetupWizard:
             fg=BUTTON_TEXT_COLOR,
             command=lambda: self._choose_color(
                 theme_attribute="button_text_color",
-                preview_widget=self._button_preview_button_color,
+                preview_widget=preview_button,
                 preview_option="fg"
             )
         )
@@ -340,13 +341,23 @@ class SetupWizard:
         self
     ) -> None:
         """Validate the project settings and construct a project document."""
-        width_input = self._entry_window_width.get()
-        height_input = self._entry_window_height.get()
+        title = self._entry_title.get().strip()
+
+        if not title:
+            messagebox.showerror(
+                "Input Error",
+                "Enter a project title!",
+                parent=self._top
+            )
+            return
+
+        width_input = self._entry_width.get()
+        height_input = self._entry_height.get()
 
         if not width_input.isdigit() or not height_input.isdigit():
             messagebox.showerror(
                 "Input Error",
-                "Enter an integer value for window width and height!",
+                "Enter an integer value for width and height!",
                 parent=self._top
             )
             return
@@ -361,15 +372,14 @@ class SetupWizard:
                 parent=self._top
             )
             return
-        elif width > CANVAS_MAX_WIDTH or height > CANVAS_MAX_HEIGHT:
+
+        if width > CANVAS_MAX_WIDTH or height > CANVAS_MAX_HEIGHT:
             messagebox.showerror(
                 "Input Error",
                 f"Maximum canvas size: {CANVAS_MAX_WIDTH} x {CANVAS_MAX_HEIGHT} pixels!",
                 parent=self._top
             )
             return
-
-        title = self._entry_window_title.get()
 
         project_document = ProjectDocument(
             version=1,
