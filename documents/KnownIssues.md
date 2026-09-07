@@ -249,7 +249,7 @@ The validation tests file executes `run_all_test_groups()` at module level. Impo
 
 ---
 
-## 30. Unit tests create `tk.Tk()` instances without calling `root.destroy()` at teardown
+## 30. [Done] Unit tests create `tk.Tk()` instances without calling `root.destroy()` at teardown
 
 Each of `TestAddWidgetFromModel`, `TestMoveWidget` creates `root = tk.Tk()` and `root.withdraw()` but never calls `root.destroy()` in teardown or in a `finally` block. When running the test suite, multiple `Tk` instances accumulate and are only destroyed when Python exits. On some platforms (particularly macOS) this can cause intermittent display server errors or test hangs.
 

@@ -78,6 +78,7 @@ class TestRenderWidget(unittest.TestCase):
         self
     ) -> None:
         root = tk.Tk()
+        self.addCleanup(root.destroy)
         root.withdraw()
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
@@ -115,6 +116,7 @@ class TestMoveWidget(unittest.TestCase):
         self
     ) -> None:
         root = tk.Tk()
+        self.addCleanup(root.destroy)
         root.withdraw()
         canvas = tk.Canvas(root, width=300, height=200)
         project_document = ProjectDocument(width=300, height=200, theme=ProjectTheme())
