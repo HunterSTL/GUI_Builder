@@ -174,12 +174,6 @@ def _action_look_up_widget_group_bounding_box_with_no_widgets_provided() -> None
     app_state = AppState(ProjectDocument())
     app_state.get_widget_group_bounding_box([])
 
-#Designer tests---------------------------------------------------------------------------------------------------------
-def _action_handle_unsupported_attributes_panel_edit_phase(
-    designer: Designer
-) -> None:
-    designer._handle_attribute_panel_edit_phase("UNSUPPORTED_PHASE")
-
 #WidgetActions tests----------------------------------------------------------------------------------------------------
 def _action_add_widget_with_missing_coordinates(
     designer: Designer
@@ -705,13 +699,6 @@ VALIDATION_TESTS = (
         name="Looking up widget group bounding box with no widgets provided",
         expected_error_message="AppState - widget group bounding box lookup failed: no widgets provided",
         action=_action_look_up_widget_group_bounding_box_with_no_widgets_provided
-    ),
-    ValidationTest(
-        name="Handling unsupported attributes panel edit phase",
-        expected_error_message="Designer - attributes panel edit failed: unsupported edit phase \"UNSUPPORTED_PHASE\"",
-        setup=_setup_designer,
-        action=_action_handle_unsupported_attributes_panel_edit_phase,
-        teardown=_teardown_designer
     ),
     ValidationTest(
         name="Adding widget with unsupported type",

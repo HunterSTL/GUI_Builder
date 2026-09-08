@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import colorchooser
+from collections.abc import Callable
+
 from model import BaseWidget
 from utility import allowed_x_range, allowed_y_range, WidgetType
 from utility.AppTheme import ATTRIBUTES_PANEL_COLOR, ATTRIBUTES_PANEL_WIDGET_COLOR, ATTRIBUTES_PANEL_TEXT_COLOR
@@ -12,19 +14,23 @@ class AttributesPanel:
     The panel builds the appropriate editor widgets for a single selected widget,
     clears itself when no or more than one widget is selected,
     updates displayed variables from the widget when a single selected widget changes
-    and invokes a callback so user edits propagate to the widget.
+    and invokes callbacks to start, apply and commit widget attribute edits.
     """
     def __init__(
         self,
         parent: tk.Frame,
         canvas_width: int,
         canvas_height: int,
-        on_attribute_panel_edit_callback
+        on_edit_start: Callable[[], None],
+        on_edit_change: Callable[[str, str | int], None],
+        on_edit_commit: Callable[[], None]
     ) -> None:
         """initialize the panel layout, styling and registries"""
         self._canvas_width = canvas_width
         self._canvas_height = canvas_height
-        self._on_attribute_panel_edit_callback = on_attribute_panel_edit_callback
+        self._on_edit_start: Callable[[], None] = on_edit_start
+        self._on_edit_change: Callable[[str, str | int], None] = on_edit_change
+        self._on_edit_commit: Callable[[], None] = on_edit_commit
 
         self._variables: dict[str, tk.Variable] = {}
         self._spinboxes: dict[str, tk.Spinbox] = {}
@@ -346,9 +352,7 @@ class AttributesPanel:
             return
 
         self._edit_in_progress = True
-        self._on_attribute_panel_edit_callback(
-            phase="start"
-        )
+        self._on_edit_start()
 
     def _handle_attribute_edit(self, attribute: str, variable: tk.Variable) -> None:
         """propagate live changes to the widget"""
@@ -365,11 +369,7 @@ class AttributesPanel:
             except ValueError:
                 return
 
-        self._on_attribute_panel_edit_callback(
-            phase="apply_change",
-            attribute=attribute,
-            value=value
-        )
+        self._on_edit_change(attribute, value)
 
     def _end_attribute_edit(self) -> None:
         """commit the active attribute edit if one is in progress"""
@@ -377,9 +377,7 @@ class AttributesPanel:
             return
 
         self._edit_in_progress = False
-        self._on_attribute_panel_edit_callback(
-            phase="commit"
-        )
+        self._on_edit_commit()
 
     def _apply_complete_edit(self, variable: tk.Variable, value: str) -> None:
         """apply a value using the complete edit lifecycle"""

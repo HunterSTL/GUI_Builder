@@ -151,7 +151,9 @@ class Designer:
             parent=self._main_frame,
             canvas_width=self.app_state.project.width,
             canvas_height=self.app_state.project.height,
-            on_attribute_panel_edit_callback=self._handle_attribute_panel_edit_phase
+            on_edit_start=lambda: self._actions.widget.start_edit(),    #lambdas defer access to actions until the callback is invoked because actions are initialized after the panel
+            on_edit_change=lambda attribute, value: self._actions.widget.apply_attribute_change(attribute, value),
+            on_edit_commit=lambda: self._actions.widget.commit_edit()
         )
         self._attributes_panel.frame.grid(row=0, column=1, sticky="ns")
 
@@ -437,16 +439,9 @@ class Designer:
         self._designer_event_bus.subscribe("widget.snap_to_grid", self._actions.widget.snap_to_grid)
         self._designer_event_bus.subscribe("widget.align", self._actions.widget.align)
         self._designer_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
-
-        #widget drag lifecycle events
         self._designer_event_bus.subscribe("widget.drag.start", self._actions.widget.start_drag)
         self._designer_event_bus.subscribe("widget.drag.update", self._actions.widget.update_drag)
         self._designer_event_bus.subscribe("widget.drag.end", self._actions.widget.end_drag)
-
-        #widget edit lifecycle events
-        self._designer_event_bus.subscribe("widget.edit.start", self._actions.widget.start_edit)
-        self._designer_event_bus.subscribe("widget.edit.apply_change", self._actions.widget.apply_attribute_change)
-        self._designer_event_bus.subscribe("widget.edit.commit", self._actions.widget.commit_edit)
 
         #grid events
         self._designer_event_bus.subscribe("grid.toggle", self._toggle_grid)
@@ -485,21 +480,6 @@ class Designer:
             coordinates=self._last_right_click_coordinates,
             text=text
         )
-
-    def _handle_attribute_panel_edit_phase(
-        self,
-        phase: str,
-        **kwargs: str | int
-    ) -> None:
-        """Handle an attributes panel edit phase by emitting the corresponding widget edit lifecycle event."""
-        if phase == "start":
-            self._event_router.emit("widget.edit.start")
-        elif phase == "apply_change":
-            self._event_router.emit("widget.edit.apply_change", **kwargs)
-        elif phase == "commit":
-            self._event_router.emit("widget.edit.commit")
-        else:
-            raise ValueError(f"Designer - attributes panel edit failed: unsupported edit phase \"{phase}\"")
 
     def _commit_active_attributes_panel_edit(
         self
