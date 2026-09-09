@@ -234,15 +234,6 @@ def _action_compute_spinbox_limits_for_unsupported_attribute(
         attribute="UNSUPPORTED_ATTRIBUTE"
     )
 
-def _action_create_colorpicker_for_unsupported_attribute(
-    designer: Designer
-) -> None:
-    designer._attributes_panel._create_colorpicker(
-        widget=_create_valid_widget(),
-        attribute="UNSUPPORTED_ATTRIBUTE",
-        row=0
-    )
-
 def _action_create_combobox_for_unsupported_attribute(
     designer: Designer
 ) -> None:
@@ -748,13 +739,6 @@ VALIDATION_TESTS = (
         expected_error_message="AttributesPanel - spinbox limit computation failed: unsupported attribute \"UNSUPPORTED_ATTRIBUTE\"",
         setup=_setup_designer,
         action=_action_compute_spinbox_limits_for_unsupported_attribute,
-        teardown=_teardown_designer
-    ),
-    ValidationTest(
-        name="Creating colorpicker for an unsupported attribute",
-        expected_error_message="AttributesPanel - colorpicker creation failed: unsupported attribute \"UNSUPPORTED_ATTRIBUTE\"",
-        setup=_setup_designer,
-        action=_action_create_colorpicker_for_unsupported_attribute,
         teardown=_teardown_designer
     ),
     ValidationTest(
