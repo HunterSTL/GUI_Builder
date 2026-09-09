@@ -434,3 +434,11 @@ Indicates whether unsaved changes exist.
 * Must not be set on no-op mutations (setting an attribute to its current value)
 * Must be cleared after a successful save
 * Must be visually represented in the UI
+
+## 13 Collection Types
+Communicate the intended ordering, mutability and uniqueness of collections.
+
+* Lists must be used for ordered, mutable collections that permit duplicates
+* Tuples must be used for ordered, immutable collections that permit duplicates
+* Sets must be used for unordered, mutable collections that enforce uniqueness
+* Frozensets must be used for unordered, immutable collections that enforce uniqueness
