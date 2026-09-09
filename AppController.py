@@ -134,6 +134,14 @@ class AppController:
         """Return the active window to use as the parent of a dialog."""
         return self._designer.top if self._designer else self._root
 
+    def _complete_new_project_creation(
+        self,
+        project_document: ProjectDocument
+    ) -> None:
+        """Clear the save path and launch the Designer for the newly created project."""
+        self._save_path = None
+        self._launch_designer_from_project_document(project_document)
+
     def _cancel_new_project_creation(
         self
     ) -> None:
@@ -160,11 +168,9 @@ class AppController:
             self._designer.top.withdraw()
 
         self._root.withdraw()
-        self._save_path = None
-
         self._setup_wizard = SetupWizard(
             parent=self._root,
-            on_done_callback=self._launch_designer_from_project_document,
+            on_done_callback=self._complete_new_project_creation,
             on_cancel_callback=self._cancel_new_project_creation
         )
 
