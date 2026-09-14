@@ -602,33 +602,29 @@ def _action_compute_bounding_box_with_invalid_anchor() -> None:
     )
 
 #WidgetView tests-------------------------------------------------------------------------------------------------------
-def _action_render_tk_widget_with_missing_position(designer: Designer) -> None:
-    widget = _create_valid_widget(x=None, y=None)
-    designer._widget_view.render_tk_widget_for(widget)
-
-def _action_render_tk_widget_with_unknown_widget_id(designer: Designer) -> None:
+def _action_delete_tk_widget_with_missing_tk_widget_mapping(designer: Designer) -> None:
     widget = _create_valid_widget()
     designer._widget_view.render_tk_widget_for(widget)
     canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
-    designer._widget_view.widget_map[canvas_item_id] = None
-    designer._widget_view.render_tk_widget_for(widget)
-
-def _action_instantiate_widget_with_unsupported_type(designer: Designer) -> None:
-    designer._widget_view._instantiate_tk_widget("UNSUPPORTED_TYPE")
-
-def _action_look_up_tk_widget_with_unknown_widget_id(designer: Designer) -> None:
-    widget = _create_valid_widget()
-    designer._widget_view.render_tk_widget_for(widget)
-    canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
-    designer._widget_view.widget_map[canvas_item_id] = None
-    designer._widget_view.get_tk_widget_from_widget_id(widget.id)
+    designer._widget_view._tk_widget_by_canvas_item_id.pop(canvas_item_id)
+    designer._widget_view.delete_tk_widget_for(widget.id)
 
 def _action_look_up_widget_with_unknown_canvas_item_id(designer: Designer) -> None:
     widget = _create_valid_widget()
     designer._widget_view.render_tk_widget_for(widget)
-    canvas_item_id = designer._widget_view.widget_id_to_canvas_item_id[widget.id]
-    designer._widget_view.canvas_item_id_to_widget_id.pop(canvas_item_id)
+    canvas_item_id = designer._widget_view._canvas_item_id_by_widget_id[widget.id]
+    designer._widget_view._widget_id_by_canvas_item_id.pop(canvas_item_id)
     designer._widget_view.get_widget_id_from_canvas_item_id(canvas_item_id)
+
+def _action_render_tk_widget_with_missing_tk_widget_mapping(designer: Designer) -> None:
+    widget = _create_valid_widget()
+    designer._widget_view.render_tk_widget_for(widget)
+    canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
+    designer._widget_view._tk_widget_by_canvas_item_id.pop(canvas_item_id)
+    designer._widget_view._update_tk_widget(canvas_item_id, widget)
+
+def _action_instantiate_widget_with_unsupported_type(designer: Designer) -> None:
+    designer._widget_view._instantiate_tk_widget("UNSUPPORTED_TYPE")
 
 VALIDATION_TESTS = (
     ValidationTest(
@@ -1034,31 +1030,10 @@ VALIDATION_TESTS = (
         action=_action_compute_bounding_box_with_invalid_anchor
     ),
     ValidationTest(
-        name="Rendering Tk widget with missing position",
-        expected_error_message="WidgetView - Tk widget rendering failed: missing position for widget \"ID\"",
+        name="Deleting Tk widget with missing Tk widget mapping",
+        expected_error_message=f"WidgetView - Tk widget deletion failed: missing Tk widget for canvas item \"{FIRST_CANVAS_ITEM_ID}\"",
         setup=_setup_designer,
-        action=_action_render_tk_widget_with_missing_position,
-        teardown=_teardown_designer
-    ),
-    ValidationTest(
-        name="Rendering Tk widget with unknown widget ID",
-        expected_error_message=f"WidgetView - Tk widget rendering failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
-        setup=_setup_designer,
-        action=_action_render_tk_widget_with_unknown_widget_id,
-        teardown=_teardown_designer
-    ),
-    ValidationTest(
-        name="Instantiating widget with unsupported type",
-        expected_error_message="WidgetView - Tk widget instantiation failed: unsupported type \"UNSUPPORTED_TYPE\"",
-        setup=_setup_designer,
-        action=_action_instantiate_widget_with_unsupported_type,
-        teardown=_teardown_designer
-    ),
-    ValidationTest(
-        name="Looking up Tk widget with unknown widget ID",
-        expected_error_message=f"WidgetView - Tk widget lookup failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
-        setup=_setup_designer,
-        action=_action_look_up_tk_widget_with_unknown_widget_id,
+        action=_action_delete_tk_widget_with_missing_tk_widget_mapping,
         teardown=_teardown_designer
     ),
     ValidationTest(
@@ -1066,6 +1041,20 @@ VALIDATION_TESTS = (
         expected_error_message=f"WidgetView - widget lookup failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
         setup=_setup_designer,
         action=_action_look_up_widget_with_unknown_canvas_item_id,
+        teardown=_teardown_designer
+    ),
+    ValidationTest(
+        name="Rendering Tk widget with missing Tk widget mapping",
+        expected_error_message=f"WidgetView - Tk widget rendering failed: missing Tk widget for canvas item \"{FIRST_CANVAS_ITEM_ID}\"",
+        setup=_setup_designer,
+        action=_action_render_tk_widget_with_missing_tk_widget_mapping,
+        teardown=_teardown_designer
+    ),
+    ValidationTest(
+        name="Instantiating widget with unsupported type",
+        expected_error_message="WidgetView - Tk widget instantiation failed: unsupported type \"UNSUPPORTED_TYPE\"",
+        setup=_setup_designer,
+        action=_action_instantiate_widget_with_unsupported_type,
         teardown=_teardown_designer
     )
 )

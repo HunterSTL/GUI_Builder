@@ -105,8 +105,9 @@ class TestRenderWidget(unittest.TestCase):
         widget_view.render_tk_widget_for(widget)
         canvas_item_id = widget_view.get_canvas_item_id_from_widget_id(widget.id)
 
-        self.assertIn(canvas_item_id, widget_view.widget_map)
-        self.assertEqual(widget_view.widget_map[canvas_item_id]["widget"].id, "label_1")
+        self.assertIn(canvas_item_id, widget_view._tk_widget_by_canvas_item_id)
+        self.assertIsNotNone(canvas_item_id)
+        self.assertEqual(canvas.type(canvas_item_id), "window")
         self.assertIsNotNone(widget.width)
         self.assertIsNotNone(widget.height)
 

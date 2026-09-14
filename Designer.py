@@ -79,7 +79,7 @@ class Designer:
             canvas=self._canvas,
             event_router=self._event_router,
             app_state=self.app_state,
-            resolve_canvas_item_id_to_widget_id=lambda canvas_item_id: self._widget_view.get_widget_id_from_canvas_item_id(canvas_item_id),
+            resolve_canvas_item_id_to_widget_id=self._widget_view.get_widget_id_from_canvas_item_id
         )
 
         #Actions--------------------------------------------------------------------------------------------------------
