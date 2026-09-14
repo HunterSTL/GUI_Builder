@@ -30,10 +30,17 @@ class CallTracer:
         self._enabled: bool = False
         self._depth: int = 0
 
+    @property
+    def enabled(
+        self
+    ) -> bool:
+        """Return whether call tracing is enabled."""
+        return self._enabled
+
     def toggle(
         self
-    ) -> None:
-        """Enable or disable call tracing and report the resulting state."""
+    ) -> bool:
+        """Toggle call tracing, print its status and return whether it is now enabled."""
         if self._enabled:
             self._enabled = False
             self._depth = 0
@@ -43,6 +50,7 @@ class CallTracer:
             self._enabled = True
             sys.setprofile(self._trace)
             print("CALL TRACING ENABLED")
+        return self._enabled
 
     def _trace(
         self,

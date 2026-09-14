@@ -3,14 +3,14 @@ from tkinter import messagebox, simpledialog, colorchooser, ttk
 
 from actions import Actions, EditActions, WidgetActions
 from commands import CommandStack
-from components import AttributesPanel
-from controller import CanvasController, ToolbarController
+from components import AttributesPanel, Toolbar
+from controller import CanvasController
 from events import EventBus, EventRouter
 from model import ProjectDocument
 from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, call_tracer, WidgetType
 from utility.AppTheme import WINDOW_COLOR, SCROLLBAR_COLOR, SCROLLBAR_TROUGH_COLOR, SCROLLBAR_BORDER_COLOR, SCROLLBAR_ARROW_COLOR, MENU_COLOR, MENU_TEXT_COLOR
 from utility.Constants import TOOLBAR_HEIGHT, ATTRIBUTES_PANEL_WIDTH, VIEWPORT_MAX_WIDTH, VIEWPORT_MAX_HEIGHT, GRID_MIN_SIZE, GRID_MAX_SIZE
-from view import CanvasView, SelectionView, ToolbarView, WidgetView
+from view import CanvasView, SelectionView, WidgetView
 
 from AppState import AppState
 
@@ -39,7 +39,6 @@ class Designer:
 
         self._command_stack: CommandStack = CommandStack()
         self._clipboard: list[dict[str, str | int]] = []
-        self._grid_visible_variable: tk.BooleanVar = tk.BooleanVar(value=self.app_state.project.grid.visible)
         self._last_right_click_coordinates: tuple[int, int] | None = None
 
         #UI construction------------------------------------------------------------------------------------------------
@@ -71,11 +70,6 @@ class Designer:
             canvas=self._canvas
         )
 
-        self._toolbar_view: ToolbarView = ToolbarView(
-            parent=self.top,
-            grid_visible_variable=self._grid_visible_variable
-        )
-
         self._widget_view: WidgetView = WidgetView(
             canvas=self._canvas
         )
@@ -87,13 +81,6 @@ class Designer:
             app_state=self.app_state,
             resolve_canvas_item_id_to_widget_id=lambda canvas_item_id: self._widget_view.get_widget_id_from_canvas_item_id(canvas_item_id),
         )
-
-        self._toolbar_controller: ToolbarController = ToolbarController(
-            toolbar_view=self._toolbar_view,
-            event_router=self._event_router
-        )
-        self._toolbar_controller.build_toolbar()
-        self._main_frame.pack(side="top", fill="both", expand=True)
 
         #Actions--------------------------------------------------------------------------------------------------------
         edit_actions: EditActions = EditActions(
@@ -131,10 +118,19 @@ class Designer:
         self
     ) -> None:
         """Construct the designer UI layout and its components."""
+        self._toolbar: Toolbar = Toolbar(
+            parent=self.top,
+            event_router=self._event_router,
+            grid_visible=self.app_state.project.grid.visible,
+            call_tracing_enabled=call_tracer.enabled
+        )
+        self._toolbar.frame.pack(side="top", fill="x")
+
         self._main_frame: tk.Frame = tk.Frame(           #hosts work area (column 0) and attributes panel (column 1)
             self.top,
             bg=WINDOW_COLOR
         )
+        self._main_frame.pack(side="top", fill="both", expand=True)
         self._main_frame.columnconfigure(0, weight=1)    #work area expands
         self._main_frame.columnconfigure(1, weight=0)    #attributes panel fixed width
         self._main_frame.rowconfigure(0, weight=1)
@@ -331,13 +327,16 @@ class Designer:
                     is_last_selected=widget.id == self.app_state.get_last_selected_widget_id()
                 )
 
-        #synchronize grid
+        #synchronize the grid and its toolbar checkmark
         if state.grid_change:
+            grid = self.app_state.project.grid
+
             self._canvas_view.sync_grid(
-                size=self.app_state.project.grid.size,
-                color=self.app_state.project.grid.color,
-                visible=self.app_state.project.grid.visible
+                size=grid.size,
+                color=grid.color,
+                visible=grid.visible
             )
+            self._toolbar.set_grid_visibility_checkmark(visible=grid.visible)
 
         #refresh attributes panel if the single selected widget changed
         if len(dirty_widgets) == 1:
@@ -365,8 +364,9 @@ class Designer:
         self
     ) -> None:
         """Toggle grid visibility."""
-        self._grid_visible_variable.set(not self._grid_visible_variable.get())
-        self._apply_grid_from_variable()
+        self.app_state.set_grid_visible(
+            visible=not self.app_state.project.grid.visible
+        )
 
     def _change_grid_size(
         self
@@ -396,13 +396,6 @@ class Designer:
 
         self.app_state.set_grid_color(str(color))
         self._canvas.focus_set()
-
-    def _apply_grid_from_variable(
-        self
-    ) -> None:
-        """Apply the current grid visibility state."""
-        visible = self._grid_visible_variable.get()
-        self.app_state.set_grid_visible(visible)
 
     #UI actions---------------------------------------------------------------------------------------------------------
     def _show_menu(
@@ -445,12 +438,11 @@ class Designer:
 
         #grid events
         self._designer_event_bus.subscribe("grid.toggle", self._toggle_grid)
-        self._designer_event_bus.subscribe("grid.apply_variable", self._apply_grid_from_variable)
         self._designer_event_bus.subscribe("grid.change_size", self._change_grid_size)
         self._designer_event_bus.subscribe("grid.change_color", self._change_grid_color)
 
         #debug events
-        self._designer_event_bus.subscribe("debug.toggle_call_tracing", call_tracer.toggle)
+        self._designer_event_bus.subscribe("debug.toggle_call_tracing", self._toggle_call_tracing)
         self._designer_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
         self._designer_event_bus.subscribe("debug.print_clipboard", self._print_clipboard)
         self._designer_event_bus.subscribe("debug.print_command_stack", self._print_command_stack)
@@ -527,6 +519,13 @@ class Designer:
             messagebox_text,
             parent=self.top     #disables interaction with the parent (Designer) while the messagebox is shown
         )
+
+    def _toggle_call_tracing(
+        self
+    ) -> None:
+        """Toggle call tracing and update its toolbar checkmark."""
+        enabled = call_tracer.toggle()
+        self._toolbar.set_call_tracing_checkmark(enabled=enabled)
 
     def _print_widget_count(
         self
