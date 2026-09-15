@@ -109,6 +109,18 @@ class WidgetActions:
             self._active_drag_widgets = None
             self._active_drag_command = None
 
+    def abort_drag(
+        self,
+    ) -> None:
+        """Undo and clear the active drag command."""
+        cmd = self._active_drag_command
+        if not cmd:
+            return
+
+        cmd.undo()
+        self._active_drag_widgets = None
+        self._active_drag_command = None
+
     def snap_to_grid(
         self
     ) -> None:

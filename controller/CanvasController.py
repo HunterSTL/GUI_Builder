@@ -85,9 +85,11 @@ class CanvasController:
                 self._event_router.emit("widget.drag.start")
             else:
                 self._event_router.emit(
-                    "selection.rectangle.start",
+                    "selection.rectangle.render",
                     x1=gesture.press_coordinates[0],
-                    y1=gesture.press_coordinates[1]
+                    y1=gesture.press_coordinates[1],
+                    x2=gesture.press_coordinates[0],
+                    y2=gesture.press_coordinates[1]
                 )
 
         if gesture.press_widget_id is not None:
@@ -99,7 +101,7 @@ class CanvasController:
             gesture.applied_delta = total_dx, total_dy
         else:
             self._event_router.emit(
-                "selection.rectangle.update",
+                "selection.rectangle.render",
                 x1=gesture.press_coordinates[0],
                 y1=gesture.press_coordinates[1],
                 x2=canvas_x,
@@ -136,9 +138,24 @@ class CanvasController:
                         y2=canvas_y,
                         is_additive=gesture.is_additive
                     )
-                    self._event_router.emit("selection.rectangle.end")
+                    self._event_router.emit("selection.rectangle.delete")
         finally:
             self._active_mouse_gesture = None
+
+    def _handle_right_click(
+        self,
+        event: tk.Event
+    ) -> None:
+        """Open the context menu if no mouse gesture is active, otherwise abort the gesture."""
+        if self._active_mouse_gesture is not None:
+            if self._active_mouse_gesture.press_widget_id is None:
+                self._event_router.emit("selection.rectangle.delete")
+            else:
+                self._event_router.emit("widget.drag.abort")
+
+            self._active_mouse_gesture = None
+        else:
+            self._event_router.emit("menu.show", tk_event=event)
 
     def _bind_events(
         self
@@ -152,7 +169,7 @@ class CanvasController:
         self._canvas.bind("<ButtonPress-1>", self._handle_canvas_press)
         self._canvas.bind("<B1-Motion>", self._handle_canvas_drag)
         self._canvas.bind("<ButtonRelease-1>", self._handle_canvas_release)
-        self._canvas.bind("<Button-3>", lambda e: self._event_router.emit("menu.show", tk_event=e))
+        self._canvas.bind("<Button-3>", self._handle_right_click)
 
         #project events
         self._canvas.bind("<Control-n>", lambda e: self._event_router.emit("project.new"))

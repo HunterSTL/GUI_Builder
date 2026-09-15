@@ -415,9 +415,8 @@ class Designer:
         self._designer_event_bus.subscribe("menu.show", self._show_menu)
 
         #selection events
-        self._designer_event_bus.subscribe("selection.rectangle.start", lambda x1, y1: self._selection_view.render_selection_rectangle(x1, y1, x1, y1))
-        self._designer_event_bus.subscribe("selection.rectangle.update", lambda x1, y1, x2, y2: self._selection_view.render_selection_rectangle(x1, y1, x2, y2))
-        self._designer_event_bus.subscribe("selection.rectangle.end", self._selection_view.delete_selection_rectangle)
+        self._designer_event_bus.subscribe("selection.rectangle.render", lambda x1, y1, x2, y2: self._selection_view.render_selection_rectangle(x1, y1, x2, y2))
+        self._designer_event_bus.subscribe("selection.rectangle.delete", self._selection_view.delete_selection_rectangle)
 
         #edit events
         self._designer_event_bus.subscribe("edit.delete", self._actions.edit.delete)
@@ -435,6 +434,7 @@ class Designer:
         self._designer_event_bus.subscribe("widget.drag.start", self._actions.widget.start_drag)
         self._designer_event_bus.subscribe("widget.drag.update", self._actions.widget.update_drag)
         self._designer_event_bus.subscribe("widget.drag.end", self._actions.widget.end_drag)
+        self._designer_event_bus.subscribe("widget.drag.abort", self._actions.widget.abort_drag)
 
         #grid events
         self._designer_event_bus.subscribe("grid.toggle", self._toggle_grid)

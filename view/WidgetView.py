@@ -194,3 +194,4 @@ class WidgetView:
         tk_widget.bind("<ButtonPress-1>", lambda event: forward_to_canvas(event, "<ButtonPress-1>"))
         tk_widget.bind("<B1-Motion>", lambda event: forward_to_canvas(event, "<B1-Motion>"))
         tk_widget.bind("<ButtonRelease-1>", lambda event: forward_to_canvas(event, "<ButtonRelease-1>"))
+        tk_widget.bind("<Button-3>", lambda event: forward_to_canvas(event, "<Button-3>"))
