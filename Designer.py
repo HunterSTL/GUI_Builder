@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
 
-from actions import Actions, EditActions, WidgetActions
+from actions import Actions, EditActions, GridActions, WidgetActions
 from commands import CommandStack
 from components import AttributesPanel, Toolbar
 from controller import CanvasController
@@ -91,6 +91,11 @@ class Designer:
             commit_active_attributes_panel_edit_callback=self._commit_active_attributes_panel_edit
         )
 
+        grid_actions: GridActions = GridActions(
+            app_state=self.app_state,
+            command_stack=self._command_stack
+        )
+
         widget_actions: WidgetActions = WidgetActions(
             app_state=self.app_state,
             command_stack=self._command_stack,
@@ -99,6 +104,7 @@ class Designer:
 
         self._actions: Actions = Actions(
             edit_actions=edit_actions,
+            grid_actions=grid_actions,
             widget_actions=widget_actions
         )
 
@@ -359,44 +365,6 @@ class Designer:
             visible=self.app_state.project.grid.visible
         )
 
-    #Grid actions-------------------------------------------------------------------------------------------------------
-    def _toggle_grid(
-        self
-    ) -> None:
-        """Toggle grid visibility."""
-        self.app_state.set_grid_visible(
-            visible=not self.app_state.project.grid.visible
-        )
-
-    def _change_grid_size(
-        self
-    ) -> None:
-        """Prompt for and apply a new grid size."""
-        new_grid_size = simpledialog.askinteger(
-            "Grid size",
-            "Enter new grid size:",
-            minvalue=GRID_MIN_SIZE,
-            maxvalue=GRID_MAX_SIZE,
-            parent=self.top
-        )
-
-        if new_grid_size is None:
-            return
-
-        self.app_state.set_grid_size(new_grid_size)
-
-    def _change_grid_color(
-        self
-    ) -> None:
-        """Prompt for and apply a new grid color."""
-        color = colorchooser.askcolor(parent=self.top)[1]
-
-        if color is None:
-            return
-
-        self.app_state.set_grid_color(str(color))
-        self._canvas.focus_set()
-
     #UI actions---------------------------------------------------------------------------------------------------------
     def _show_menu(
         self,
@@ -437,9 +405,9 @@ class Designer:
         self._designer_event_bus.subscribe("widget.drag.abort", self._actions.widget.abort_drag)
 
         #grid events
-        self._designer_event_bus.subscribe("grid.toggle", self._toggle_grid)
-        self._designer_event_bus.subscribe("grid.change_size", self._change_grid_size)
-        self._designer_event_bus.subscribe("grid.change_color", self._change_grid_color)
+        self._designer_event_bus.subscribe("grid.toggle", self._actions.grid.toggle)
+        self._designer_event_bus.subscribe("grid.change_size", self._request_change_grid_size)
+        self._designer_event_bus.subscribe("grid.change_color", self._request_change_grid_color)
 
         #debug events
         self._designer_event_bus.subscribe("debug.toggle_call_tracing", self._toggle_call_tracing)
@@ -471,6 +439,42 @@ class Designer:
             widget_type=widget_type,
             coordinates=self._last_right_click_coordinates,
             text=text
+        )
+
+    def _request_change_grid_size(
+        self
+    ) -> None:
+        """Prompt for a new grid size and request a grid size change."""
+        size = simpledialog.askinteger(
+            "Grid size",
+            "Enter new grid size:",
+            minvalue=GRID_MIN_SIZE,
+            maxvalue=GRID_MAX_SIZE,
+            initialvalue=self.app_state.project.grid.size,
+            parent=self.top
+        )
+
+        if size is None:
+            return
+
+        self._actions.grid.change_size(
+            new_size=size
+        )
+
+    def _request_change_grid_color(
+        self
+    ) -> None:
+        """Prompt for a new grid color and request a grid color change."""
+        color = colorchooser.askcolor(
+            initialcolor=self.app_state.project.grid.color,
+            parent=self.top
+        )[1]
+
+        if color is None:
+            return
+
+        self._actions.grid.change_color(
+            new_color=color
         )
 
     def _commit_active_attributes_panel_edit(
