@@ -35,7 +35,7 @@ class NudgeWidgets(Command):
     def execute(
         self
     ) -> None:
-        """Apply the snapshotted final positions to the widgets through AppState."""
+        """Apply the stored final positions to the widgets."""
         with self._app_state.batch():
             for widget_id, (x, y) in self._final_positions.items():
                 widget = self._app_state.get_widget_from_widget_id(widget_id)
@@ -44,7 +44,7 @@ class NudgeWidgets(Command):
     def undo(
         self
     ) -> None:
-        """Restore the snapshotted original positions to the widgets through AppState."""
+        """Restore the widgets to their stored original positions."""
         with self._app_state.batch():
             for widget_id, (x, y) in self._original_positions.items():
                 widget = self._app_state.get_widget_from_widget_id(widget_id)

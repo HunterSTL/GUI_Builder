@@ -193,11 +193,8 @@ class WidgetActions:
         x = clamp(coordinates[0], min_x, max_x)
         y = clamp(coordinates[1], min_y, max_y)
 
-        widget_id = self._app_state.project.id_counters.generate_id(widget_type)
-
         if widget_type == WidgetType.LABEL:
             widget = LabelWidget(
-                id=widget_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme.label_color,
@@ -208,7 +205,6 @@ class WidgetActions:
             )
         elif widget_type == WidgetType.ENTRY:
             widget = EntryWidget(
-                id=widget_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme.entry_color,
@@ -218,7 +214,6 @@ class WidgetActions:
             )
         else:   #WidgetType.BUTTON; other types were rejected above
             widget = ButtonWidget(
-                id=widget_id,
                 x=x,
                 y=y,
                 bg=self._app_state.project.theme.button_color,
@@ -348,7 +343,7 @@ class WidgetActions:
             return
 
         try:
-            cmd.record_final_snapshot()
+            cmd.record_final_widget_data()
 
             if cmd.has_effect():
                 self._command_stack.execute(cmd)

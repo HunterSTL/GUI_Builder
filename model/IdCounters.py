@@ -37,7 +37,7 @@ class IdCounters:
         self,
         widget_type: WidgetType
     ) -> str:
-        """Generate a unique ID for the given widget type."""
+        """Return a unique ID for the given widget type and increment the counter."""
         if widget_type == WidgetType.LABEL:
             widget_id = f"label_{self.label}"
             self.label += 1
@@ -54,6 +54,20 @@ class IdCounters:
             return widget_id
 
         raise ValueError(f"IdCounters - ID generation failed: unsupported type \"{widget_type}\"")
+
+    def decrement_counter(
+        self,
+        widget_type: WidgetType
+    ) -> None:
+        """Decrement the counter for the given widget type."""
+        if widget_type == WidgetType.LABEL:
+            self.label -= 1
+
+        if widget_type == WidgetType.ENTRY:
+            self.entry -= 1
+
+        if widget_type == WidgetType.BUTTON:
+            self.button -= 1
 
     @classmethod
     def _validate_id_counter_data(

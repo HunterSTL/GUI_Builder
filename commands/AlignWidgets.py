@@ -63,7 +63,7 @@ class AlignWidgets(Command):
     def has_effect(
         self
     ) -> bool:
-        """Return True if execution would change at least one widget's position."""
+        """Return True if at least one widget's final position differs from its original position."""
         return any(
             self._original_positions[widget_id] != self._final_positions[widget_id]
             for widget_id in self._widget_ids
@@ -72,7 +72,7 @@ class AlignWidgets(Command):
     def execute(
         self
     ) -> None:
-        """Apply the snapshotted final positions to the widgets through AppState."""
+        """Apply the stored final positions to the widgets."""
         with self._app_state.batch():
             for widget_id, (x, y) in self._final_positions.items():
                 widget = self._app_state.get_widget_from_widget_id(widget_id)
@@ -81,7 +81,7 @@ class AlignWidgets(Command):
     def undo(
         self
     ) -> None:
-        """Restore the snapshotted original positions to the widgets through AppState."""
+        """Restore the widgets to their stored original positions."""
         with self._app_state.batch():
             for widget_id, (x, y) in self._original_positions.items():
                 widget = self._app_state.get_widget_from_widget_id(widget_id)

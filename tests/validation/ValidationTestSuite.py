@@ -527,10 +527,6 @@ def _action_deserialize_widget_data_with_invalid_attribute_set() -> None:
     widget_data["UNEXPECTED_ATTRIBUTE"] = "value"
     BaseWidget.from_dict(widget_data)
 
-def _action_deserialize_widget_data_with_invalid_id() -> None:
-    widget_data = _create_valid_widget_data(id=None)
-    BaseWidget.from_dict(widget_data)
-
 def _action_deserialize_widget_data_with_invalid_x_coordinate() -> None:
     widget_data = _create_valid_widget_data(x="INVALID_X_COORDINATE")
     BaseWidget.from_dict(widget_data)
@@ -958,11 +954,6 @@ VALIDATION_TESTS = (
         name="Deserializing widget data with invalid attribute set",
         expected_error_message="Widgets - widget data deserialization failed: invalid attribute set [got unexpected attribute \"UNEXPECTED_ATTRIBUTE\"]",
         action=_action_deserialize_widget_data_with_invalid_attribute_set
-    ),
-    ValidationTest(
-        name="Deserializing widget data with invalid ID",
-        expected_error_message="Widgets - widget data deserialization failed: invalid ID \"None\"",
-        action=_action_deserialize_widget_data_with_invalid_id
     ),
     ValidationTest(
         name="Deserializing widget data with invalid X coordinate",
