@@ -25,7 +25,7 @@ class SetGridSize(Command):
     def execute(
         self
     ) -> None:
-        """Set the grid size."""
+        """Set the grid size to the new value."""
         self._app_state.set_grid_size(
             size=self._new_size
         )
@@ -33,7 +33,7 @@ class SetGridSize(Command):
     def undo(
         self
     ) -> None:
-        """Reset the grid size to its previous value."""
+        """Restore the previous grid size."""
         self._app_state.set_grid_size(
             size=self._previous_size
         )

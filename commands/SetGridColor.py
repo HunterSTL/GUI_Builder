@@ -25,7 +25,7 @@ class SetGridColor(Command):
     def execute(
         self
     ) -> None:
-        """Set the grid color."""
+        """Set the grid color to the new value."""
         self._app_state.set_grid_color(
             color=self._new_color
         )
@@ -33,7 +33,7 @@ class SetGridColor(Command):
     def undo(
         self
     ) -> None:
-        """Reset the grid color to its previous value."""
+        """Restore the previous grid color."""
         self._app_state.set_grid_color(
             color=self._previous_color
         )

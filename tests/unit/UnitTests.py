@@ -170,7 +170,6 @@ class TestUndoRedoAddWidget(unittest.TestCase):
         app_state = AppState(project_document)
 
         widget = LabelWidget(
-            id=project_document.id_counters.generate_id(WidgetType.LABEL),
             x=50,
             y=50,
             bg="#111111",
@@ -182,13 +181,18 @@ class TestUndoRedoAddWidget(unittest.TestCase):
         command_stack = CommandStack()
 
         command_stack.execute(AddWidget(widget, app_state))
-        self.assertEqual(len(project_document.widgets), 1)
+        created_widget = project_document.widgets[0]
+        self.assertEqual(created_widget.id, "label_1")
+        self.assertEqual(project_document.id_counters.label, 2)
 
         command_stack.undo()
         self.assertEqual(len(project_document.widgets), 0)
+        self.assertEqual(project_document.id_counters.label, 1)
 
         command_stack.redo()
-        self.assertEqual(len(project_document.widgets), 1)
+        redone_widget = project_document.widgets[0]
+        self.assertEqual(redone_widget.id, "label_1")
+        self.assertEqual(project_document.id_counters.label, 2)
 
 
 class TestUndoRedoDeleteWidget(unittest.TestCase):

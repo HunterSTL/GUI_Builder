@@ -6,7 +6,6 @@ from utility import WidgetType, is_non_empty_string, is_valid_hex_color_code, is
 @dataclass
 class BaseWidget:
     """Stores widget data."""
-    id: str
     x: int
     y: int
     bg: str
@@ -14,6 +13,7 @@ class BaseWidget:
     width: int
     height: int
     anchor: str = "sw"
+    id: str | None = None
 
     @property
     def type(
@@ -29,7 +29,7 @@ class BaseWidget:
 
     def to_dict(
         self
-    ) -> dict[str, str | int]:
+    ) -> dict[str, str | int | None]:
         """Serialize the widget to widget data."""
         widget_data = self.__dict__.copy()  #shallow copy is safe because widgets are flat
         widget_data["type"] = self.type.value
@@ -74,7 +74,6 @@ class BaseWidget:
                 raise ValueError(f"Widgets - widget data deserialization failed: invalid attribute set [got unexpected attribute \"{attribute}\"]")
 
         #validate attribute values
-        widget_id = widget_data["id"]
         x = widget_data["x"]
         y = widget_data["y"]
         bg = widget_data["bg"]
@@ -82,9 +81,6 @@ class BaseWidget:
         width = widget_data["width"]
         height = widget_data["height"]
         anchor = widget_data["anchor"]
-
-        if not is_non_empty_string(widget_id):
-            raise ValueError(f"Widgets - widget data deserialization failed: invalid ID \"{widget_id}\"")
 
         if not is_valid_integer(x):
             raise ValueError(f"Widgets - widget data deserialization failed: invalid X coordinate \"{x}\"")

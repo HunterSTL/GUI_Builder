@@ -26,7 +26,7 @@ class ToggleGrid(Command):
     def undo(
         self
     ) -> None:
-        """Reset the grid visibility to its previous value."""
+        """Restore the previous grid visibility."""
         self._app_state.set_grid_visible(
             visible=self._previous_visibility
         )

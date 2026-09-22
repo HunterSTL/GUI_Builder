@@ -7,12 +7,12 @@ class Command(ABC):
     def execute(
         self
     ) -> None:
-        """Apply the stored operation or snapshotted final state."""
+        """Apply the command."""
         raise NotImplementedError
 
     @abstractmethod
     def undo(
         self
     ) -> None:
-        """Restore the snapshotted original state."""
+        """Reverse the command."""
         raise NotImplementedError
