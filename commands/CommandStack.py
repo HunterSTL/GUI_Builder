@@ -1,13 +1,28 @@
+from collections.abc import Callable
+
+from utility import format_field
+
 from .BaseCommand import Command
 
 
 class CommandStack:
     """Manages command history by maintaining an undo and redo stack."""
     def __init__(
-        self
+        self,
+        update_window_title_callback: Callable[[], None]
     ) -> None:
+        self._update_window_title_callback: Callable[[], None] = update_window_title_callback
+
         self._undo_stack: list[Command] = []
         self._redo_stack: list[Command] = []
+        self._clean_history_position: int | None = 0
+
+    @property
+    def is_dirty(
+        self
+    ) -> bool:
+        """Return whether the project contains unsaved changes."""
+        return self._clean_history_position != len(self._undo_stack)
 
     def execute(
         self,
@@ -15,8 +30,13 @@ class CommandStack:
     ) -> None:
         """Execute the given command, push it onto the undo stack and clear the redo stack."""
         command.execute()
+
+        if self._clean_history_position is not None and self._clean_history_position > len(self._undo_stack):
+            self._clean_history_position = None     #history branching makes the saved position unreachable
+
         self._undo_stack.append(command)
         self._redo_stack.clear()
+        self._update_window_title_callback()
 
     def undo(
         self
@@ -28,6 +48,7 @@ class CommandStack:
         command = self._undo_stack.pop()
         command.undo()
         self._redo_stack.append(command)
+        self._update_window_title_callback()
 
     def redo(
         self
@@ -39,6 +60,14 @@ class CommandStack:
         command = self._redo_stack.pop()
         command.execute()
         self._undo_stack.append(command)
+        self._update_window_title_callback()
+
+    def mark_clean(
+        self
+    ) -> None:
+        """Mark the current command history as clean and update the window title."""
+        self._clean_history_position = len(self._undo_stack)
+        self._update_window_title_callback()
 
     def __repr__(
         self
@@ -54,7 +83,19 @@ class CommandStack:
             for command in reversed(self._redo_stack)
         ) or "empty"
 
+        lines = [
+            format_field(
+                label="Clean history position",
+                value=self._clean_history_position
+            ),
+            format_field(
+                label="Current history position",
+                value=len(self._undo_stack)
+            )
+        ]
+        s = "\n".join(lines)
+
         undo_section = "-" * 150 + "\n" + undo_contents + "\n" + "-" * 150
         redo_section = "-" * 150 + "\n" + redo_contents + "\n" + "-" * 150
-        s = "-" * 150 + "\n" + f"Undo stack:\n{undo_section}\nRedo stack:\n{redo_section}"
+        s += "\n" + "-" * 150 + "\n" + f"Undo stack:\n{undo_section}\nRedo stack:\n{redo_section}"
         return s

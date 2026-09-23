@@ -178,7 +178,9 @@ class TestUndoRedoAddWidget(unittest.TestCase):
             height=20,
             text="Add Widget Test"
         )
-        command_stack = CommandStack()
+        command_stack = CommandStack(
+            update_window_title_callback=lambda: None
+        )
 
         command_stack.execute(AddWidget(widget, app_state))
         created_widget = project_document.widgets[0]
@@ -214,7 +216,9 @@ class TestUndoRedoDeleteWidget(unittest.TestCase):
         )
         app_state.add_widget(widget)
 
-        command_stack = CommandStack()
+        command_stack = CommandStack(
+            update_window_title_callback=lambda: None
+        )
         command_stack.execute(DeleteWidgets(tuple([widget]), app_state))
         self.assertEqual(len(project_document.widgets), 0)
 
@@ -244,8 +248,9 @@ class TestUndoRedoNudgeWidget(unittest.TestCase):
         )
         app_state.add_widget(widget)
 
-        command_stack = CommandStack()
-
+        command_stack = CommandStack(
+            update_window_title_callback=lambda: None
+        )
         command_stack.execute(NudgeWidgets(tuple([widget]), 50, 50, app_state))
         self.assertEqual(widget.x, 100)
         self.assertEqual(widget.y, 100)
@@ -278,7 +283,9 @@ class TestUndoRedoDragWidget(unittest.TestCase):
         )
         app_state.add_widget(widget)
 
-        command_stack = CommandStack()
+        command_stack = CommandStack(
+            update_window_title_callback=lambda: None
+        )
         command = DragWidgets(tuple([widget]), app_state)
 
         command.apply_drag_delta(50, 50)
@@ -330,8 +337,9 @@ class TestUndoRedoPasteWidgets(unittest.TestCase):
         app_state.add_widget(widget_2)
 
         clipboard = [widget_1.to_dict(), widget_2.to_dict()]
-        command_stack = CommandStack()
-
+        command_stack = CommandStack(
+            update_window_title_callback=lambda: None
+        )
         command_stack.execute(
             PasteWidgetsFromClipboard(
                 clipboard=clipboard,

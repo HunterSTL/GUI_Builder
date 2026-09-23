@@ -37,7 +37,10 @@ class Designer:
         )
         self.app_state.subscribe(self._on_changed_state)
 
-        self._command_stack: CommandStack = CommandStack()
+        self._command_stack: CommandStack = CommandStack(
+            update_window_title_callback=self._update_window_title
+        )
+
         self._clipboard: list[dict[str, str | int | None]] = []
         self._last_right_click_coordinates: tuple[int, int] | None = None
 
@@ -126,6 +129,28 @@ class Designer:
         self.top.deiconify()
         center_window(window=self.top)
 
+    #Public project API-------------------------------------------------------------------------------------------------
+    def is_dirty(
+        self
+    ) -> bool:
+        """Commit active editing and return whether the project contains unsaved changes."""
+        self._commit_active_attributes_panel_edit()
+        return self._command_stack.is_dirty
+
+    def mark_clean(
+        self
+    ) -> None:
+        """Mark the current command history as clean."""
+        self._command_stack.mark_clean()
+
+    def get_project_data(
+        self
+    ) -> dict[str, object]:
+        """Commit active editing and return the serialized project data."""
+        self._commit_active_attributes_panel_edit()
+        return self.app_state.project.to_json()
+
+    #Designer UI--------------------------------------------------------------------------------------------------------
     def _build_designer_ui(
         self
     ) -> None:
@@ -306,11 +331,6 @@ class Designer:
         state: AppState
     ) -> None:
         """Render incremental UI updates from AppState state change notification."""
-        if state.is_dirty():
-            self.top.title(self.app_state.project.title + "*")
-        else:
-            self.top.title(self.app_state.project.title)
-
         #delete Tk widgets and outlines for removed widgets
         for widget_id in state.get_removed_widget_ids():
             self._widget_view.delete_tk_widget_for(widget_id)
@@ -370,6 +390,17 @@ class Designer:
             color=self.app_state.project.grid.color,
             visible=self.app_state.project.grid.visible
         )
+
+    def _update_window_title(
+        self
+    ) -> None:
+        """Update the window title including the unsaved changes marker."""
+        title = self.app_state.project.title
+
+        if self._command_stack.is_dirty:
+            title += "*"
+
+        self.top.title(title)
 
     #UI actions---------------------------------------------------------------------------------------------------------
     def _show_menu(
