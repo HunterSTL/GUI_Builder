@@ -12,9 +12,6 @@ class AppState:
     ) -> None:
         self.project: ProjectDocument = project_document            #must only be mutated using AppState API (add_widget, set_grid_visible, set_project_title...)
 
-        #Persistent project state (survives across notifications)-------------------------------------------------------
-        self._is_dirty: bool = False                                #signals whether unsaved changes exist
-
         #Transient change information (resets after each notification)--------------------------------------------------
         self._dirty_widget_ids: set[str] = set()                    #IDs of widgets that changed
         self._removed_widget_ids: set[str] = set()                  #IDs of widgets that were removed
@@ -67,23 +64,6 @@ class AppState:
         self._dirty_widget_ids.clear()
         self._removed_widget_ids.clear()
 
-    #Dirty state API----------------------------------------------------------------------------------------------------
-    def is_dirty(
-        self
-    ) -> bool:
-        """Return whether the project contains unsaved changes."""
-        return self._is_dirty
-
-    def mark_clean(
-        self
-    ) -> None:
-        """Clear the dirty state and notify subscribers."""
-        if not self._is_dirty:
-            return
-
-        self._is_dirty = False
-        self._notify()
-
     #Widget API---------------------------------------------------------------------------------------------------------
     def add_widget(
         self,
@@ -104,7 +84,7 @@ class AppState:
         self._selected_widget_ids = [widget.id]
         self.selection_change = True
 
-        self._mark_dirty()
+        self._notify()
 
     def remove_widget(
         self,
@@ -123,7 +103,7 @@ class AppState:
             self._selected_widget_ids.remove(widget.id)
             self.selection_change = True
 
-        self._mark_dirty()
+        self._notify()
 
     def set_widget_position(
         self,
@@ -143,7 +123,7 @@ class AppState:
         widget.x = x
         widget.y = y
         self._dirty_widget_ids.add(widget.id)
-        self._mark_dirty()
+        self._notify()
 
     def offset_widget_position(
         self,
@@ -159,7 +139,7 @@ class AppState:
         widget.x += dx
         widget.y += dy
         self._dirty_widget_ids.add(widget.id)
-        self._mark_dirty()
+        self._notify()
 
     def set_widget_attribute(
         self,
@@ -181,7 +161,7 @@ class AppState:
 
         setattr(widget, attribute, value)
         self._dirty_widget_ids.add(widget.id)
-        self._mark_dirty()
+        self._notify()
 
     #Grid API-----------------------------------------------------------------------------------------------------------
     def set_grid_visible(
@@ -194,7 +174,7 @@ class AppState:
 
         self.project.grid.visible = visible
         self.grid_change = True
-        self._mark_dirty()
+        self._notify()
 
     def set_grid_size(
         self,
@@ -206,7 +186,7 @@ class AppState:
 
         self.project.grid.size = size
         self.grid_change = True
-        self._mark_dirty()
+        self._notify()
 
     def set_grid_color(
         self,
@@ -218,7 +198,7 @@ class AppState:
 
         self.project.grid.color = color
         self.grid_change = True
-        self._mark_dirty()
+        self._notify()
 
     #Project API--------------------------------------------------------------------------------------------------------
     def set_project_title(
@@ -230,7 +210,7 @@ class AppState:
             return
 
         self.project.title = title
-        self._mark_dirty()
+        self._notify()
 
     #Selection API------------------------------------------------------------------------------------------------------
     def selection_clear(
@@ -413,12 +393,6 @@ class AppState:
         return self._selected_widget_ids[-1]
 
     #Internals----------------------------------------------------------------------------------------------------------
-    def _mark_dirty(
-        self
-    ) -> None:
-        self._is_dirty = True
-        self._notify()
-
     def _mark_selection_change(
         self
     ) -> None:

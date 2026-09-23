@@ -111,7 +111,7 @@ class AppController:
         self
     ) -> str:
         """Prompt for unsaved changes and return whether the pending operation may proceed."""
-        if not self._designer or not self._designer.app_state.is_dirty():
+        if not self._designer or not self._designer.is_dirty():
             return "PROCEED"
 
         choice = messagebox.askyesnocancel(
@@ -228,9 +228,9 @@ class AppController:
             return self._save_project_as()
 
         try:
-            project_data = self._designer.app_state.project.to_json()
+            project_data = self._designer.get_project_data()
             atomic_write_json(self._save_path, project_data)    #prevents file corruption if writing fails
-            self._designer.app_state.mark_clean()
+            self._designer.mark_clean()
         except Exception as e:
             messagebox.showerror(
                 "File error",
@@ -264,11 +264,11 @@ class AppController:
             return False
 
         try:
-            project_data = self._designer.app_state.project.to_json()
+            project_data = self._designer.get_project_data()
             atomic_write_json(save_path, project_data)  #prevents file corruption if writing fails
             self._save_path = save_path                 #only updates save path after successful write
             self._last_directory = os.path.dirname(save_path)
-            self._designer.app_state.mark_clean()
+            self._designer.mark_clean()
         except Exception as e:
             messagebox.showerror(
                 "File error",
