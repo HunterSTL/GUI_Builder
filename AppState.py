@@ -10,7 +10,7 @@ class AppState:
         self,
         project_document: ProjectDocument
     ) -> None:
-        self.project: ProjectDocument = project_document            #must only be mutated using AppState API (add_widget, set_grid_visible, set_title...)
+        self.project: ProjectDocument = project_document            #must only be mutated using AppState API (add_widget, set_grid_visible, set_project_title...)
 
         #Persistent project state (survives across notifications)-------------------------------------------------------
         self._is_dirty: bool = False                                #signals whether unsaved changes exist
@@ -221,7 +221,7 @@ class AppState:
         self._mark_dirty()
 
     #Project API--------------------------------------------------------------------------------------------------------
-    def set_title(
+    def set_project_title(
         self,
         title: str
     ) -> None:

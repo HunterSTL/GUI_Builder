@@ -37,6 +37,7 @@ class Toolbar:
         self._add_edit_menu()
         self._add_widgets_menu()
         self._add_grid_menu()
+        self._add_properties_menu()
         self._add_debug_menu()
 
     @property
@@ -180,6 +181,16 @@ class Toolbar:
             label="Change grid color",
             command=lambda: self._event_router.emit("grid.change_color"),
             accelerator="[SHIFT] + [G]"
+        )
+
+    def _add_properties_menu(
+        self
+    ) -> None:
+        menu = self._add_menu("Properties")
+        menu.add_command(
+            label="Change title",
+            command=lambda: self._event_router.emit("properties.change_title"),
+            accelerator="[CTRL] + [T]"
         )
 
     def _add_debug_menu(
