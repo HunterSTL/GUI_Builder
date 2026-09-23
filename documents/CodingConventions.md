@@ -84,6 +84,7 @@ Namespaced strings that describe concrete actions.
 * edit.*
 * widget.*
 * grid.*
+* properties.*
 * debug.*
 
 #### 2.5.2 EventBus

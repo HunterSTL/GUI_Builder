@@ -61,6 +61,10 @@ Supported attributes depend on the widget type and include:
 * Change the grid size
 * Change the grid color
 
+### Properties
+
+* Change the project title
+
 ### Debugging
 
 * Application call tracing
@@ -200,6 +204,12 @@ Alignment uses the last selected widget as the reference.
 | `G` | Show or hide grid |
 | `Ctrl` + `G` | Change grid size |
 | `Shift` + `G` | Change grid color |
+
+### Properties
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl` + `T` | Change project title |
 
 ### Debug
 

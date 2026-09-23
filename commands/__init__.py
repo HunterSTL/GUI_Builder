@@ -9,6 +9,7 @@ from .NudgeWidgets import NudgeWidgets
 from .PasteWidgetsFromClipboard import PasteWidgetsFromClipboard
 from .SetGridColor import SetGridColor
 from .SetGridSize import SetGridSize
+from .SetProjectTitle import SetProjectTitle
 from .SnapWidgetsToGrid import SnapWidgetsToGrid
 from .ToggleGrid import ToggleGrid
 
@@ -24,6 +25,7 @@ __all__ = [
     "PasteWidgetsFromClipboard",
     "SetGridColor",
     "SetGridSize",
+    "SetProjectTitle",
     "SnapWidgetsToGrid",
     "ToggleGrid"
 ]

@@ -209,6 +209,9 @@ class CanvasController:
         self._canvas.bind("<Control-g>", lambda e: self._event_router.emit("grid.change_size"))
         self._canvas.bind("<Shift-G>", lambda e: self._event_router.emit("grid.change_color"))
 
+        #properties events
+        self._canvas.bind("<Control-t>", lambda e: self._event_router.emit("properties.change_title"))
+
         #debug events
         self._canvas.bind("<Control-Shift-T>", lambda e: self._event_router.emit("debug.toggle_call_tracing"))
         self._canvas.bind("<numbersign>", lambda e: self._event_router.emit("debug.print_widget_count"))

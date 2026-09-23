@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
 
-from actions import Actions, EditActions, GridActions, WidgetActions
+from actions import Actions, EditActions, GridActions, PropertiesActions, WidgetActions
 from commands import CommandStack
 from components import AttributesPanel, Toolbar
 from controller import CanvasController
@@ -96,6 +96,11 @@ class Designer:
             command_stack=self._command_stack
         )
 
+        properties_actions: PropertiesActions = PropertiesActions(
+            app_state=self.app_state,
+            command_stack=self._command_stack
+        )
+
         widget_actions: WidgetActions = WidgetActions(
             app_state=self.app_state,
             command_stack=self._command_stack,
@@ -105,6 +110,7 @@ class Designer:
         self._actions: Actions = Actions(
             edit_actions=edit_actions,
             grid_actions=grid_actions,
+            properties_actions=properties_actions,
             widget_actions=widget_actions
         )
 
@@ -409,6 +415,9 @@ class Designer:
         self._designer_event_bus.subscribe("grid.change_size", self._request_change_grid_size)
         self._designer_event_bus.subscribe("grid.change_color", self._request_change_grid_color)
 
+        #properties events
+        self._designer_event_bus.subscribe("properties.change_title", self._request_change_project_title)
+
         #debug events
         self._designer_event_bus.subscribe("debug.toggle_call_tracing", self._toggle_call_tracing)
         self._designer_event_bus.subscribe("debug.print_widget_count", self._print_widget_count)
@@ -475,6 +484,29 @@ class Designer:
 
         self._actions.grid.change_color(
             new_color=color
+        )
+
+    def _request_change_project_title(
+        self
+    ) -> None:
+        """Prompt for a new project title and request a title change."""
+        title = simpledialog.askstring(
+            "Project title",
+            "Enter new project title:",
+            initialvalue=self.app_state.project.title,
+            parent=self.top
+        )
+
+        if title is None:
+            return
+
+        title = title.strip()
+
+        if not title:
+            return
+
+        self._actions.properties.change_title(
+            new_title=title
         )
 
     def _commit_active_attributes_panel_edit(
