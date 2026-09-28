@@ -60,6 +60,7 @@ class AttributesPanel:
         self._colorpickers: dict[str, tk.Button] = {}
         self._silent_mode: bool = False
         self._edit_in_progress: bool = False
+        self._displayed_widget: BaseWidget | None = None
 
         self._frame: tk.Frame = tk.Frame(
             parent,
@@ -80,10 +81,13 @@ class AttributesPanel:
         selection: tuple[BaseWidget, ...]
     ) -> None:
         """Build the panel when exactly one widget is selected, otherwise clear the panel."""
+        self._clear()
+
         if len(selection) == 1:
-            self._build(widget=selection[0])
+            self._displayed_widget = selection[0]
+            self._build(widget=self._displayed_widget)
         else:
-            self._clear()
+            self._displayed_widget = None
 
     def refresh_from_widget(
         self,
@@ -109,7 +113,6 @@ class AttributesPanel:
         widget: BaseWidget
     ) -> None:
         """Build the panel with editor widgets representing widget attributes."""
-        self._clear()
         displayed_attributes = _DISPLAYED_ATTRIBUTES_BY_WIDGET_TYPE[widget.type]
 
         for row, attribute in enumerate(displayed_attributes):
@@ -178,27 +181,38 @@ class AttributesPanel:
 
         raise ValueError(f"AttributesPanel - spinbox limit computation failed: unsupported attribute \"{attribute}\"")
 
+    @staticmethod
     def _validate_spinbox_input(
-        self,
-        proposed_value: str,
-        widget_name: str
+        proposed_value: str
     ) -> bool:
-        """Validate spinbox input against the spinbox's current limits."""
-        if proposed_value == "":    #allows empty values while editing
+        """Return whether the proposed value is empty or contains only digits 0-9."""
+        if proposed_value == "":
             return True
 
-        if not proposed_value.isdigit():
-            return False
+        for character in proposed_value:
+            if character not in "0123456789":
+                return False
+        return True
 
-        try:
-            value = int(proposed_value)
-        except ValueError:
-            return False
+    def _finalize_spinbox_edit(
+        self,
+        attribute: str
+    ) -> None:
+        """Restore invalid final input from the displayed widget and end the active attribute edit."""
+        spinbox = self._spinboxes[attribute]
+        variable = self._variables[attribute]
+        value = variable.get()
+        min_value = int(spinbox.cget("from"))
+        max_value = int(spinbox.cget("to"))
 
-        spinbox = self._frame.nametowidget(widget_name)
-        min_value = spinbox.cget("from")
-        max_value = spinbox.cget("to")
-        return min_value <= value <= max_value
+        if value == "" or not min_value <= int(value) <= max_value:
+            self._silent_mode = True
+            try:
+                variable.set(getattr(self._displayed_widget, attribute))
+            finally:
+                self._silent_mode = False
+
+        self._end_attribute_edit()
 
     def _change_color(
         self,
@@ -286,7 +300,6 @@ class AttributesPanel:
         validation_command = (
             self._frame.register(self._validate_spinbox_input),
             "%P",   #proposed value
-            "%W"    #widget name
         )
 
         spinbox = tk.Spinbox(
@@ -304,8 +317,8 @@ class AttributesPanel:
             wrap=False
         )
         spinbox.grid(column=1, row=row, sticky="W")
-        spinbox.bind("<FocusOut>", lambda _event: self._end_attribute_edit())
-        spinbox.bind("<Leave>", lambda _event: self._end_attribute_edit())  #arrow button clicks do not trigger focus events
+        spinbox.bind("<FocusOut>", lambda _event, attr=attribute: self._finalize_spinbox_edit(attr))
+        spinbox.bind("<Leave>", lambda _event, attr=attribute: self._finalize_spinbox_edit(attr))   #arrow button clicks do not trigger focus events
 
         self._spinboxes[attribute] = spinbox    #allows the spinbox's limits to be adjusted when size or anchor change
         self._bind_variable(attribute, variable)
@@ -398,16 +411,21 @@ class AttributesPanel:
         if self._silent_mode:   #prevents propagating variable writes back to the widget when refreshing the panel from the widget
             return
 
-        self._start_attribute_edit()
-
         value = variable.get()
 
-        if attribute in {"x", "y", "width", "height"}:
-            try:
-                value = int(value)
-            except ValueError:
+        if attribute in self._spinboxes:
+            if value == "":
                 return
 
+            value = int(value)
+            spinbox = self._spinboxes[attribute]
+            min_value = int(spinbox.cget("from"))
+            max_value = int(spinbox.cget("to"))
+
+            if not min_value <= value <= max_value:
+                return  #prevents propagating invalid values to the widget
+
+        self._start_attribute_edit()
         self._on_edit_change(attribute, value)
 
     def _end_attribute_edit(
