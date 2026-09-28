@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from collections.abc import Callable
-from typing import Any
 from time import perf_counter
 
 #terminal colors
@@ -14,8 +13,6 @@ class ValidationTest:
     name: str
     expected_error_message: str
     action: Callable[..., None]
-    setup: Callable[[], dict[str, Any]] | None = None
-    teardown: Callable[..., None] | None = None
 
 
 @dataclass
@@ -32,10 +29,8 @@ def run_validation_tests(
     test_results: list[ValidationTestResult] = []
 
     for test in tests:
-        context = test.setup() if test.setup is not None else {}
-
         try:
-            test.action(**context)
+            test.action()
         except ValueError as error:
             actual_error_message = str(error)
             if actual_error_message == test.expected_error_message:
@@ -50,9 +45,6 @@ def run_validation_tests(
         else:
             passed = False
             details = "No error raised"
-        finally:
-            if test.teardown is not None:
-                test.teardown(**context)
 
         test_results.append(
             ValidationTestResult(

@@ -23,36 +23,6 @@ CANVAS_HEIGHT = 600
 WIDGET_WIDTH = 100
 WIDGET_HEIGHT = 20
 
-#Lifecycle management---------------------------------------------------------------------------------------------------
-def _setup_designer() -> dict[str, Designer]:
-    root = tk.Tk()
-    root.withdraw()
-
-    original_deiconify = tk.Toplevel.deiconify
-    tk.Toplevel.deiconify = lambda self: None   #temporarily deactivates Toplevel.deiconify to prevent the designer window from showing during tests
-
-    try:
-        designer = Designer(
-            parent=root,
-            project_document=ProjectDocument(),
-            app_event_bus=EventBus()
-        )
-    except Exception:
-        root.destroy()
-        raise
-    finally:
-        tk.Toplevel.deiconify = original_deiconify
-
-    return {
-        "designer": designer
-    }
-
-def _teardown_designer(
-    designer: Designer
-) -> None:
-    root = designer.top.master
-    root.destroy()
-
 #Helpers----------------------------------------------------------------------------------------------------------------
 def _create_valid_project_data(
     **overrides
@@ -115,6 +85,33 @@ def _create_drag_widgets_command() -> DragWidgets:
         app_state=AppState(ProjectDocument())
     )
 
+def _create_designer() -> Designer:
+    root = tk.Tk()
+    root.withdraw()
+
+    original_deiconify = tk.Toplevel.deiconify
+    tk.Toplevel.deiconify = lambda self: None   #temporarily deactivates Toplevel.deiconify to prevent the designer window from showing during tests
+
+    try:
+        designer = Designer(
+            parent=root,
+            project_document=ProjectDocument(),
+            app_event_bus=EventBus()
+        )
+    except Exception:
+        root.destroy()
+        raise
+    finally:
+        tk.Toplevel.deiconify = original_deiconify
+
+    return designer
+
+def _destroy_designer(
+    designer: Designer
+) -> None:
+    root = designer.top.master
+    root.destroy()
+
 #AppState tests---------------------------------------------------------------------------------------------------------
 def _action_subscribe_uncallable_to_app_state() -> None:
     app_state = AppState(ProjectDocument())
@@ -175,41 +172,53 @@ def _action_look_up_widget_group_bounding_box_with_no_widgets_provided() -> None
     app_state.get_widget_group_bounding_box([])
 
 #WidgetActions tests----------------------------------------------------------------------------------------------------
-def _action_add_widget_with_missing_coordinates(
-    designer: Designer
-) -> None:
-    designer._actions.widget.add(
-        widget_type=WidgetType.LABEL,
-        coordinates=None,
-        text="TEXT"
-    )
+def _action_add_widget_with_unsupported_type() -> None:
+    designer = _create_designer()
 
-def _action_add_label_with_missing_text(
-    designer: Designer
-) -> None:
-    designer._actions.widget.add(
-        widget_type=WidgetType.LABEL,
-        coordinates=(100, 100),
-        text=None
-    )
+    try:
+        designer._actions.widget.add(
+            widget_type="UNSUPPORTED_TYPE",
+            coordinates=(100, 100),
+            text="TEXT"
+        )
+    finally:
+        _destroy_designer(designer)
 
-def _action_add_button_with_missing_text(
-    designer: Designer
-) -> None:
-    designer._actions.widget.add(
-        widget_type=WidgetType.BUTTON,
-        coordinates=(100, 100),
-        text=None
-    )
+def _action_add_widget_with_missing_coordinates() -> None:
+    designer = _create_designer()
 
-def _action_add_widget_with_unsupported_type(
-    designer: Designer
-) -> None:
-    designer._actions.widget.add(
-        widget_type="UNSUPPORTED_TYPE",
-        coordinates=(100, 100),
-        text="TEXT"
-    )
+    try:
+        designer._actions.widget.add(
+            widget_type=WidgetType.LABEL,
+            coordinates=None,
+            text="TEXT"
+        )
+    finally:
+        _destroy_designer(designer)
+
+def _action_add_label_with_missing_text() -> None:
+    designer = _create_designer()
+
+    try:
+        designer._actions.widget.add(
+            widget_type=WidgetType.LABEL,
+            coordinates=(100, 100),
+            text=None
+        )
+    finally:
+        _destroy_designer(designer)
+
+def _action_add_button_with_missing_text() -> None:
+    designer = _create_designer()
+
+    try:
+        designer._actions.widget.add(
+            widget_type=WidgetType.BUTTON,
+            coordinates=(100, 100),
+            text=None
+        )
+    finally:
+        _destroy_designer(designer)
 
 #EditWidget command tests-----------------------------------------------------------------------------------------------
 def _action_execute_edit_widget_command_without_recording_final_attribute_values() -> None:
@@ -226,22 +235,28 @@ def _action_execute_drag_widgets_command_without_recording_final_positions() -> 
     command.execute()
 
 #AttributesPanel tests--------------------------------------------------------------------------------------------------
-def _action_compute_spinbox_limits_for_unsupported_attribute(
-    designer: Designer
-) -> None:
-    designer._attributes_panel._compute_spinbox_limits(
-        widget=_create_valid_widget(),
-        attribute="UNSUPPORTED_ATTRIBUTE"
-    )
+def _action_compute_spinbox_limits_for_unsupported_attribute() -> None:
+    designer = _create_designer()
 
-def _action_create_combobox_for_unsupported_attribute(
-    designer: Designer
-) -> None:
-    designer._attributes_panel._create_combobox(
-        widget=_create_valid_widget(),
-        attribute="UNSUPPORTED_ATTRIBUTE",
-        row=0
-    )
+    try:
+        designer._attributes_panel._compute_spinbox_limits(
+            widget=_create_valid_widget(),
+            attribute="UNSUPPORTED_ATTRIBUTE"
+        )
+    finally:
+        _destroy_designer(designer)
+
+def _action_create_combobox_for_unsupported_attribute() -> None:
+    designer = _create_designer()
+
+    try:
+        designer._attributes_panel._create_combobox(
+            widget=_create_valid_widget(),
+            attribute="UNSUPPORTED_ATTRIBUTE",
+            row=0
+        )
+    finally:
+        _destroy_designer(designer)
 
 #EventBus tests---------------------------------------------------------------------------------------------------------
 def _action_subscribe_uncallable_to_event_bus() -> None:
@@ -598,29 +613,49 @@ def _action_compute_bounding_box_with_invalid_anchor() -> None:
     )
 
 #WidgetView tests-------------------------------------------------------------------------------------------------------
-def _action_delete_tk_widget_with_missing_tk_widget_mapping(designer: Designer) -> None:
-    widget = _create_valid_widget()
-    designer._widget_view.render_tk_widget_for(widget)
-    canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
-    designer._widget_view._tk_widget_by_canvas_item_id.pop(canvas_item_id)
-    designer._widget_view.delete_tk_widget_for(widget.id)
+def _action_delete_tk_widget_with_missing_tk_widget_mapping() -> None:
+    designer = _create_designer()
 
-def _action_look_up_widget_with_unknown_canvas_item_id(designer: Designer) -> None:
-    widget = _create_valid_widget()
-    designer._widget_view.render_tk_widget_for(widget)
-    canvas_item_id = designer._widget_view._canvas_item_id_by_widget_id[widget.id]
-    designer._widget_view._widget_id_by_canvas_item_id.pop(canvas_item_id)
-    designer._widget_view.get_widget_id_from_canvas_item_id(canvas_item_id)
+    try:
+        widget = _create_valid_widget()
+        designer._widget_view.render_tk_widget_for(widget)
+        canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
+        designer._widget_view._tk_widget_by_canvas_item_id.pop(canvas_item_id)
+        designer._widget_view.delete_tk_widget_for(widget.id)
+    finally:
+        _destroy_designer(designer)
 
-def _action_render_tk_widget_with_missing_tk_widget_mapping(designer: Designer) -> None:
-    widget = _create_valid_widget()
-    designer._widget_view.render_tk_widget_for(widget)
-    canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
-    designer._widget_view._tk_widget_by_canvas_item_id.pop(canvas_item_id)
-    designer._widget_view._update_tk_widget(canvas_item_id, widget)
+def _action_look_up_widget_with_unknown_canvas_item_id() -> None:
+    designer = _create_designer()
 
-def _action_instantiate_widget_with_unsupported_type(designer: Designer) -> None:
-    designer._widget_view._instantiate_tk_widget("UNSUPPORTED_TYPE")
+    try:
+        widget = _create_valid_widget()
+        designer._widget_view.render_tk_widget_for(widget)
+        canvas_item_id = designer._widget_view._canvas_item_id_by_widget_id[widget.id]
+        designer._widget_view._widget_id_by_canvas_item_id.pop(canvas_item_id)
+        designer._widget_view.get_widget_id_from_canvas_item_id(canvas_item_id)
+    finally:
+        _destroy_designer(designer)
+
+def _action_render_tk_widget_with_missing_tk_widget_mapping() -> None:
+    designer = _create_designer()
+
+    try:
+        widget = _create_valid_widget()
+        designer._widget_view.render_tk_widget_for(widget)
+        canvas_item_id = designer._widget_view.get_canvas_item_id_from_widget_id(widget.id)
+        designer._widget_view._tk_widget_by_canvas_item_id.pop(canvas_item_id)
+        designer._widget_view._update_tk_widget(canvas_item_id, widget)
+    finally:
+        _destroy_designer(designer)
+
+def _action_instantiate_widget_with_unsupported_type() -> None:
+    designer = _create_designer()
+
+    try:
+        designer._widget_view._instantiate_tk_widget("UNSUPPORTED_TYPE")
+    finally:
+        _destroy_designer(designer)
 
 VALIDATION_TESTS = (
     ValidationTest(
@@ -686,30 +721,22 @@ VALIDATION_TESTS = (
     ValidationTest(
         name="Adding widget with unsupported type",
         expected_error_message="WidgetActions - widget creation failed: unsupported type \"UNSUPPORTED_TYPE\"",
-        setup=_setup_designer,
-        action=_action_add_widget_with_unsupported_type,
-        teardown=_teardown_designer
+        action=_action_add_widget_with_unsupported_type
     ),
     ValidationTest(
         name="Adding widget with missing coordinates",
         expected_error_message="WidgetActions - widget creation failed: missing coordinates",
-        setup=_setup_designer,
-        action=_action_add_widget_with_missing_coordinates,
-        teardown=_teardown_designer
+        action=_action_add_widget_with_missing_coordinates
     ),
     ValidationTest(
         name="Adding label with missing text",
         expected_error_message="WidgetActions - widget creation failed: missing text",
-        setup=_setup_designer,
-        action=_action_add_label_with_missing_text,
-        teardown=_teardown_designer
+        action=_action_add_label_with_missing_text
     ),
     ValidationTest(
         name="Adding button with missing text",
         expected_error_message="WidgetActions - widget creation failed: missing text",
-        setup=_setup_designer,
-        action=_action_add_button_with_missing_text,
-        teardown=_teardown_designer
+        action=_action_add_button_with_missing_text
     ),
     ValidationTest(
         name="Executing EditWidget command without recording final attribute values",
@@ -729,16 +756,12 @@ VALIDATION_TESTS = (
     ValidationTest(
         name="Computing spinbox limits for an unsupported attribute",
         expected_error_message="AttributesPanel - spinbox limit computation failed: unsupported attribute \"UNSUPPORTED_ATTRIBUTE\"",
-        setup=_setup_designer,
-        action=_action_compute_spinbox_limits_for_unsupported_attribute,
-        teardown=_teardown_designer
+        action=_action_compute_spinbox_limits_for_unsupported_attribute
     ),
     ValidationTest(
         name="Creating combobox for an unsupported attribute",
         expected_error_message="AttributesPanel - combobox creation failed: unsupported attribute \"UNSUPPORTED_ATTRIBUTE\"",
-        setup=_setup_designer,
-        action=_action_create_combobox_for_unsupported_attribute,
-        teardown=_teardown_designer
+        action=_action_create_combobox_for_unsupported_attribute
     ),
     ValidationTest(
         name="Subscribing uncallable to EventBus",
@@ -1023,30 +1046,22 @@ VALIDATION_TESTS = (
     ValidationTest(
         name="Deleting Tk widget with missing Tk widget mapping",
         expected_error_message=f"WidgetView - Tk widget deletion failed: missing Tk widget for canvas item \"{FIRST_CANVAS_ITEM_ID}\"",
-        setup=_setup_designer,
-        action=_action_delete_tk_widget_with_missing_tk_widget_mapping,
-        teardown=_teardown_designer
+        action=_action_delete_tk_widget_with_missing_tk_widget_mapping
     ),
     ValidationTest(
         name="Looking up widget with unknown canvas item ID",
         expected_error_message=f"WidgetView - widget lookup failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
-        setup=_setup_designer,
-        action=_action_look_up_widget_with_unknown_canvas_item_id,
-        teardown=_teardown_designer
+        action=_action_look_up_widget_with_unknown_canvas_item_id
     ),
     ValidationTest(
         name="Rendering Tk widget with missing Tk widget mapping",
         expected_error_message=f"WidgetView - Tk widget rendering failed: missing Tk widget for canvas item \"{FIRST_CANVAS_ITEM_ID}\"",
-        setup=_setup_designer,
-        action=_action_render_tk_widget_with_missing_tk_widget_mapping,
-        teardown=_teardown_designer
+        action=_action_render_tk_widget_with_missing_tk_widget_mapping
     ),
     ValidationTest(
         name="Instantiating widget with unsupported type",
         expected_error_message="WidgetView - Tk widget instantiation failed: unsupported type \"UNSUPPORTED_TYPE\"",
-        setup=_setup_designer,
-        action=_action_instantiate_widget_with_unsupported_type,
-        teardown=_teardown_designer
+        action=_action_instantiate_widget_with_unsupported_type
     )
 )
 
