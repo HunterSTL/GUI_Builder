@@ -12,7 +12,7 @@ RESET = "\033[39m"
 class ValidationTest:
     name: str
     expected_error_message: str
-    action: Callable[..., None]
+    case: Callable[[], None]
 
 
 @dataclass
@@ -30,7 +30,7 @@ def run_validation_tests(
 
     for test in tests:
         try:
-            test.action()
+            test.case()
         except ValueError as error:
             actual_error_message = str(error)
             if actual_error_message == test.expected_error_message:
@@ -64,6 +64,10 @@ def print_validation_test_results(
     """Format and print the results."""
     def separator() -> None:
         print("-" * 200)
+
+    if not test_results:
+        print("No validation tests registered")
+        return
 
     #determine max test name length for formatting
     max_test_name_length = max(len(test_result.test_name) for test_result in test_results)
