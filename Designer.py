@@ -41,7 +41,6 @@ class Designer:
             update_window_title_callback=self._update_window_title
         )
 
-        self._clipboard: list[dict[str, str | int | None]] = []
         self._last_right_click_coordinates: tuple[int, int] | None = None
 
         #UI construction------------------------------------------------------------------------------------------------
@@ -89,7 +88,6 @@ class Designer:
         edit_actions: EditActions = EditActions(
             app_state=self.app_state,
             command_stack=self._command_stack,
-            clipboard=self._clipboard,
             confirm_delete_callback=self._confirm_delete,
             commit_active_attributes_panel_edit_callback=self._commit_active_attributes_panel_edit
         )
@@ -607,8 +605,8 @@ class Designer:
         """Print the clipboard contents to the console."""
         print("#"*150)
         print(f"Clipboard:")
-        for widget_data in self._clipboard:
-            print(f"{widget_data}")
+        for widget_data in self._actions.edit.clipboard:
+            print(widget_data)
 
     def _print_command_stack(
         self

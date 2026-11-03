@@ -11,17 +11,22 @@ class EditActions:
         self,
         app_state: AppState,
         command_stack: CommandStack,
-        clipboard: list[dict[str, str | int | None]],
         confirm_delete_callback: Callable[[int], bool],
         commit_active_attributes_panel_edit_callback: Callable[[], None]
     ) -> None:
         self._app_state: AppState = app_state
         self._command_stack: CommandStack = command_stack
-        self._clipboard: list[dict[str, str | int | None]] = clipboard  #shared clipboard owned by Designer
         self._confirm_delete_callback: Callable[[int], bool] = confirm_delete_callback
         self._commit_active_attributes_panel_edit_callback: Callable[[], None] = commit_active_attributes_panel_edit_callback
 
+        self._clipboard: list[dict[str, str | int | None]] = []
         self._copy_origin_coordinates: tuple[int, int] | None = None
+
+    @property
+    def clipboard(
+        self
+    ) -> tuple[dict[str, str | int | None], ...]:
+        return tuple(widget_data.copy() for widget_data in self._clipboard)     #prevents mutating the clipboard
 
     def delete(
         self
