@@ -146,7 +146,7 @@ class Designer:
     ) -> dict[str, object]:
         """Commit active editing and return the serialized project data."""
         self._commit_active_attributes_panel_edit()
-        return self.app_state.project.to_json()
+        return self.app_state.project.to_dict()
 
     #Designer UI--------------------------------------------------------------------------------------------------------
     def _build_designer_ui(

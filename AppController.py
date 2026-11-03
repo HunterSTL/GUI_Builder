@@ -193,7 +193,7 @@ class AppController:
             with open(file_path, "r", encoding="utf-8") as file:
                 file_contents = json.load(file)
 
-            project_document = ProjectDocument.from_json(file_contents)
+            project_document = ProjectDocument.from_dict(file_contents)
 
             self._root.withdraw()
             self._save_path = file_path

@@ -121,53 +121,53 @@ def test_deserialize_id_counter_data_with_invalid_button_id_counter_value() -> N
 
 #ProjectDocument tests--------------------------------------------------------------------------------------------------
 def test_deserialize_project_data_with_invalid_input_type() -> None:
-    ProjectDocument.from_json([])
+    ProjectDocument.from_dict([])
 
 def test_deserialize_project_data_with_missing_required_attribute() -> None:
     project_data = create_valid_project_data()
     project_data.pop("id_counters")
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_invalid_attribute_set() -> None:
     project_data = create_valid_project_data()
     project_data["UNEXPECTED_ATTRIBUTE"] = "value"
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_invalid_version() -> None:
     project_data = create_valid_project_data(version="INVALID_VERSION")
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_unsupported_version() -> None:
     project_data = create_valid_project_data(version=2)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_invalid_title() -> None:
     project_data = create_valid_project_data(title=None)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_invalid_width() -> None:
     project_data = create_valid_project_data(width="INVALID_WIDTH")
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_invalid_height() -> None:
     project_data = create_valid_project_data(height="INVALID_HEIGHT")
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_width_outside_allowed_range() -> None:
     project_data = create_valid_project_data(width=CANVAS_MAX_WIDTH + 1)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_height_outside_allowed_range() -> None:
     project_data = create_valid_project_data(height=CANVAS_MAX_HEIGHT + 1)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_invalid_icon_path() -> None:
     project_data = create_valid_project_data(icon_path=1)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_invalid_widget_data_list_type() -> None:
     project_data = create_valid_project_data(widgets={})
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_duplicate_widget_id() -> None:
     widget_data_list = [
@@ -175,21 +175,21 @@ def test_deserialize_project_data_with_duplicate_widget_id() -> None:
         create_valid_widget_data(id="DUPLICATE_ID")
     ]
     project_data = create_valid_project_data(widgets=widget_data_list)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_widget_width_exceeding_canvas_width() -> None:
     widget_data_list = [
         create_valid_widget_data(width=CANVAS_WIDTH + 1)
     ]
     project_data = create_valid_project_data(widgets=widget_data_list)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_widget_height_exceeding_canvas_height() -> None:
     widget_data_list = [
         create_valid_widget_data(height=CANVAS_HEIGHT + 1)
     ]
     project_data = create_valid_project_data(widgets=widget_data_list)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_widget_x_coordinate_outside_allowed_range() -> None:
     invalid_x = CANVAS_WIDTH - WIDGET_WIDTH + 1
@@ -197,7 +197,7 @@ def test_deserialize_project_data_with_widget_x_coordinate_outside_allowed_range
         create_valid_widget_data(x=invalid_x)
     ]
     project_data = create_valid_project_data(widgets=widget_data_list)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 def test_deserialize_project_data_with_widget_y_coordinate_outside_allowed_range() -> None:
     invalid_y = CANVAS_HEIGHT + 1
@@ -205,7 +205,7 @@ def test_deserialize_project_data_with_widget_y_coordinate_outside_allowed_range
         create_valid_widget_data(y=invalid_y)
     ]
     project_data = create_valid_project_data(widgets=widget_data_list)
-    ProjectDocument.from_json(project_data)
+    ProjectDocument.from_dict(project_data)
 
 #ProjectTheme tests-----------------------------------------------------------------------------------------------------
 def test_deserialize_theme_data_with_invalid_input_type() -> None:

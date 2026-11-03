@@ -22,7 +22,7 @@ class ProjectDocument:
     widgets: list[BaseWidget] = field(default_factory=list)
     id_counters: IdCounters = field(default_factory=IdCounters)
 
-    def to_json(
+    def to_dict(
         self
     ) -> dict[str, object]:
         """Serialize the project document to project data."""
@@ -42,7 +42,7 @@ class ProjectDocument:
         }
 
     @classmethod
-    def from_json(
+    def from_dict(
         cls,
         project_data: dict
     ) -> "ProjectDocument":

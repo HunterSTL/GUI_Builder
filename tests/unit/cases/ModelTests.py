@@ -36,9 +36,9 @@ def test_project_document_roundtrip() -> None:
         id="3"
     )
     project_document.widgets.extend([widget_1, widget_2, widget_3])
-    blob = json.dumps(project_document.to_json(), ensure_ascii=False, indent=2)
-    project_data = json.loads(blob)
-    new_project_document = ProjectDocument.from_json(project_data)
+    project_json = json.dumps(project_document.to_dict(), ensure_ascii=False, indent=2)
+    project_data = json.loads(project_json)
+    new_project_document = ProjectDocument.from_dict(project_data)
     assert_equal(
         actual=new_project_document,
         expected=project_document,
