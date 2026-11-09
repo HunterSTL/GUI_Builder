@@ -1,5 +1,5 @@
-from .EventBus import EventBus
-from .EventRouter import EventRouter
+from .event_bus import EventBus
+from .event_router import EventRouter
 
 __all__ = [
     "EventBus",

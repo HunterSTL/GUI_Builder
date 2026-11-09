@@ -1,8 +1,8 @@
-from .Actions import Actions
-from .EditActions import EditActions
-from .GridActions import GridActions
-from .PropertiesActions import PropertiesActions
-from .WidgetActions import WidgetActions
+from .actions import Actions
+from .edit_actions import EditActions
+from .grid_actions import GridActions
+from .properties_actions import PropertiesActions
+from .widget_actions import WidgetActions
 
 __all__ = [
     "Actions",
