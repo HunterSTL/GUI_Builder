@@ -18,7 +18,7 @@ from commands import (
 )
 
 from model import LabelWidget
-from utility import Edge
+from utility.edge import Edge
 
 def test_add_widget() -> None:
     project_document, app_state, command_stack = create_project()

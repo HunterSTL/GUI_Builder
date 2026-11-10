@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from utility import is_valid_hex_color_code
+from utility.validation import is_valid_hex_color_code
 
 
 @dataclass

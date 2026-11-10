@@ -5,8 +5,9 @@ from .id_counters import IdCounters
 from .project_theme import ProjectTheme
 from .widgets import BaseWidget
 
-from utility import allowed_x_range, allowed_y_range, is_positive_integer, is_non_empty_string
 from utility.constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
+from utility.geometry import allowed_x_range, allowed_y_range
+from utility.validation import is_positive_integer, is_non_empty_string
 
 
 @dataclass

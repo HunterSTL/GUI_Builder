@@ -1,7 +1,8 @@
 from copy import deepcopy
 
 from model import BaseWidget
-from utility import clamped_delta, format_field, format_mapping
+from utility.geometry import clamped_delta
+from utility.string_utilities import format_field, format_mapping
 
 from app_state import AppState
 from .base_command import Command

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from utility import WidgetType, is_non_empty_string, is_valid_hex_color_code, is_valid_integer, is_positive_integer, is_valid_anchor
+from utility.widget_type import WidgetType
+from utility.validation import is_non_empty_string, is_valid_hex_color_code, is_valid_integer, is_positive_integer, is_valid_anchor
 
 
 @dataclass

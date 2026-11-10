@@ -3,9 +3,10 @@ from tkinter import colorchooser
 from collections.abc import Callable
 
 from model import BaseWidget
-from utility import allowed_x_range, allowed_y_range, WidgetType
 from utility.app_theme import ATTRIBUTES_PANEL_COLOR, ATTRIBUTES_PANEL_WIDGET_COLOR, ATTRIBUTES_PANEL_TEXT_COLOR
 from utility.constants import ATTRIBUTES_PANEL_WIDTH
+from utility.geometry import allowed_x_range, allowed_y_range
+from utility.widget_type import WidgetType
 
 _DISPLAYED_ATTRIBUTES_BY_WIDGET_TYPE = {
     WidgetType.LABEL: ("id", "x", "y", "width", "height", "text", "bg", "fg", "anchor"),

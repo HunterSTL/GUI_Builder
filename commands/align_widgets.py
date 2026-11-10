@@ -1,7 +1,9 @@
 from collections.abc import Iterable
 
 from model import BaseWidget
-from utility import Edge, BoundingBox, clamped_delta, format_field, format_mapping_changes
+from utility.edge import Edge
+from utility.geometry import BoundingBox, clamped_delta
+from utility.string_utilities import format_field, format_mapping_changes
 
 from app_state import AppState
 from .base_command import Command

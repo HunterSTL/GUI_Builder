@@ -5,8 +5,9 @@ from tkinter import messagebox, filedialog
 
 from events import EventBus
 from model import ProjectDocument
-from utility import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window, atomic_write_json
 from utility.app_theme import WINDOW_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR
+from utility.file_utilities import atomic_write_json
+from utility.window_utilities import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
 
 from designer import Designer
 from setup_wizard import SetupWizard

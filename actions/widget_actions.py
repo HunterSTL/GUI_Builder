@@ -2,7 +2,10 @@ from collections.abc import Callable
 
 from commands import AddWidget, AlignWidgets, CommandStack, DragWidgets, EditWidget, NudgeWidgets, SnapWidgetsToGrid
 from model import BaseWidget, ButtonWidget, EntryWidget, LabelWidget
-from utility import Direction, Edge, WidgetType, allowed_x_range, allowed_y_range, clamp, clamped_delta
+from utility.direction import Direction
+from utility.edge import Edge
+from utility.geometry import allowed_x_range, allowed_y_range, clamp, clamped_delta
+from utility.widget_type import WidgetType
 
 from app_state import AppState
 

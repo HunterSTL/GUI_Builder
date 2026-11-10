@@ -1,9 +1,9 @@
 import tkinter as tk
 
 from events import EventRouter
-from utility import Edge
 from utility.app_theme import TOOLBAR_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR, MENU_COLOR, MENU_TEXT_COLOR
 from utility.constants import TOOLBAR_HEIGHT
+from utility.edge import Edge
 
 
 class Toolbar:

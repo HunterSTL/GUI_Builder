@@ -1,7 +1,7 @@
 import tkinter as tk
 
 from model import BaseWidget
-from utility import WidgetType
+from utility.widget_type import WidgetType
 
 
 class WidgetView:

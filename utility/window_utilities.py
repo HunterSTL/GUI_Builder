@@ -2,7 +2,7 @@ import tkinter as tk
 import sys
 import ctypes
 
-from .file_utilities import load_icon
+from utility.file_utilities import load_icon
 
 def force_dark_title_bar(
     window: tk.Tk | tk.Toplevel
