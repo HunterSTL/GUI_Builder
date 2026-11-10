@@ -1,5 +1,5 @@
 from model import BaseWidget
-from utility import format_mapping
+from utility.string_utilities import format_mapping
 
 from app_state import AppState
 from .base_command import Command

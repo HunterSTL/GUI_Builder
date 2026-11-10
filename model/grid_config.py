@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from utility import is_valid_integer, is_valid_hex_color_code
+from utility.validation import is_valid_integer, is_valid_hex_color_code
 from utility.constants import GRID_DEFAULT_SIZE, GRID_DEFAULT_COLOR, GRID_DEFAULT_VISIBILITY, GRID_MIN_SIZE, GRID_MAX_SIZE
 
 

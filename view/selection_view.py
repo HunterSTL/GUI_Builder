@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from utility import BoundingBox
+from utility.geometry import BoundingBox
 from utility.app_theme import SELECTION_COLOR, LAST_SELECTED_COLOR
 from utility.constants import SELECTION_WIDTH, SELECTION_DASH, SELECTION_PADDING
 

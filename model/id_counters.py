@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from utility import WidgetType, is_positive_integer
+from utility.validation import is_positive_integer
+from utility.widget_type import WidgetType
 
 
 @dataclass

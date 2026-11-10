@@ -3,7 +3,7 @@ from tkinter import colorchooser, messagebox, filedialog
 from collections.abc import Callable
 
 from model import ProjectDocument, GridConfig, IdCounters, ProjectTheme
-from utility import load_icon, force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
+from utility.window_utilities import load_icon, force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
 from utility.app_theme import WINDOW_COLOR, LABEL_COLOR, LABEL_TEXT_COLOR, ENTRY_COLOR, ENTRY_TEXT_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR
 from utility.constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
 
