@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, colorchooser, ttk
 
-from actions import Actions, EditActions, GridActions, PropertiesActions, WidgetActions
+from actions import ActionGroups, EditActions, GridActions, PropertiesActions, WidgetActions
 from commands import CommandStack
 from components import AttributesPanel, Toolbar
 from controller import CanvasController
@@ -108,7 +108,7 @@ class Designer:
             measure_preview_tk_widget_callback=self._widget_view.measure_preview_tk_widget
         )
 
-        self._actions: Actions = Actions(
+        self._action_groups: ActionGroups = ActionGroups(
             edit_actions=edit_actions,
             grid_actions=grid_actions,
             properties_actions=properties_actions,
@@ -182,9 +182,9 @@ class Designer:
             parent=self._main_frame,
             canvas_width=self.app_state.project.width,
             canvas_height=self.app_state.project.height,
-            on_edit_start=lambda: self._actions.widget.start_edit(),    #lambdas defer access to actions until the callback is invoked because actions are initialized after the panel
-            on_edit_change=lambda attribute, value: self._actions.widget.apply_attribute_change(attribute, value),
-            on_edit_commit=lambda: self._actions.widget.commit_edit()
+            on_edit_start=lambda: self._action_groups.widget.start_edit(),  #lambdas defer access to actions until the callback is invoked because actions are initialized after the panel
+            on_edit_change=lambda attribute, value: self._action_groups.widget.apply_attribute_change(attribute, value),
+            on_edit_commit=lambda: self._action_groups.widget.commit_edit()
         )
         self._attributes_panel.frame.grid(row=0, column=1, sticky="ns")
 
@@ -422,25 +422,25 @@ class Designer:
         self._designer_event_bus.subscribe("selection.rectangle.delete", self._selection_view.delete_selection_rectangle)
 
         #edit events
-        self._designer_event_bus.subscribe("edit.delete", self._actions.edit.delete)
-        self._designer_event_bus.subscribe("edit.copy", self._actions.edit.copy)
-        self._designer_event_bus.subscribe("edit.paste", lambda: self._actions.edit.paste(self._get_pointer_coordinates()))
-        self._designer_event_bus.subscribe("edit.cut", self._actions.edit.cut)
-        self._designer_event_bus.subscribe("edit.undo", self._actions.edit.undo)
-        self._designer_event_bus.subscribe("edit.redo", self._actions.edit.redo)
+        self._designer_event_bus.subscribe("edit.delete", self._action_groups.edit.delete)
+        self._designer_event_bus.subscribe("edit.copy", self._action_groups.edit.copy)
+        self._designer_event_bus.subscribe("edit.paste", lambda: self._action_groups.edit.paste(self._get_pointer_coordinates()))
+        self._designer_event_bus.subscribe("edit.cut", self._action_groups.edit.cut)
+        self._designer_event_bus.subscribe("edit.undo", self._action_groups.edit.undo)
+        self._designer_event_bus.subscribe("edit.redo", self._action_groups.edit.redo)
 
         #widget events
-        self._designer_event_bus.subscribe("widget.nudge", self._actions.widget.nudge)
-        self._designer_event_bus.subscribe("widget.snap_to_grid", self._actions.widget.snap_to_grid)
-        self._designer_event_bus.subscribe("widget.align", self._actions.widget.align)
+        self._designer_event_bus.subscribe("widget.nudge", self._action_groups.widget.nudge)
+        self._designer_event_bus.subscribe("widget.snap_to_grid", self._action_groups.widget.snap_to_grid)
+        self._designer_event_bus.subscribe("widget.align", self._action_groups.widget.align)
         self._designer_event_bus.subscribe("widget.select_all", self.app_state.selection_select_all)
-        self._designer_event_bus.subscribe("widget.drag.start", self._actions.widget.start_drag)
-        self._designer_event_bus.subscribe("widget.drag.update", self._actions.widget.update_drag)
-        self._designer_event_bus.subscribe("widget.drag.end", self._actions.widget.end_drag)
-        self._designer_event_bus.subscribe("widget.drag.abort", self._actions.widget.abort_drag)
+        self._designer_event_bus.subscribe("widget.drag.start", self._action_groups.widget.start_drag)
+        self._designer_event_bus.subscribe("widget.drag.update", self._action_groups.widget.update_drag)
+        self._designer_event_bus.subscribe("widget.drag.end", self._action_groups.widget.end_drag)
+        self._designer_event_bus.subscribe("widget.drag.abort", self._action_groups.widget.abort_drag)
 
         #grid events
-        self._designer_event_bus.subscribe("grid.toggle", self._actions.grid.toggle)
+        self._designer_event_bus.subscribe("grid.toggle", self._action_groups.grid.toggle)
         self._designer_event_bus.subscribe("grid.change_size", self._request_change_grid_size)
         self._designer_event_bus.subscribe("grid.change_color", self._request_change_grid_color)
 
@@ -473,7 +473,7 @@ class Designer:
             if text is None:
                 return
 
-        self._actions.widget.add(
+        self._action_groups.widget.add(
             widget_type=widget_type,
             coordinates=self._last_right_click_coordinates,
             text=text
@@ -495,7 +495,7 @@ class Designer:
         if size is None:
             return
 
-        self._actions.grid.change_size(
+        self._action_groups.grid.change_size(
             new_size=size
         )
 
@@ -511,7 +511,7 @@ class Designer:
         if color is None:
             return
 
-        self._actions.grid.change_color(
+        self._action_groups.grid.change_color(
             new_color=color
         )
 
@@ -534,7 +534,7 @@ class Designer:
         if not title:
             return
 
-        self._actions.properties.change_title(
+        self._action_groups.properties.change_title(
             new_title=title
         )
 
@@ -605,7 +605,7 @@ class Designer:
         """Print the clipboard contents to the console."""
         print("#"*150)
         print(f"Clipboard:")
-        for widget_data in self._actions.edit.clipboard:
+        for widget_data in self._action_groups.edit.clipboard:
             print(widget_data)
 
     def _print_command_stack(

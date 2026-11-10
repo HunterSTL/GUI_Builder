@@ -4,7 +4,7 @@ from .properties_actions import PropertiesActions
 from .widget_actions import WidgetActions
 
 
-class Actions:
+class ActionGroups:
     """Provides a single access point for editor action groups."""
     def __init__(
         self,
