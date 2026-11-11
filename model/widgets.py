@@ -4,8 +4,7 @@ from utility.validation import (
     is_non_empty_string,
     is_positive_integer,
     is_valid_anchor,
-    is_valid_hex_color_code,
-    is_valid_integer
+    is_valid_hex_color_code
 )
 from utility.widget_type import WidgetType
 
@@ -89,10 +88,10 @@ class BaseWidget:
         height = widget_data["height"]
         anchor = widget_data["anchor"]
 
-        if not is_valid_integer(x):
+        if not is_positive_integer(x):
             raise ValueError(f"Widgets - widget data deserialization failed: invalid X coordinate \"{x}\"")
 
-        if not is_valid_integer(y):
+        if not is_positive_integer(y):
             raise ValueError(f"Widgets - widget data deserialization failed: invalid Y coordinate \"{y}\"")
 
         if not is_valid_hex_color_code(bg):
