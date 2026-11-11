@@ -8,8 +8,8 @@ from utility.constants import (
     GRID_MIN_SIZE
 )
 from utility.validation import (
-    is_valid_hex_color_code,
-    is_valid_integer
+    is_positive_integer,
+    is_valid_hex_color_code
 )
 
 
@@ -66,7 +66,7 @@ class GridConfig:
         color = grid_data["color"]
         visible = grid_data["visible"]
 
-        if not is_valid_integer(size):
+        if not is_positive_integer(size):
             raise ValueError(f"GridConfig - grid data deserialization failed: invalid size \"{size}\"")
 
         if not GRID_MIN_SIZE <= size <= GRID_MAX_SIZE:

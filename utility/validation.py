@@ -21,17 +21,11 @@ def is_valid_hex_color_code(
             return False
     return True
 
-def is_valid_integer(
-    value: object
-) -> bool:
-    """Return whether the given value is an integer."""
-    return isinstance(value, int) and not isinstance(value, bool)
-
 def is_positive_integer(
     value: object
 ) -> bool:
     """Return whether the given value is a positive integer."""
-    return is_valid_integer(value) and value >= 1
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
 
 def is_valid_anchor(
     value: object
