@@ -1,4 +1,7 @@
-from tests.validation.helpers import create_edit_widget_command, create_drag_widgets_command
+from tests.validation.helpers import (
+    create_drag_widgets_command,
+    create_edit_widget_command
+)
 
 def test_execute_edit_widget_command_without_recording_final_attribute_values() -> None:
     command = create_edit_widget_command()

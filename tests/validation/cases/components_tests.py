@@ -1,4 +1,8 @@
-from tests.validation.helpers import create_designer, destroy_designer, create_valid_widget
+from tests.validation.helpers import (
+    create_designer,
+    create_valid_widget,
+    destroy_designer
+)
 
 def test_compute_spinbox_limits_for_unsupported_attribute() -> None:
     designer = create_designer()

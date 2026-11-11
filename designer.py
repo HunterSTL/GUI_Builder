@@ -1,20 +1,60 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog, colorchooser, ttk
+from tkinter import (
+    colorchooser,
+    messagebox,
+    simpledialog,
+    ttk
+)
 
-from actions import ActionGroups, EditActions, GridActions, PropertiesActions, WidgetActions
-from commands import CommandStack
-from components import AttributesPanel, Toolbar
-from controller import CanvasController
-from events import EventBus, EventRouter
-from model import ProjectDocument
-from utility.app_theme import WINDOW_COLOR, SCROLLBAR_COLOR, SCROLLBAR_TROUGH_COLOR, SCROLLBAR_BORDER_COLOR, SCROLLBAR_ARROW_COLOR, MENU_COLOR, MENU_TEXT_COLOR
-from utility.call_tracer import call_tracer
-from utility.constants import TOOLBAR_HEIGHT, ATTRIBUTES_PANEL_WIDTH, VIEWPORT_MAX_WIDTH, VIEWPORT_MAX_HEIGHT, GRID_MIN_SIZE, GRID_MAX_SIZE
-from utility.widget_type import WidgetType
-from utility.window_utilities import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
-from view import CanvasView, SelectionView, WidgetView
-
+from actions import (
+    ActionGroups,
+    EditActions,
+    GridActions,
+    PropertiesActions,
+    WidgetActions
+)
 from app_state import AppState
+from commands import CommandStack
+from components import (
+    AttributesPanel,
+    Toolbar
+)
+from controller import CanvasController
+from events import (
+    EventBus,
+    EventRouter
+)
+from model import ProjectDocument
+from utility.app_theme import (
+    MENU_COLOR,
+    MENU_TEXT_COLOR,
+    SCROLLBAR_ARROW_COLOR,
+    SCROLLBAR_BORDER_COLOR,
+    SCROLLBAR_COLOR,
+    SCROLLBAR_TROUGH_COLOR,
+    WINDOW_COLOR
+)
+from utility.call_tracer import call_tracer
+from utility.constants import (
+    ATTRIBUTES_PANEL_WIDTH,
+    GRID_MAX_SIZE,
+    GRID_MIN_SIZE,
+    TOOLBAR_HEIGHT,
+    VIEWPORT_MAX_HEIGHT,
+    VIEWPORT_MAX_WIDTH
+)
+from utility.widget_type import WidgetType
+from utility.window_utilities import (
+    center_window,
+    force_dark_title_bar,
+    set_minimum_window_size_from_ui,
+    set_title_bar_icon
+)
+from view import (
+    CanvasView,
+    SelectionView,
+    WidgetView
+)
 
 
 class Designer:

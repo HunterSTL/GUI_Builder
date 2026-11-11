@@ -1,13 +1,3 @@
-from tests.unit.framework import (
-    UnitTest,
-    run_unit_tests,
-    print_unit_test_results
-)
-
-from tests.unit.cases.model_tests import (
-    test_project_document_roundtrip
-)
-
 from tests.unit.cases.commands_tests import (
     test_add_widget,
     test_align_widgets,
@@ -21,6 +11,14 @@ from tests.unit.cases.commands_tests import (
     test_set_project_title,
     test_snap_widgets_to_grid,
     test_toggle_grid
+)
+from tests.unit.cases.model_tests import (
+    test_project_document_roundtrip
+)
+from tests.unit.framework import (
+    print_unit_test_results,
+    run_unit_tests,
+    UnitTest
 )
 
 UNIT_TESTS = (

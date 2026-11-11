@@ -1,16 +1,27 @@
 import json
 import os.path
 import tkinter as tk
-from tkinter import messagebox, filedialog
-
-from events import EventBus
-from model import ProjectDocument
-from utility.app_theme import WINDOW_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR
-from utility.file_utilities import atomic_write_json
-from utility.window_utilities import force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
+from tkinter import (
+    filedialog,
+    messagebox
+)
 
 from designer import Designer
+from events import EventBus
+from model import ProjectDocument
 from setup_wizard import SetupWizard
+from utility.app_theme import (
+    BUTTON_COLOR,
+    BUTTON_TEXT_COLOR,
+    WINDOW_COLOR
+)
+from utility.file_utilities import atomic_write_json
+from utility.window_utilities import (
+    center_window,
+    force_dark_title_bar,
+    set_minimum_window_size_from_ui,
+    set_title_bar_icon
+)
 
 
 class AppController:

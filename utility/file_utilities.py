@@ -1,6 +1,9 @@
-import os
 import json
-from PIL import Image, ImageTk
+import os
+from PIL import (
+    Image,
+    ImageTk
+)
 
 _TEMP_FILE_EXTENSION = ".tmp"
 

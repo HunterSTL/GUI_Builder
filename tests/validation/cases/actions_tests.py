@@ -1,5 +1,7 @@
-from tests.validation.helpers import create_designer, destroy_designer
-
+from tests.validation.helpers import (
+    create_designer,
+    destroy_designer
+)
 from utility.widget_type import WidgetType
 
 def test_add_widget_with_unsupported_type() -> None:

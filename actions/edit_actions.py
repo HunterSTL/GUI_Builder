@@ -1,8 +1,11 @@
 from collections.abc import Callable
 
-from commands import CommandStack, DeleteWidgets, PasteWidgetsFromClipboard
-
 from app_state import AppState
+from commands import (
+    CommandStack,
+    DeleteWidgets,
+    PasteWidgetsFromClipboard
+)
 
 
 class EditActions:

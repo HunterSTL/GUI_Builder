@@ -1,11 +1,14 @@
 from collections.abc import Iterable
 
-from model import BaseWidget
-from utility.geometry import allowed_x_range, allowed_y_range, nearest_in_bounds_grid_step
-from utility.string_utilities import format_mapping_changes
-
 from app_state import AppState
-from .base_command import Command
+from commands.base_command import Command
+from model import BaseWidget
+from utility.geometry import (
+    allowed_x_range,
+    allowed_y_range,
+    nearest_in_bounds_grid_step
+)
+from utility.string_utilities import format_mapping_changes
 
 
 class SnapWidgetsToGrid(Command):

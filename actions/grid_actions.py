@@ -1,6 +1,10 @@
-from commands import CommandStack, ToggleGrid, SetGridColor, SetGridSize
-
 from app_state import AppState
+from commands import (
+    CommandStack,
+    SetGridColor,
+    SetGridSize,
+    ToggleGrid
+)
 
 
 class GridActions:

@@ -1,10 +1,9 @@
 from collections.abc import Iterable
 
+from app_state import AppState
+from commands.base_command import Command
 from model import BaseWidget
 from utility.string_utilities import format_mapping_changes
-
-from app_state import AppState
-from .base_command import Command
 
 
 class DragWidgets(Command):

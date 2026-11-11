@@ -1,7 +1,12 @@
-from commands import CommandStack, AddWidget
-from model import ProjectDocument, LabelWidget
-
 from app_state import AppState
+from commands import (
+    AddWidget,
+    CommandStack
+)
+from model import (
+    LabelWidget,
+    ProjectDocument
+)
 
 def create_project() -> tuple[ProjectDocument, AppState, CommandStack]:
     project_document = ProjectDocument()

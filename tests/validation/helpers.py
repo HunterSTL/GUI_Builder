@@ -1,11 +1,17 @@
 import tkinter as tk
 
-from commands import DragWidgets, EditWidget
-from events import EventBus
-from model import ProjectDocument, ProjectTheme, LabelWidget
-
 from app_state import AppState
+from commands import (
+    DragWidgets,
+    EditWidget
+)
 from designer import Designer
+from events import EventBus
+from model import (
+    LabelWidget,
+    ProjectDocument,
+    ProjectTheme
+)
 
 FIRST_CANVAS_ITEM_ID = 2
 

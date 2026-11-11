@@ -1,8 +1,12 @@
 import json
 
+from model import (
+    ButtonWidget,
+    EntryWidget,
+    LabelWidget,
+    ProjectDocument
+)
 from tests.unit.framework import assert_equal
-
-from model import ProjectDocument, LabelWidget, EntryWidget, ButtonWidget
 
 def test_project_document_roundtrip() -> None:
     project_document = ProjectDocument()

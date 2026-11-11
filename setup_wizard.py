@@ -1,11 +1,39 @@
-import tkinter as tk
-from tkinter import colorchooser, messagebox, filedialog
 from collections.abc import Callable
+import tkinter as tk
+from tkinter import (
+    colorchooser,
+    filedialog,
+    messagebox
+)
 
-from model import ProjectDocument, GridConfig, IdCounters, ProjectTheme
-from utility.window_utilities import load_icon, force_dark_title_bar, set_title_bar_icon, set_minimum_window_size_from_ui, center_window
-from utility.app_theme import WINDOW_COLOR, LABEL_COLOR, LABEL_TEXT_COLOR, ENTRY_COLOR, ENTRY_TEXT_COLOR, BUTTON_COLOR, BUTTON_TEXT_COLOR
-from utility.constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
+from model import (
+    GridConfig,
+    IdCounters,
+    ProjectDocument,
+    ProjectTheme
+)
+from utility.window_utilities import (
+    center_window,
+    force_dark_title_bar,
+    load_icon,
+    set_minimum_window_size_from_ui,
+    set_title_bar_icon
+)
+from utility.app_theme import (
+    BUTTON_COLOR,
+    BUTTON_TEXT_COLOR,
+    ENTRY_COLOR,
+    ENTRY_TEXT_COLOR,
+    LABEL_COLOR,
+    LABEL_TEXT_COLOR,
+    WINDOW_COLOR
+)
+from utility.constants import (
+    CANVAS_MAX_HEIGHT,
+    CANVAS_MAX_WIDTH,
+    CANVAS_MIN_HEIGHT,
+    CANVAS_MIN_WIDTH
+)
 
 
 class SetupWizard:

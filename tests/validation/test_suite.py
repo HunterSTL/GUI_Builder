@@ -1,9 +1,105 @@
-from tests.validation.framework import (
-    ValidationTest,
-    run_validation_tests,
-    print_validation_test_results
+from tests.validation.cases.actions_tests import (
+    test_add_button_with_missing_text,
+    test_add_label_with_missing_text,
+    test_add_widget_with_missing_coordinates,
+    test_add_widget_with_unsupported_type
 )
-
+from tests.validation.cases.app_state_tests import (
+    test_add_widget_with_duplicate_id,
+    test_add_widget_with_missing_id,
+    test_look_up_widget_bounding_box_with_no_widget_provided,
+    test_look_up_widget_group_bounding_box_with_no_widgets_provided,
+    test_look_up_widget_with_unknown_id,
+    test_remove_widget_with_unknown_id,
+    test_select_widget_with_unknown_id,
+    test_subscribe_uncallable_to_app_state,
+    test_update_unknown_widget_attribute,
+    test_update_widget_attribute_with_unknown_id,
+    test_update_widget_position_absolute_with_unknown_id,
+    test_update_widget_position_relative_with_unknown_id
+)
+from tests.validation.cases.commands_tests import (
+    test_check_drag_widgets_command_effect_without_recording_final_positions,
+    test_execute_drag_widgets_command_without_recording_final_positions,
+    test_execute_edit_widget_command_without_recording_final_attribute_values
+)
+from tests.validation.cases.components_tests import (
+    test_compute_spinbox_limits_for_unsupported_attribute,
+    test_create_combobox_for_unsupported_attribute
+)
+from tests.validation.cases.events_tests import (
+    test_fail_handler_execution,
+    test_subscribe_uncallable_to_event_bus
+)
+from tests.validation.cases.model_tests import (
+    test_deserialize_grid_data_with_invalid_attribute_set,
+    test_deserialize_grid_data_with_invalid_color,
+    test_deserialize_grid_data_with_invalid_input_type,
+    test_deserialize_grid_data_with_invalid_size,
+    test_deserialize_grid_data_with_invalid_visibility,
+    test_deserialize_grid_data_with_missing_required_attribute,
+    test_deserialize_grid_data_with_size_outside_allowed_range,
+    test_deserialize_id_counter_data_with_invalid_attribute_set,
+    test_deserialize_id_counter_data_with_invalid_button_id_counter_value,
+    test_deserialize_id_counter_data_with_invalid_entry_id_counter_value,
+    test_deserialize_id_counter_data_with_invalid_input_type,
+    test_deserialize_id_counter_data_with_invalid_label_id_counter_value,
+    test_deserialize_id_counter_data_with_missing_required_attribute,
+    test_deserialize_project_data_with_duplicate_widget_id,
+    test_deserialize_project_data_with_height_outside_allowed_range,
+    test_deserialize_project_data_with_invalid_attribute_set,
+    test_deserialize_project_data_with_invalid_height,
+    test_deserialize_project_data_with_invalid_icon_path,
+    test_deserialize_project_data_with_invalid_input_type,
+    test_deserialize_project_data_with_invalid_title,
+    test_deserialize_project_data_with_invalid_version,
+    test_deserialize_project_data_with_invalid_width,
+    test_deserialize_project_data_with_invalid_widget_data_list_type,
+    test_deserialize_project_data_with_missing_required_attribute,
+    test_deserialize_project_data_with_unsupported_version,
+    test_deserialize_project_data_with_widget_height_exceeding_canvas_height,
+    test_deserialize_project_data_with_widget_width_exceeding_canvas_width,
+    test_deserialize_project_data_with_widget_x_coordinate_outside_allowed_range,
+    test_deserialize_project_data_with_widget_y_coordinate_outside_allowed_range,
+    test_deserialize_project_data_with_width_outside_allowed_range,
+    test_deserialize_theme_data_with_invalid_attribute_set,
+    test_deserialize_theme_data_with_invalid_color,
+    test_deserialize_theme_data_with_invalid_input_type,
+    test_deserialize_theme_data_with_missing_required_attribute,
+    test_deserialize_widget_data_with_invalid_anchor,
+    test_deserialize_widget_data_with_invalid_attribute_set,
+    test_deserialize_widget_data_with_invalid_background_color,
+    test_deserialize_widget_data_with_invalid_foreground_color,
+    test_deserialize_widget_data_with_invalid_height,
+    test_deserialize_widget_data_with_invalid_input_type,
+    test_deserialize_widget_data_with_invalid_text,
+    test_deserialize_widget_data_with_invalid_type,
+    test_deserialize_widget_data_with_invalid_width,
+    test_deserialize_widget_data_with_invalid_x_coordinate,
+    test_deserialize_widget_data_with_invalid_y_coordinate,
+    test_deserialize_widget_data_with_missing_required_attribute,
+    test_deserialize_widget_data_with_missing_type,
+    test_generate_id_for_unsupported_type,
+    test_instantiate_widget_base_type
+)
+from tests.validation.cases.utility_tests import (
+    test_compute_bounding_box_with_invalid_anchor,
+    test_compute_allowed_x_range_with_invalid_anchor,
+    test_compute_allowed_x_range_with_widget_width_exceeding_canvas_width,
+    test_compute_allowed_y_range_with_invalid_anchor,
+    test_compute_allowed_y_range_with_widget_height_exceeding_canvas_height
+)
+from tests.validation.cases.view_tests import (
+    test_delete_tk_widget_with_missing_tk_widget_mapping,
+    test_instantiate_widget_with_unsupported_type,
+    test_look_up_widget_with_unknown_canvas_item_id,
+    test_render_tk_widget_with_missing_tk_widget_mapping
+)
+from tests.validation.framework import (
+    print_validation_test_results,
+    run_validation_tests,
+    ValidationTest
+)
 from tests.validation.helpers import (
     CANVAS_HEIGHT,
     CANVAS_WIDTH,
@@ -11,113 +107,14 @@ from tests.validation.helpers import (
     WIDGET_HEIGHT,
     WIDGET_WIDTH
 )
-
-from tests.validation.cases.app_state_tests import (
-    test_subscribe_uncallable_to_app_state,
-    test_add_widget_with_missing_id,
-    test_add_widget_with_duplicate_id,
-    test_remove_widget_with_unknown_id,
-    test_update_widget_position_absolute_with_unknown_id,
-    test_update_widget_position_relative_with_unknown_id,
-    test_update_widget_attribute_with_unknown_id,
-    test_update_unknown_widget_attribute,
-    test_select_widget_with_unknown_id,
-    test_look_up_widget_with_unknown_id,
-    test_look_up_widget_bounding_box_with_no_widget_provided,
-    test_look_up_widget_group_bounding_box_with_no_widgets_provided
+from utility.constants import (
+    CANVAS_MAX_HEIGHT,
+    CANVAS_MAX_WIDTH,
+    CANVAS_MIN_HEIGHT,
+    CANVAS_MIN_WIDTH,
+    GRID_MAX_SIZE,
+    GRID_MIN_SIZE
 )
-
-from tests.validation.cases.actions_tests import (
-    test_add_widget_with_unsupported_type,
-    test_add_widget_with_missing_coordinates,
-    test_add_label_with_missing_text,
-    test_add_button_with_missing_text
-)
-
-from tests.validation.cases.commands_tests import (
-    test_execute_edit_widget_command_without_recording_final_attribute_values,
-    test_check_drag_widgets_command_effect_without_recording_final_positions,
-    test_execute_drag_widgets_command_without_recording_final_positions
-)
-
-from tests.validation.cases.components_tests import (
-    test_compute_spinbox_limits_for_unsupported_attribute,
-    test_create_combobox_for_unsupported_attribute
-)
-
-from tests.validation.cases.events_tests import (
-    test_subscribe_uncallable_to_event_bus,
-    test_fail_handler_execution
-)
-
-from tests.validation.cases.model_tests import (
-    test_deserialize_grid_data_with_invalid_input_type,
-    test_deserialize_grid_data_with_missing_required_attribute,
-    test_deserialize_grid_data_with_invalid_attribute_set,
-    test_deserialize_grid_data_with_invalid_size,
-    test_deserialize_grid_data_with_size_outside_allowed_range,
-    test_deserialize_grid_data_with_invalid_color,
-    test_deserialize_grid_data_with_invalid_visibility,
-    test_generate_id_for_unsupported_type,
-    test_deserialize_id_counter_data_with_invalid_input_type,
-    test_deserialize_id_counter_data_with_missing_required_attribute,
-    test_deserialize_id_counter_data_with_invalid_attribute_set,
-    test_deserialize_id_counter_data_with_invalid_label_id_counter_value,
-    test_deserialize_id_counter_data_with_invalid_entry_id_counter_value,
-    test_deserialize_id_counter_data_with_invalid_button_id_counter_value,
-    test_deserialize_project_data_with_invalid_input_type,
-    test_deserialize_project_data_with_missing_required_attribute,
-    test_deserialize_project_data_with_invalid_attribute_set,
-    test_deserialize_project_data_with_invalid_version,
-    test_deserialize_project_data_with_unsupported_version,
-    test_deserialize_project_data_with_invalid_title,
-    test_deserialize_project_data_with_invalid_width,
-    test_deserialize_project_data_with_invalid_height,
-    test_deserialize_project_data_with_width_outside_allowed_range,
-    test_deserialize_project_data_with_height_outside_allowed_range,
-    test_deserialize_project_data_with_invalid_icon_path,
-    test_deserialize_project_data_with_invalid_widget_data_list_type,
-    test_deserialize_project_data_with_duplicate_widget_id,
-    test_deserialize_project_data_with_widget_width_exceeding_canvas_width,
-    test_deserialize_project_data_with_widget_height_exceeding_canvas_height,
-    test_deserialize_project_data_with_widget_x_coordinate_outside_allowed_range,
-    test_deserialize_project_data_with_widget_y_coordinate_outside_allowed_range,
-    test_deserialize_theme_data_with_invalid_input_type,
-    test_deserialize_theme_data_with_missing_required_attribute,
-    test_deserialize_theme_data_with_invalid_attribute_set,
-    test_deserialize_theme_data_with_invalid_color,
-    test_instantiate_widget_base_type,
-    test_deserialize_widget_data_with_invalid_input_type,
-    test_deserialize_widget_data_with_missing_type,
-    test_deserialize_widget_data_with_invalid_type,
-    test_deserialize_widget_data_with_missing_required_attribute,
-    test_deserialize_widget_data_with_invalid_attribute_set,
-    test_deserialize_widget_data_with_invalid_x_coordinate,
-    test_deserialize_widget_data_with_invalid_y_coordinate,
-    test_deserialize_widget_data_with_invalid_background_color,
-    test_deserialize_widget_data_with_invalid_foreground_color,
-    test_deserialize_widget_data_with_invalid_width,
-    test_deserialize_widget_data_with_invalid_height,
-    test_deserialize_widget_data_with_invalid_anchor,
-    test_deserialize_widget_data_with_invalid_text
-)
-
-from tests.validation.cases.utility_tests import (
-    test_compute_allowed_x_range_with_widget_width_exceeding_canvas_width,
-    test_compute_allowed_x_range_with_invalid_anchor,
-    test_compute_allowed_y_range_with_widget_height_exceeding_canvas_height,
-    test_compute_allowed_y_range_with_invalid_anchor,
-    test_compute_bounding_box_with_invalid_anchor
-)
-
-from tests.validation.cases.view_tests import (
-    test_delete_tk_widget_with_missing_tk_widget_mapping,
-    test_look_up_widget_with_unknown_canvas_item_id,
-    test_render_tk_widget_with_missing_tk_widget_mapping,
-    test_instantiate_widget_with_unsupported_type
-)
-
-from utility.constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT, GRID_MIN_SIZE, GRID_MAX_SIZE
 
 VALIDATION_TESTS = (
     ValidationTest(

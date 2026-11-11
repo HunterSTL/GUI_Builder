@@ -1,8 +1,15 @@
 import tkinter as tk
 
+from utility.app_theme import (
+    LAST_SELECTED_COLOR,
+    SELECTION_COLOR
+)
+from utility.constants import (
+    SELECTION_DASH,
+    SELECTION_PADDING,
+    SELECTION_WIDTH
+)
 from utility.geometry import BoundingBox
-from utility.app_theme import SELECTION_COLOR, LAST_SELECTED_COLOR
-from utility.constants import SELECTION_WIDTH, SELECTION_DASH, SELECTION_PADDING
 
 
 class SelectionView:
