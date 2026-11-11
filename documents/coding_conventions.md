@@ -6,7 +6,7 @@ The goal of these conventions is to make the codebase coherent, readable and arc
 Principles that apply globally and must not be violated.
 
 **Single source of truth:**  
-AppState owns application state and all mutations of models owned by AppState must go through AppState
+AppState owns application state and all mutations of AppState owned models must go through AppState
 
 **Unidirectional data flow:**  
 User Input → Controller → Event → Designer → Action → Commands → CommandStack → AppState → View  
@@ -26,12 +26,18 @@ The codebase follows a layered MVC architecture extended with a centralized muta
 Each component has clearly defined responsibilities and allowed dependencies.
 
 ### 2.1 Model
-Represents application data such as ProjectDocument and WidgetModels.
+Represents application data such as `ProjectDocument` and `Widget`.
 
 * Must only contain data, serialization logic and identity management (IDs)
 * May depend on standard library modules, dataclasses, enums and helpers that do not depend on application state or UI
 * Must not depend on anything else
-* Model IDs must be treated as immutable and created exactly once
+
+#### 2.1.1 Widget IDs
+Uniquely identify `Widget` instances.
+
+* Must be unique within a project
+* Must be created and assigned exactly once
+* Must not be modified after a widget has been added to the project
 
 ### 2.2 View
 Responsible for rendering model state.
@@ -42,207 +48,218 @@ Responsible for rendering model state.
 ### 2.3 Controller
 Translates user input (mouse, keyboard and menu interactions) into domain intent.
 
-* Must emit events via EventRouter
+* Must emit events via `EventRouter`
 * Must not mutate models
 * Must not perform rendering
 * Must not execute commands directly
 
 ### 2.4 AppState
-The central mutation engine responsible for applying all mutations to models owned by AppState.
+The central mutation engine responsible for applying all mutations to `AppState` owned models.
 
-* Must apply all state changes to models owned by AppState
-* Must reject mutations for unknown model IDs
-* Must resolve models by ID before mutating them to avoid mutating stale model references
-* Must track dirty state
-* Must track dirty and removed models
+* Must apply all state changes to `AppState` owned models
+* Must reject mutations for unknown `Widget` IDs
+* Must resolve `Widget` instances by ID before mutating them to avoid mutating stale references
+* Must track dirty and removed `Widget` instances
 * Must track selection and grid changes
 * Must notify subscribers after state changes
 * Must provide batching for grouped mutations
-* Must provide O(1) model lookup by ID
+* Must provide O(1) `Widget` lookup by ID
 
-**Notification system:**  
-* `dirty_model_ids` must contain the IDs of all modified models
-* `removed_model_ids` must contain the IDs of all removed models
-* The `selection_change` flag must indicate selection outline and attributes panel refresh requirements
-* The `grid_change` flag must indicate grid refresh requirements
-* After notifications complete, all transient flags must be reset and all transient change sets must be cleared
+#### 2.4.1 Notification System
+Notifies `AppState` subscribers of state changes.
+
+* Must contain the IDs of all modified `Widget` instances in `dirty_widget_ids`
+* Must contain the IDs of all removed `Widget` instances in `removed_widget_ids`
+* Must indicate selection outline and attributes panel refresh requirements with the `selection_change` flag
+* Must indicate grid refresh requirements with the `grid_change` flag
+* Must reset all transient flags and clear all transient change sets after notifications complete
 
 ### 2.5 Event System
 Defines how events are emitted and dispatched across components.
 
-#### 2.5.1 Events
-Namespaced strings that describe concrete actions.
+#### 2.5.1 Event
+Namespaced string that represents a concrete domain intent.
 
 * Must follow the format: \<namespace>.\<action>[.\<subaction>]
 * Must be lowercase
-* Must be emitted exclusively through EventRouter
+* Must be emitted exclusively through `EventRouter`
 
 **Allowed namespaces:**
-* app.*
-* project.*
-* selection.*
-* edit.*
-* widget.*
-* grid.*
-* properties.*
-* debug.*
+* `app.*`
+* `project.*`
+* `selection.*`
+* `edit.*`
+* `widget.*`
+* `grid.*`
+* `properties.*`
+* `debug.*`
 
 #### 2.5.2 EventBus
-Maps events to subscribers and dispatches them to all subscribers.  
+Dispatches emitted events to their handlers.  
 
-* Must allow subscription of callable functions
-* Must call all subscribers when an event is emitted
-* Must not stop dispatching if a subscriber raises an error
-* Must collect subscriber errors and raise a combined error after dispatch
+* Must allow registration of a callable handler for an event
+* Must call the registered handler when the event is emitted
 
 ##### 2.5.2.1 App EventBus
-Global event bus owned by the AppController and used for application level events.
+Global event bus owned by `AppController` and used for application-level events.
 
 * Must persist for the entire application lifetime
 * App events must start with `app.*` or `project.*`
 
 ##### 2.5.2.2 Designer EventBus
-Local event bus scoped to a Designer instance and used for editor specific events.
+Local event bus scoped to a `Designer` instance and used for editor-specific events.
 
-* Must be destroyed along with the Designer to avoid calling handlers that reference destroyed objects
+* Must be destroyed along with `Designer` to avoid calling handlers that reference destroyed objects
 
 #### 2.5.3 EventRouter
-Routes emitted events to the appropriate EventBus.
+Routes emitted events to the appropriate `EventBus`.
 
 * Must provide a single interface for emitting events
-* Must route events to the correct EventBus based on namespace
+* Must route events to the corresponding `EventBus` based on namespace
 
-#### 2.6 Designer
-Responsible for orchestrating the interaction between events, actions, state and rendering.
+### 2.6 Action System
+Defines how concrete domain intents (e.g. delete, copy, nudge, align, undo) are represented and executed as actions.
 
-* Must act as the central coordination layer between systems
-* Must subscribe to events and map them to the corresponding actions
-* Must subscribe to AppState notifications and trigger rendering in response to state changes
-* Must manage transient UI specific state (e.g. last right click position)
-* Must delegate to the action system instead of executing commands directly
-* Must not own persistent project state
+#### 2.6.1 Action
+A method defined on an action group that implements a concrete domain intent.
 
-### 2.7 Action System
-Defines how editor actions (e.g. delete, copy, nudge, align, undo) are structured and executed through action groups.
+* Must implement a concrete domain intent
+* Must validate whether an action should run (e.g. selection must not be empty)
+* Must return early for no-op or invalid user intent when no error is required
+* Must create the appropriate command for the action
+* Must execute commands through `CommandStack`
 
-#### 2.7.1 Actions (Facade)
-Provides structured access to all available actions via action groups.
-
-* Must aggregate all action groups
-* Must provide a single access point for all action groups
-
-#### 2.7.2 Action Groups
-Organize related editor actions.
+#### 2.6.2 Action Group
+Encapsulates the implementation of related actions.
 
 * Must only receive the dependencies required to execute actions
 * Must expose editor actions only through methods
 
-#### 2.7.3 Action
-A method defined on an action group that implements a concrete editor action.
+#### 2.6.3 Action Groups (Facade)
+Provides structured access to all action groups.
 
-* Must represent concrete editor actions
-* Must validate whether an action should run (e.g. selection must not be empty)
-* Must return early for no-op or invalid user intent when no error is required
-* Must create the appropriate command for the action
-* Must execute commands through CommandStack
+* Must aggregate all action groups
+* Must provide a single access point for all action groups
 
-### 2.8 Command System
+### 2.7 Command System
 Defines how state changes are applied and reversed.
 
-#### 2.8.1 Command
+#### 2.7.1 Command
 Defines a concrete state change and specifies how it is executed and undone.
 
 * Must not depend on external mutable state
-* Must preserve deterministic order for all affected models
-* Must only receive required operation parameters and an AppState reference for model mutations
-* Must snapshot all required model state (original and final positions, attribute snapshots, clipboard data etc.)
-* Must be executed exclusively through CommandStack
-* All attributes must be private (prefixed with underscore)
-* Snapshotted data must be treated as immutable
+* Must preserve deterministic order for all affected `Widget` instances
+* Must only receive required operation parameters and an `AppState` reference for model mutations
+* Must snapshot all required application state (e.g. original and final positions, attribute snapshots, clipboard data)
+* Must be executed exclusively through `CommandStack`
+* Must keep all attributes private (prefixed with underscore)
+* Must treat snapshotted data as immutable
 * `execute()` must only apply stored parameters or snapshotted final state
 * `undo()` must restore state exclusively from the snapshotted original state
 
-##### 2.8.1.1 Deterministic Command
+##### 2.7.1.1 Deterministic Command
 Command that is fully defined at construction time.
 
 * Both the original and final state must be snapshotted during construction (if required)
 * The public API must only consist of `execute()`, `undo()` and optional predicate methods (e.g. `has_effect()`)
 
-##### 2.8.1.2 Interactive Command
+##### 2.7.1.2 Interactive Command
 Command that is finalized through user interaction (e.g. dragging or attribute editing).
 
-* The original state must be snapshotted during construction
-* Intermediate changes may be applied during the interaction
-* The final state must be snapshotted explicitly during finalization
-* Finalization must occur before execution
-* The public API may expose additional lifecycle methods required to support the interaction, such as:
+* Must snapshot the original state during construction
+* May apply intermediate changes during the interaction
+* Must snapshot the final state explicitly during finalization
+* Must finalize before execution
+* May expose additional lifecycle methods required to support the interaction, such as:
    * `apply_drag_delta()`
    * `apply_attribute_changes()`
    * `record_final_positions()`
    * `record_final_snapshot()`
 
-#### 2.8.2 Command Stack
+#### 2.7.2 Command Stack
 Maintains a command history and provides undo and redo functionality.
 
 * Must maintain consistent undo and redo history
+* Must derive dirty state from command history
+* Must invalidate the clean history position when clearing the redo history makes the saved state unreachable
 
-### 2.9 Rendering
-Updates the UI to reflect the current model state and active user interactions.
+### 2.8 Designer
+Responsible for orchestrating the interaction between events, actions, state and rendering.
 
-* Rendering of application state must be driven exclusively by AppState changes
-* Rendering of application state must be incremental
-* Temporary UI elements used during an active user interaction may be rendered in response to events
-* The Designer must subscribe to AppState notifications and update the UI based on the provided change flags and changed model IDs
-* Dirty models must cause their widgets to be updated
-* Dirty selected models must additionally cause their selection outlines to be updated
-* Removed models must cause their widgets and selection outlines to be deleted
-* Selection changes must refresh selection outlines and the attributes panel
-* Grid changes must re-render the grid
+* Must act as the central coordination layer between systems
+* Must subscribe handlers to their corresponding events
+* Must subscribe to `AppState` notifications and update the UI based on the provided flags and change sets
+* Must manage transient UI specific state (e.g. last right click position)
+* Must delegate to the action system instead of executing commands directly
+* Must not own persistent project state
 
-## 3 AppState Ownership
-Begins when a model is added through `AppState.add_model()`.
+## 3 Rendering
+Updates the UI to reflect the current application state and active user interactions.
 
-* Models that are not yet owned by AppState may be constructed, positioned, assigned IDs and otherwise prepared before being added to AppState
-* Once a model is added through **AppState.add_model()**, all further mutations of that model must go through AppState
+* Must be driven exclusively by `AppState` changes when representing application state 
+* Must be incremental when representing application state
+* May respond directly to events when displaying temporary UI elements during an active user interaction
+* Must update Tk widgets for dirty `Widget` instances
+* Must additionally update selection outlines for dirty `Widget` instances when they are selected
+* Must delete Tk widgets and selection outlines for removed `Widget` instances
+* Must refresh selection outlines and the attributes panel when the selection changes
+* Must update the grid when grid settings change
 
-**Incorrect after AppState ownership:**
+## 4 Widget Ownership
+Determines how `Widget` instances may be mutated based on whether `AppState` owns them.
+
+### 4.1 Unowned Widgets
+Have not yet been added through `AppState.add_widget()`
+
+* May be constructed, positioned and otherwise prepared directly
+
+**Allowed:**
 ```
-model.x += dx
-model.y += dy
-```
-**Correct after AppState ownership:**
-```
-self.app_state.offset_model_position(model, dx, dy)
-```
-**Allowed before AppState ownership:**
-```
-model.x += x_offset
-model.y += y_offset
-self.app_state.add_model(model)
+widget.x += dx
+widget.y += dy
+self.app_state.add_widget(widget)
 ```
 
-## 4 Batching
+### 4.2 Owned Widgets
+Have been added through `AppState.add_widget()`
+
+* Must only be mutated through `AppState`
+
+**Incorrect:**
+```
+self.app_state.add_widget(widget)
+widget.x += dx
+widget.y += dy
+```
+
+**Correct:**
+```
+self.app_state.add_widget(widget)
+self.app_state.offset_widget_position(widget, dx, dy)
+```
+
+## 5 Batching
 Coalesces multiple mutations into a single state change notification.
 
-* Any operation that mutates multiple models or performs multiple related mutations must use AppState batching 
-* Batching must guarantee that subscribers are notified only once
+* Must be used for any operation that mutates multiple `Widget` instances or performs multiple related mutations
+* Must guarantee that subscribers are notified only once
 
 **Example:**
 ```
 with self.app_state.batch():
-    for model in selected_models:
-        self.app_state.offset_model_position(model, dx, dy)
+    for widget in selected_widgets:
+        self.app_state.offset_widget_position(widget, dx, dy)
 ```
 
-## 5 Comments
+## 6 Comments
 Explain local implementation details that are not clear from the code itself.
 
 * Must not include a space after the `#` marker
 * Must not explain what the code already says
 * Must be short and specific
-* Comment style must be consistent
+* Must use a consistent comment style
 
-### 5.1 Comments Above Code
+### 6.1 Comments Above Code
 Summarize a meaningful implementation step.
 
 * Must summarize a meaningful step that spans multiple lines
@@ -262,18 +279,25 @@ self._create_context_menu()
 **Correct:**
 ```
 #compute new dimensions
-measurement_model = copy(self._active_edit_model)
-measurement_model.text = value
-width, height = self._measure_preview_widget_callback(measurement_model)
+measurement_text = text if text is not None else ""
+width, height = self._measure_preview_tk_widget_callback(widget_type, measurement_text)
 
-#compute allowed x and y range and clamp model coordinates
-min_x, max_x = allowed_x_range(self._app_state.project.width, width, self._active_edit_model.anchor)
-min_y, max_y = allowed_y_range(self._app_state.project.height, height, self._active_edit_model.anchor)
-x = clamp(self._active_edit_model.x, min_x, max_x)
-y = clamp(self._active_edit_model.y, min_y, max_y)
+#compute allowed x and y range and clamp widget coordinates
+min_x, max_x = allowed_x_range(
+    canvas_width=self._app_state.project.width,
+    widget_width=width,
+    anchor="sw"
+)
+min_y, max_y = allowed_y_range(
+    canvas_height=self._app_state.project.height,
+    widget_height=height,
+    anchor="sw"
+)
+x = clamp(coordinates[0], min_x, max_x)
+y = clamp(coordinates[1], min_y, max_y)
 ```
 
-### 5.2 Inline Comments
+### 6.2 Inline Comments
 Explain why something non-obvious is required.
 
 * Must document reasoning, constraints or edge cases that are not obvious from the code itself
@@ -281,79 +305,82 @@ Explain why something non-obvious is required.
 
 **Examples:**
 ```
-self._dirty_model_ids: set[str] = set()   #IDs of models that changed
-self._removed_model_ids: set[str] = set() #IDs of models that were removed
-self.selection_change: bool = False       #signals whether the selection outlines need to be re-rendered
-self.grid_change: bool = False            #signals whether the grid needs to be re-rendered
+self._dirty_widget_ids: set[str] = set()      #IDs of widgets that changed
+self._removed_widget_ids: set[str] = set()    #IDs of widgets that were removed
+self.selection_change: bool = False           #signals whether the selection outlines need to be re-rendered
+self.grid_change: bool = False                #signals whether the grid needs to be re-rendered
 ```
 ```
-self._batch_depth = 0   #tracks batch depth so only the outermost batch notifies (batches can be nested)
+self._batch_depth = 0    #tracks batch depth so only the outermost batch notifies (batches can be nested)
 ```
 ```
-self._model_by_id = {}  #{model.id: model} for O(1) lookup; maintained in add_/remove_widget()
+self._widget_by_id = {}  #{widget.id: widget} for O(1) lookup; maintained in add_/remove_widget()
 ```
 
-## 6 Docstrings
+## 7 Docstrings
 Describe the purpose and contract of modules, classes and functions.
 
 * Must describe what the object represents or what the function does
 * Must not duplicate implementation details already clear from the function body
 * May be omitted for private helpers when the name and implementation are self-explanatory
 
-### 6.1 Class Docstrings
+### 7.1 Class Docstrings
 Describe the responsibility of the class.
 
 * Must describe the role of the class within the architecture
 * Must not describe implementation details or list every method
 
-### 6.2 Function Docstrings
+### 7.2 Function Docstrings
 Describe the behaviour of the function.
 
 * Must describe what the function does
 * Must mention important side effects
 
-## 7 Type Annotations
+## 8 Type Annotations
 Define expected types.
 
-* All function parameters must be annotated
-* All function return types must be annotated
-* All class attributes must be annotated
-* All instance attributes must be annotated when initialized
-* Callback types must use `Callable`
-* Optional values must be explicit using `| None`
-* Generic collection types such as `dict` or `list` must be further specified (e.g. `dict[str, tuple[int, int]]`)
-* `Any` or `object` must only be used when the values are intentionally unrestricted or when a more precise annotation would reduce readability
+* Must be used for all function parameters
+* Must be used for all function return types
+* Must be used for all class attributes
+* Must be used for all instance attributes when initialized
+* Must use `Callable` for callback types
+* Must explicitly use `| None` for optional values
+* Must further specify generic collection types such as `dict` or `list` (e.g. `dict[str, tuple[int, int]]`)
+* Must only use `Any` or `object` when the values are intentionally unrestricted or when a more precise annotation would reduce readability
 
-### 7.1 Attribute Annotations
+### 8.1 Attribute Annotations
 Define the expected type of attributes.
 
 * Must be added when attributes are declared
 * Must be added when instance attributes are initialized
 
-### 7.2 Return Annotations
+### 8.2 Return Annotations
 Define the expected return value of functions.
 
+* Must be added to every function
 * Must use `-> None` when no value is returned
 
-## 8 Function Signatures
+## 9 Function Signatures
 Define the typed interface of functions.
 
 * Must use a consistent vertical style by default
-* Each parameter must be placed on its own line
-* The closing parenthesis and return annotation must be placed on the final signature line
-* This is a default and not an absolute rule as readability may override it
+* Must place each parameter on its own line
+* Must place the closing parenthesis and return annotation on the final signature line
+
+**Allowed exception:**
+* Readability may override this rule
 
 **Example:**
 ```
-def set_model_position(
+def set_widget_position(
     self,
-    model: BaseWidgetData,
+    widget: Widget,
     x: int,
     y: int
 ) -> None:
 ```
 
-## 9 Private Members
+## 10 Private Members
 Implementation details that are not part of a class's intentional public API.
 
 * Must be the default for anything that does not need to be accessed outside the class
@@ -364,37 +391,49 @@ Implementation details that are not part of a class's intentional public API.
 * Tests may access private members when validating internal behaviour
 * Helper classes that are implementation details of the same module may access private members of the owning class
 
-## 10 Error Handling
+## 11 Imports
+Bring code from other modules into the current file.
+
+* Must be sorted alphabetically, including imported names
+* Must use multi-line format when importing two or more names from the same module or package
+* Must be grouped into standard library imports and project imports, separated by an empty line
+* Package imports must only be used from outside the package
+* Relative imports must only be used inside the `__init__.py` file of packages
+
+## 12 Errors
+Represent invalid or inconsistent state.
+
+* Must be raised for invalid or inconsistent state instead of failing silently
+* Must not be raised for expected no-op actions and instead return early
+* Programmer errors must not be replaced with custom validation errors
+
+### 12.1 Validation
 Detects and rejects invalid or inconsistent state.
 
-* Invalid or inconsistent state must raise errors instead of failing silently
-* Untrusted data must be validated at input boundaries
-* Internal code must enforce domain invariants
-* Internal code must not validate parameters that callers are responsible for providing
-* Programmer errors should not be converted into custom validation errors
-* Expected no-op or invalid actions should return early instead of raising errors
+* Must not occur for parameters that callers are responsible for providing
 
-### 10.1 Input Boundaries
-Process untrusted data before it becomes application state.
+#### 12.1.1 Input Validation
+Validates untrusted data before it becomes application state.
 
+* Must occur at input boundaries
 * Must reject missing, malformed or corrupted data
 
 **Examples:**
 * Project deserialization
-* Widget model deserialization
+* Widget deserialization
 * User input parsing
 
-### 10.2 Domain Invariants
-Define conditions that must remain true for the application to work correctly.
+#### 12.1.2 Domain Invariant Validation
+Validates conditions that must remain true for the application to work correctly.
 
-* Must be enforced by internal code that relies on them
+* Must occur within the internal code responsible for maintaining the relevant domain invariant
 
 **Examples:**
 * A widget's anchor can only be `n`, `ne`, `e`, `se`, `s`, `sw`, `w`, `nw` or `center`
 * Widgets must be smaller than the canvas
 * Widget IDs must be unique
 
-## 11 Error Messages
+### 12.2 Error Messages
 Describe the reason an error was raised.
 
 * Must list the module that raises the error
@@ -410,7 +449,7 @@ Describe the reason an error was raised.
 AppState: unknown id
 ```
 ```
-get_model_from_model_id(): invalid value
+get_widget_from_widget_id(): invalid value
 ```
 ```
 Unknown type
@@ -421,25 +460,23 @@ Unknown type
 AppState - subscription failed: subscriber must be callable
 ```
 ```
-WidgetController - widget update failed: missing widget for model "label_1"
+ProjectDocument - project data deserialization failed: missing required attribute "id_counters"
 ```
 ```
-Designer - widget creation failed: unsupported type "slider"
+Geometry - computation failed: invalid anchor "nnw"
 ```
 
-## 12 Dirty State
+## 13 Dirty State
 Indicates whether unsaved changes exist.
 
-* Must be owned by AppState
-* Must be set after any mutation that actually changes persistent project state
-* Must not be set on no-op mutations (setting an attribute to its current value)
-* Must be cleared after a successful save
+* Must be owned by `CommandStack`
+* Must be derived from the command history
 * Must be visually represented in the UI
 
-## 13 Collection Types
-Communicate the intended ordering, mutability and uniqueness of collections.
+## 14 Collections
+Store multiple values with defined ordering, mutability and uniqueness characteristics.
 
-* Lists must be used for ordered, mutable collections that permit duplicates
-* Tuples must be used for ordered, immutable collections that permit duplicates
-* Sets must be used for unordered, mutable collections that enforce uniqueness
-* Frozensets must be used for unordered, immutable collections that enforce uniqueness
+* Must use lists for ordered, mutable collections that permit duplicates
+* Must use tuples for ordered, immutable collections that permit duplicates
+* Must use sets for unordered, mutable collections that enforce uniqueness
+* Must use frozensets for unordered, immutable collections that enforce uniqueness
