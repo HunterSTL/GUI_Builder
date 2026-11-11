@@ -1,8 +1,6 @@
-from tests.validation.helpers import create_valid_widget
-
-from model import ProjectDocument
-
 from app_state import AppState
+from model import ProjectDocument
+from tests.validation.helpers import create_valid_widget
 
 def test_subscribe_uncallable_to_app_state() -> None:
     app_state = AppState(ProjectDocument())

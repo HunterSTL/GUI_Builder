@@ -1,4 +1,8 @@
-from utility.geometry import allowed_x_range, allowed_y_range, compute_widget_bounding_box
+from utility.geometry import (
+    allowed_x_range,
+    allowed_y_range,
+    compute_widget_bounding_box
+)
 
 def test_compute_allowed_x_range_with_widget_width_exceeding_canvas_width() -> None:
     allowed_x_range(

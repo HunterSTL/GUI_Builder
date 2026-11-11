@@ -1,4 +1,4 @@
-from .event_bus import EventBus
+from events.event_bus import EventBus
 
 
 class EventRouter:

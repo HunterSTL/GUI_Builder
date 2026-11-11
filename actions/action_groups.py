@@ -1,7 +1,7 @@
-from .edit_actions import EditActions
-from .grid_actions import GridActions
-from .properties_actions import PropertiesActions
-from .widget_actions import WidgetActions
+from actions.edit_actions import EditActions
+from actions.grid_actions import GridActions
+from actions.properties_actions import PropertiesActions
+from actions.widget_actions import WidgetActions
 
 
 class ActionGroups:

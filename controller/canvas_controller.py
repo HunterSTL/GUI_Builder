@@ -1,13 +1,17 @@
-import tkinter as tk
 from collections.abc import Callable
 from dataclasses import dataclass
-
-from events import EventRouter
-from utility.direction import Direction
-from utility.edge import Edge
-from utility.constants import CTRL_KEY_MASK, DRAG_THRESHOLD, NUDGE_SMALL, NUDGE_BIG
+import tkinter as tk
 
 from app_state import AppState
+from events import EventRouter
+from utility.constants import (
+    CTRL_KEY_MASK,
+    DRAG_THRESHOLD,
+    NUDGE_BIG,
+    NUDGE_SMALL
+)
+from utility.direction import Direction
+from utility.edge import Edge
 
 
 @dataclass

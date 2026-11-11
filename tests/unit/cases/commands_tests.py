@@ -1,7 +1,3 @@
-from tests.unit.helpers import create_project, create_project_with_widget
-from tests.unit.framework import assert_equal
-from utility.constants import GRID_DEFAULT_COLOR, GRID_DEFAULT_SIZE
-
 from commands import (
     AddWidget,
     AlignWidgets,
@@ -16,8 +12,16 @@ from commands import (
     SnapWidgetsToGrid,
     ToggleGrid
 )
-
 from model import LabelWidget
+from tests.unit.framework import assert_equal
+from tests.unit.helpers import (
+    create_project,
+    create_project_with_widget
+)
+from utility.constants import (
+    GRID_DEFAULT_COLOR,
+    GRID_DEFAULT_SIZE
+)
 from utility.edge import Edge
 
 def test_add_widget() -> None:

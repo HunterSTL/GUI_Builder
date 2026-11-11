@@ -1,11 +1,18 @@
+from collections.abc import Callable
 import tkinter as tk
 from tkinter import colorchooser
-from collections.abc import Callable
 
 from model import BaseWidget
-from utility.app_theme import ATTRIBUTES_PANEL_COLOR, ATTRIBUTES_PANEL_WIDGET_COLOR, ATTRIBUTES_PANEL_TEXT_COLOR
+from utility.app_theme import (
+    ATTRIBUTES_PANEL_COLOR,
+    ATTRIBUTES_PANEL_TEXT_COLOR,
+    ATTRIBUTES_PANEL_WIDGET_COLOR
+)
 from utility.constants import ATTRIBUTES_PANEL_WIDTH
-from utility.geometry import allowed_x_range, allowed_y_range
+from utility.geometry import (
+    allowed_x_range,
+    allowed_y_range
+)
 from utility.widget_type import WidgetType
 
 _DISPLAYED_ATTRIBUTES_BY_WIDGET_TYPE = {

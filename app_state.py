@@ -1,7 +1,13 @@
 from collections.abc import Callable, Iterable
 
-from model import ProjectDocument, BaseWidget
-from utility.geometry import BoundingBox, compute_widget_bounding_box
+from model import (
+    BaseWidget,
+    ProjectDocument
+)
+from utility.geometry import (
+    BoundingBox,
+    compute_widget_bounding_box
+)
 
 
 class AppState:

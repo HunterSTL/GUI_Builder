@@ -1,13 +1,26 @@
-from dataclasses import dataclass, field
+from dataclasses import (
+    dataclass,
+    field
+)
 
-from .grid_config import GridConfig
-from .id_counters import IdCounters
-from .project_theme import ProjectTheme
-from .widgets import BaseWidget
-
-from utility.constants import CANVAS_MIN_WIDTH, CANVAS_MIN_HEIGHT, CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
-from utility.geometry import allowed_x_range, allowed_y_range
-from utility.validation import is_positive_integer, is_non_empty_string
+from model.grid_config import GridConfig
+from model.id_counters import IdCounters
+from model.project_theme import ProjectTheme
+from model.widgets import BaseWidget
+from utility.constants import (
+    CANVAS_MAX_HEIGHT,
+    CANVAS_MAX_WIDTH,
+    CANVAS_MIN_HEIGHT,
+    CANVAS_MIN_WIDTH
+)
+from utility.geometry import (
+    allowed_x_range,
+    allowed_y_range
+)
+from utility.validation import (
+    is_non_empty_string,
+    is_positive_integer
+)
 
 
 @dataclass

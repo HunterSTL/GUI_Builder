@@ -1,11 +1,13 @@
 from copy import deepcopy
 
+from app_state import AppState
+from commands.base_command import Command
 from model import BaseWidget
 from utility.geometry import clamped_delta
-from utility.string_utilities import format_field, format_mapping
-
-from app_state import AppState
-from .base_command import Command
+from utility.string_utilities import (
+    format_field,
+    format_mapping
+)
 
 
 class PasteWidgetsFromClipboard(Command):

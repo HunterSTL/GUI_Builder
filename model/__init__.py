@@ -2,7 +2,12 @@ from .grid_config import GridConfig
 from .id_counters import IdCounters
 from .project_document import ProjectDocument
 from .project_theme import ProjectTheme
-from .widgets import BaseWidget, LabelWidget, EntryWidget, ButtonWidget
+from .widgets import (
+    BaseWidget,
+    ButtonWidget,
+    EntryWidget,
+    LabelWidget
+)
 
 __all__ = [
     "GridConfig",
@@ -10,7 +15,7 @@ __all__ = [
     "ProjectDocument",
     "ProjectTheme",
     "BaseWidget",
-    "LabelWidget",
+    "ButtonWidget",
     "EntryWidget",
-    "ButtonWidget"
+    "LabelWidget"
 ]

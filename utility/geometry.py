@@ -1,5 +1,8 @@
-from math import floor, ceil
 from dataclasses import dataclass
+from math import (
+    ceil,
+    floor
+)
 
 
 @dataclass

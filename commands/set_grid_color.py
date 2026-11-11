@@ -1,7 +1,6 @@
-from utility.string_utilities import format_field
-
 from app_state import AppState
-from .base_command import Command
+from commands.base_command import Command
+from utility.string_utilities import format_field
 
 
 class SetGridColor(Command):

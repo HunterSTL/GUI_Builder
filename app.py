@@ -1,4 +1,5 @@
 import tkinter as tk
+
 from app_controller import AppController
 
 def main():

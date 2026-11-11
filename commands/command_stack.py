@@ -1,8 +1,7 @@
 from collections.abc import Callable
 
+from commands.base_command import Command
 from utility.string_utilities import format_field
-
-from .base_command import Command
 
 
 class CommandStack:

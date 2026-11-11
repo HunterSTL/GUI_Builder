@@ -1,13 +1,21 @@
+from model import (
+    GridConfig,
+    IdCounters,
+    ProjectDocument,
+    ProjectTheme,
+    BaseWidget
+)
 from tests.validation.helpers import (
+    CANVAS_HEIGHT,
+    CANVAS_WIDTH,
     create_valid_project_data,
     create_valid_widget_data,
-    CANVAS_WIDTH,
-    CANVAS_HEIGHT,
     WIDGET_WIDTH
 )
-
-from model import GridConfig, IdCounters, ProjectDocument, ProjectTheme, BaseWidget
-from utility.constants import CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
+from utility.constants import (
+    CANVAS_MAX_HEIGHT,
+    CANVAS_MAX_WIDTH
+)
 
 def test_deserialize_grid_data_with_invalid_input_type() -> None:
     GridConfig.from_dict(grid_data=[])

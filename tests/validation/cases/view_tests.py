@@ -1,4 +1,8 @@
-from tests.validation.helpers import create_designer, destroy_designer, create_valid_widget
+from tests.validation.helpers import (
+    create_designer,
+    create_valid_widget,
+    destroy_designer
+)
 
 def test_delete_tk_widget_with_missing_tk_widget_mapping() -> None:
     designer = create_designer()

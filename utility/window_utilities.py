@@ -1,6 +1,6 @@
-import tkinter as tk
-import sys
 import ctypes
+import sys
+import tkinter as tk
 
 from utility.file_utilities import load_icon
 

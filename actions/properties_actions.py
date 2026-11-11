@@ -1,6 +1,8 @@
-from commands import CommandStack, SetProjectTitle
-
 from app_state import AppState
+from commands import (
+    CommandStack,
+    SetProjectTitle
+)
 
 
 class PropertiesActions:
