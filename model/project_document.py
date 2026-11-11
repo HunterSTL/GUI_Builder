@@ -6,7 +6,7 @@ from dataclasses import (
 from model.grid_config import GridConfig
 from model.id_counters import IdCounters
 from model.project_theme import ProjectTheme
-from model.widgets import BaseWidget
+from model.widgets import Widget
 from utility.constants import (
     CANVAS_MAX_HEIGHT,
     CANVAS_MAX_WIDTH,
@@ -33,7 +33,7 @@ class ProjectDocument:
     icon_path: str | None = None
     grid: GridConfig = field(default_factory=GridConfig)
     theme: ProjectTheme = field(default_factory=ProjectTheme)
-    widgets: list[BaseWidget] = field(default_factory=list)
+    widgets: list[Widget] = field(default_factory=list)
     id_counters: IdCounters = field(default_factory=IdCounters)
 
     def to_dict(
@@ -143,13 +143,13 @@ class ProjectDocument:
         widget_data_list: list[dict],
         canvas_width: int,
         canvas_height: int
-    ) -> list[BaseWidget]:
+    ) -> list[Widget]:
         """Deserialize the list of widget data and validate ID uniqueness and widget geometry."""
         seen_ids = set()
         widgets = []
 
         for widget_data in widget_data_list:
-            widget = BaseWidget.from_dict(widget_data)
+            widget = Widget.from_dict(widget_data)
 
             #validate ID uniqueness
             if widget.id in seen_ids:

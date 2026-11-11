@@ -10,7 +10,7 @@ from utility.widget_type import WidgetType
 
 
 @dataclass
-class BaseWidget:
+class Widget:
     """Stores widget data."""
     x: int
     y: int
@@ -30,8 +30,8 @@ class BaseWidget:
     def __post_init__(
         self
     ) -> None:
-        if type(self) is BaseWidget:
-            raise ValueError("Widgets - widget creation failed: base type (BaseWidget) cannot be instantiated directly")
+        if type(self) is Widget:
+            raise ValueError("Widgets - widget creation failed: base type \"Widget\" cannot be instantiated directly")
 
     def to_dict(
         self
@@ -45,7 +45,7 @@ class BaseWidget:
     def from_dict(
         cls,
         widget_data: dict
-    ) -> "BaseWidget":
+    ) -> "Widget":
         """Validate and deserialize widget data into a widget."""
         widget_type = cls._validate_widget_data(widget_data)
         widget_data = widget_data.copy()    #prevents mutating input data
@@ -118,7 +118,7 @@ class BaseWidget:
 
 
 @dataclass
-class LabelWidget(BaseWidget):
+class LabelWidget(Widget):
     """Stores label widget data."""
     text: str = ""
 
@@ -130,7 +130,7 @@ class LabelWidget(BaseWidget):
 
 
 @dataclass
-class EntryWidget(BaseWidget):
+class EntryWidget(Widget):
     """Stores entry widget data."""
     @property
     def type(
@@ -140,7 +140,7 @@ class EntryWidget(BaseWidget):
 
 
 @dataclass
-class ButtonWidget(BaseWidget):
+class ButtonWidget(Widget):
     """Stores button widget data."""
     text: str = ""
 

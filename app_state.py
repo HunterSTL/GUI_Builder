@@ -1,8 +1,8 @@
 from collections.abc import Callable, Iterable
 
 from model import (
-    BaseWidget,
-    ProjectDocument
+    ProjectDocument,
+    Widget
 )
 from utility.geometry import (
     BoundingBox,
@@ -30,7 +30,7 @@ class AppState:
         self._pending_notify: bool = False                          #signals whether _notify will be called at the end of the batch
 
         #Widget dictionary----------------------------------------------------------------------------------------------
-        self._widget_by_id: dict[str, BaseWidget] = {}              #{widget.id: widget} for O(1) lookup; maintained in add_/remove_widget()
+        self._widget_by_id: dict[str, Widget] = {}                  #{widget.id: widget} for O(1) lookup; maintained in add_/remove_widget()
 
         #Selection------------------------------------------------------------------------------------------------------
         self._selected_widget_ids: list[str] = []                   #IDs of widgets in the order they were selected (newest is last)
@@ -73,7 +73,7 @@ class AppState:
     #Widget API---------------------------------------------------------------------------------------------------------
     def add_widget(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         """Add a new widget to the project document."""
         if not widget.id:
@@ -94,7 +94,7 @@ class AppState:
 
     def remove_widget(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         """Remove an existing widget from the project document."""
         if widget.id not in self._widget_by_id:
@@ -113,7 +113,7 @@ class AppState:
 
     def set_widget_position(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         x: int,
         y: int
     ) -> None:
@@ -133,7 +133,7 @@ class AppState:
 
     def offset_widget_position(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         dx: int,
         dy: int
     ) -> None:
@@ -149,7 +149,7 @@ class AppState:
 
     def set_widget_attribute(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         attribute: str,
         value: str | int
     ) -> None:
@@ -296,7 +296,7 @@ class AppState:
     def get_widget_from_widget_id(
         self,
         widget_id: str
-    ) -> BaseWidget:
+    ) -> Widget:
         """Return the widget associated with the given widget ID."""
         try:
             return self._widget_by_id[widget_id]
@@ -305,7 +305,7 @@ class AppState:
 
     def get_dirty_widgets(
         self
-    ) -> tuple[BaseWidget, ...]:
+    ) -> tuple[Widget, ...]:
         """Return all dirty widgets."""
         return tuple(
             widget
@@ -321,13 +321,13 @@ class AppState:
 
     def get_all_widgets(
         self
-    ) -> tuple[BaseWidget, ...]:
+    ) -> tuple[Widget, ...]:
         """Return all widgets in the project document."""
         return tuple(self.project.widgets)
 
     @staticmethod
     def get_widget_bounding_box(
-        widget: BaseWidget
+        widget: Widget
     ) -> BoundingBox:
         """Return the given widget's bounding box."""
         if widget is None:
@@ -337,7 +337,7 @@ class AppState:
 
     def get_widget_group_bounding_box(
         self,
-        widgets: Iterable[BaseWidget]
+        widgets: Iterable[Widget]
     ) -> BoundingBox:
         """Return the collective bounding box of all given widgets."""
         widgets = tuple(widgets)
@@ -383,7 +383,7 @@ class AppState:
 
     def get_selected_widgets(
         self
-    ) -> tuple[BaseWidget, ...]:
+    ) -> tuple[Widget, ...]:
         """Return the selected widgets in selection order."""
         return tuple(
             self.get_widget_from_widget_id(widget_id)

@@ -2,7 +2,7 @@ from collections.abc import Iterable
 
 from app_state import AppState
 from commands.base_command import Command
-from model import BaseWidget
+from model import Widget
 from utility.string_utilities import format_field
 
 
@@ -10,7 +10,7 @@ class NudgeWidgets(Command):
     """Encapsulates widget nudging as an undoable command."""
     def __init__(
         self,
-        widgets: Iterable[BaseWidget],
+        widgets: Iterable[Widget],
         dx: int,
         dy: int,
         app_state: AppState

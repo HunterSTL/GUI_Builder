@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from app_state import AppState
 from commands.base_command import Command
-from model import BaseWidget
+from model import Widget
 from utility.geometry import clamped_delta
 from utility.string_utilities import (
     format_field,
@@ -23,11 +23,11 @@ class PasteWidgetsFromClipboard(Command):
         self._requested_y_offset: int = requested_y_offset
         self._app_state: AppState = app_state
 
-        created_widgets: list[BaseWidget] = []
+        created_widgets: list[Widget] = []
 
         for clipboard_data in deepcopy(clipboard):
             widget_data = clipboard_data.copy()
-            created_widgets.append(BaseWidget.from_dict(widget_data))
+            created_widgets.append(Widget.from_dict(widget_data))
 
         clamped_x_offset, clamped_y_offset = clamped_delta(
             canvas_width=self._app_state.project.width,
@@ -52,7 +52,7 @@ class PasteWidgetsFromClipboard(Command):
         """Create widgets from the stored widget data, assign them new IDs, add them to the project and select all created widgets."""
         with self._app_state.batch():
             for widget_data in self._widget_data_list:
-                widget = BaseWidget.from_dict(widget_data)
+                widget = Widget.from_dict(widget_data)
                 widget.id = self._app_state.project.id_counters.generate_id(widget.type)
                 self._app_state.add_widget(widget)  #selects only the added widget
                 widget_data["id"] = widget.id

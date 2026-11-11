@@ -11,7 +11,7 @@ from commands import (
     SnapWidgetsToGrid
 )
 from model import (
-    BaseWidget,
+    Widget,
     ButtonWidget,
     EntryWidget,
     LabelWidget
@@ -40,10 +40,10 @@ class WidgetActions:
         self._measure_preview_tk_widget_callback: Callable[[WidgetType, str], tuple[int, int]] = measure_preview_tk_widget_callback
 
         self._active_drag_command: DragWidgets | None = None
-        self._active_drag_widgets: tuple[BaseWidget, ...] | None = None     #live reference to widgets used for bounding box lookup during live dragging
+        self._active_drag_widgets: tuple[Widget, ...] | None = None     #live reference to widgets used for bounding box lookup during live dragging
 
         self._active_edit_command: EditWidget | None = None
-        self._active_edit_widget: BaseWidget | None = None                  #live reference to the widget used for dimension recomputation on text changes
+        self._active_edit_widget: Widget | None = None                  #live reference to the widget used for dimension recomputation on text changes
 
 
     def nudge(

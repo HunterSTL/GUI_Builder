@@ -1,6 +1,6 @@
 from app_state import AppState
 from commands.base_command import Command
-from model import BaseWidget
+from model import Widget
 from utility.string_utilities import format_mapping_changes
 
 _EDITABLE_ATTRIBUTES = {"x", "y", "bg", "fg", "width", "height", "anchor", "text"}
@@ -10,7 +10,7 @@ class EditWidget(Command):
     """Encapsulates widget attribute editing as an undoable command."""
     def __init__(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         app_state: AppState
     ) -> None:
         self._app_state: AppState = app_state

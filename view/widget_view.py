@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from model import BaseWidget
+from model import Widget
 from utility.widget_type import WidgetType
 
 
@@ -18,7 +18,7 @@ class WidgetView:
 
     def render_tk_widget_for(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         """Create or update the Tk widget for the given domain widget."""
         canvas_item_id = self.get_canvas_item_id_from_widget_id(widget.id)
@@ -88,7 +88,7 @@ class WidgetView:
 
     def _create_tk_widget_for(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> int:
         """Create and register a Tk widget for the given domain widget."""
         tk_widget = self._instantiate_tk_widget(widget.type)
@@ -109,7 +109,7 @@ class WidgetView:
     def _update_tk_widget(
         self,
         canvas_item_id: int,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         tk_widget = self._tk_widget_by_canvas_item_id.get(canvas_item_id)
 

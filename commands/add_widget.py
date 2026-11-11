@@ -1,6 +1,6 @@
 from app_state import AppState
 from commands.base_command import Command
-from model import BaseWidget
+from model import Widget
 from utility.string_utilities import format_mapping
 
 
@@ -8,7 +8,7 @@ class AddWidget(Command):
     """Encapsulates adding a widget to the project as an undoable command."""
     def __init__(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         app_state: AppState
     ) -> None:
         self._app_state: AppState = app_state
@@ -19,7 +19,7 @@ class AddWidget(Command):
         self
     ) -> None:
         """Create a widget from the stored widget data, assign it a new ID and add it to the project."""
-        widget = BaseWidget.from_dict(self._widget_data)
+        widget = Widget.from_dict(self._widget_data)
         widget.id = self._app_state.project.id_counters.generate_id(widget.type)
         self._app_state.add_widget(widget)
         self._widget_data["id"] = widget.id

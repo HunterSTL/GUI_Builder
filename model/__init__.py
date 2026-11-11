@@ -3,10 +3,10 @@ from .id_counters import IdCounters
 from .project_document import ProjectDocument
 from .project_theme import ProjectTheme
 from .widgets import (
-    BaseWidget,
     ButtonWidget,
     EntryWidget,
-    LabelWidget
+    LabelWidget,
+    Widget
 )
 
 __all__ = [
@@ -14,8 +14,8 @@ __all__ = [
     "IdCounters",
     "ProjectDocument",
     "ProjectTheme",
-    "BaseWidget",
     "ButtonWidget",
     "EntryWidget",
-    "LabelWidget"
+    "LabelWidget",
+    "Widget"
 ]
