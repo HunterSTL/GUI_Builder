@@ -2,7 +2,7 @@ from collections.abc import Iterable
 
 from app_state import AppState
 from commands.base_command import Command
-from model import BaseWidget
+from model import Widget
 from utility.edge import Edge
 from utility.geometry import (
     BoundingBox,
@@ -18,7 +18,7 @@ class AlignWidgets(Command):
     """Encapsulates widget alignment as an undoable command."""
     def __init__(
         self,
-        widgets: Iterable[BaseWidget],
+        widgets: Iterable[Widget],
         reference_widget_id: str,
         edge: Edge,
         app_state: AppState

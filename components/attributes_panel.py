@@ -2,7 +2,7 @@ from collections.abc import Callable
 import tkinter as tk
 from tkinter import colorchooser
 
-from model import BaseWidget
+from model import Widget
 from utility.app_theme import (
     ATTRIBUTES_PANEL_COLOR,
     ATTRIBUTES_PANEL_TEXT_COLOR,
@@ -68,7 +68,7 @@ class AttributesPanel:
         self._colorpickers: dict[str, tk.Button] = {}
         self._silent_mode: bool = False
         self._edit_in_progress: bool = False
-        self._displayed_widget: BaseWidget | None = None
+        self._displayed_widget: Widget | None = None
 
         self._frame: tk.Frame = tk.Frame(
             parent,
@@ -86,7 +86,7 @@ class AttributesPanel:
 
     def set_selection(
         self,
-        selection: tuple[BaseWidget, ...]
+        selection: tuple[Widget, ...]
     ) -> None:
         """Build the panel when exactly one widget is selected, otherwise clear the panel."""
         self._clear()
@@ -99,7 +99,7 @@ class AttributesPanel:
 
     def refresh_from_widget(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         """Refresh the panel from the widget by updating variable values, spinbox limits and colorpicker previews without producing user edit events."""
         self._silent_mode = True
@@ -118,7 +118,7 @@ class AttributesPanel:
 
     def _build(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         """Build the panel with editor widgets representing widget attributes."""
         displayed_attributes = _DISPLAYED_ATTRIBUTES_BY_WIDGET_TYPE[widget.type]
@@ -142,7 +142,7 @@ class AttributesPanel:
 
     def _update_variables_from_widget(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         """Update variable values from the given widget."""
         for attribute, variable in self._variables.items():
@@ -150,7 +150,7 @@ class AttributesPanel:
 
     def _update_spinbox_limits_from_widget(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         """Update spinbox limits from the given widget."""
         for attribute, spinbox in self._spinboxes.items():
@@ -166,7 +166,7 @@ class AttributesPanel:
 
     def _update_colorpicker_previews_from_widget(
         self,
-        widget: BaseWidget
+        widget: Widget
     ) -> None:
         """Update the colorpicker previews from the given widget."""
         for attribute, colorpicker in self._colorpickers.items():
@@ -174,7 +174,7 @@ class AttributesPanel:
 
     def _compute_spinbox_limits(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         attribute: str
     ) -> tuple[int, int]:
         """Return numeric minimum and maximum values of the spinbox for the given attribute."""
@@ -253,7 +253,7 @@ class AttributesPanel:
 
     def _create_editor_widget_for(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         attribute: str,
         row: int
     ) -> None:
@@ -263,7 +263,7 @@ class AttributesPanel:
 
     def _create_label(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         attribute: str,
         row: int
     ) -> None:
@@ -277,7 +277,7 @@ class AttributesPanel:
 
     def _create_entry(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         attribute: str,
         row: int
     ) -> None:
@@ -297,7 +297,7 @@ class AttributesPanel:
 
     def _create_spinbox(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         attribute: str,
         row: int
     ) -> None:
@@ -333,7 +333,7 @@ class AttributesPanel:
 
     def _create_colorpicker(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         attribute: str,
         row: int
     ) -> None:
@@ -354,7 +354,7 @@ class AttributesPanel:
 
     def _create_combobox(
         self,
-        widget: BaseWidget,
+        widget: Widget,
         attribute: str,
         row: int
     ) -> None:

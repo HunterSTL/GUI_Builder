@@ -2,7 +2,7 @@ from collections.abc import Iterable
 
 from app_state import AppState
 from commands.base_command import Command
-from model import BaseWidget
+from model import Widget
 from utility.geometry import (
     allowed_x_range,
     allowed_y_range,
@@ -15,7 +15,7 @@ class SnapWidgetsToGrid(Command):
     """Encapsulates widget grid snapping as an undoable command."""
     def __init__(
         self,
-        widgets: Iterable[BaseWidget],
+        widgets: Iterable[Widget],
         app_state: AppState
     ) -> None:
         self._app_state: AppState = app_state

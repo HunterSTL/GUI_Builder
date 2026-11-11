@@ -2,7 +2,7 @@ from collections.abc import Iterable
 
 from app_state import AppState
 from commands.base_command import Command
-from model import BaseWidget
+from model import Widget
 from utility.string_utilities import format_mapping_changes
 
 
@@ -10,7 +10,7 @@ class DragWidgets(Command):
     """Encapsulates widget dragging as an undoable command."""
     def __init__(
         self,
-        widgets: Iterable[BaseWidget],
+        widgets: Iterable[Widget],
         app_state: AppState
     ) -> None:
         self._app_state: AppState = app_state

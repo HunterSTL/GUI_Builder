@@ -3,7 +3,7 @@ from model import (
     IdCounters,
     ProjectDocument,
     ProjectTheme,
-    BaseWidget
+    Widget
 )
 from tests.validation.helpers import (
     CANVAS_HEIGHT,
@@ -263,58 +263,58 @@ def test_instantiate_widget_base_type() -> None:
     widget_data = create_valid_widget_data()
     widget_data.pop("type")
     widget_data.pop("text")
-    BaseWidget(**widget_data)
+    Widget(**widget_data)
 
 def test_deserialize_widget_data_with_invalid_input_type() -> None:
-    BaseWidget.from_dict(widget_data=[])
+    Widget.from_dict(widget_data=[])
 
 def test_deserialize_widget_data_with_missing_type() -> None:
     widget_data = create_valid_widget_data()
     widget_data.pop("type")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_type() -> None:
     widget_data = create_valid_widget_data(type="INVALID_TYPE")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_missing_required_attribute() -> None:
     widget_data = create_valid_widget_data()
     widget_data.pop("text")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_attribute_set() -> None:
     widget_data = create_valid_widget_data()
     widget_data["UNEXPECTED_ATTRIBUTE"] = "value"
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_x_coordinate() -> None:
     widget_data = create_valid_widget_data(x="INVALID_X_COORDINATE")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_y_coordinate() -> None:
     widget_data = create_valid_widget_data(y="INVALID_Y_COORDINATE")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_background_color() -> None:
     widget_data = create_valid_widget_data(bg="INVALID_BACKGROUND_COLOR")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_foreground_color() -> None:
     widget_data = create_valid_widget_data(fg="INVALID_FOREGROUND_COLOR")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_width() -> None:
     widget_data = create_valid_widget_data(width="INVALID_WIDTH")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_height() -> None:
     widget_data = create_valid_widget_data(height="INVALID_HEIGHT")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_anchor() -> None:
     widget_data = create_valid_widget_data(anchor="INVALID_ANCHOR")
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)
 
 def test_deserialize_widget_data_with_invalid_text() -> None:
     widget_data = create_valid_widget_data(text=None)
-    BaseWidget.from_dict(widget_data)
+    Widget.from_dict(widget_data)

@@ -2,7 +2,7 @@ from collections.abc import Iterable
 
 from app_state import AppState
 from commands.base_command import Command
-from model import BaseWidget
+from model import Widget
 from utility.string_utilities import format_mapping
 
 
@@ -10,7 +10,7 @@ class DeleteWidgets(Command):
     """Encapsulates widget deletion as an undoable command."""
     def __init__(
         self,
-        widgets: Iterable[BaseWidget],
+        widgets: Iterable[Widget],
         app_state: AppState
     ) -> None:
         self._app_state: AppState = app_state
@@ -38,7 +38,7 @@ class DeleteWidgets(Command):
         """Restore the previously removed widgets from the stored widget data and add them to the project."""
         with self._app_state.batch():
             for widget_data in self._widget_data_list:
-                widget = BaseWidget.from_dict(widget_data)
+                widget = Widget.from_dict(widget_data)
                 self._app_state.add_widget(widget)
 
     def __repr__(

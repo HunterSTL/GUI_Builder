@@ -409,7 +409,7 @@ VALIDATION_TESTS = (
     ),
     ValidationTest(
         name="Instantiating widget base type",
-        expected_error_message="Widgets - widget creation failed: base type (BaseWidget) cannot be instantiated directly",
+        expected_error_message="Widgets - widget creation failed: base type \"Widget\" cannot be instantiated directly",
         case=test_instantiate_widget_base_type
     ),
     ValidationTest(
