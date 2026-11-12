@@ -1,102 +1,26 @@
 # Tkinter GUI Builder
-
 A desktop application for visually designing Tkinter user interfaces with a canvas-based editor.  
 It supports creating, selecting, positioning, aligning, styling and organizing widgets, with project persistence through a validated JSON-based `.tkui` format.
 
-## Features
-
-### Project management
-
-* Create projects through a setup wizard
-* Configure the project title, canvas dimensions, colors and icon
-* Open existing `.tkui` project files
-* Save projects or save them under a new name
-* Write project files atomically to reduce the risk of file corruption
-* Prompt before creating, opening, or exiting when unsaved changes exist
-* Indicate unsaved changes with an asterisk in the designer window title
-
-### Supported widgets
-
-* Label
-* Entry
-* Button
-
-Widgets can be added from the canvas context menu.  
-New labels and buttons prompt for their initial text, while widget colors are inherited from the project theme.
-
-### Selection and movement
-
-* Select a widget with the left mouse button
-* Add or remove widgets from the selection with `Ctrl` + click
-* Select enclosed widgets by dragging a rectangle across an empty canvas area
-* Select all widgets with `Ctrl` + `A`
-* Drag one or more selected widgets
-* Nudge selected widgets with the arrow keys
-* Align selected widgets to the last selected widget
-* Snap selected widgets to the nearest valid grid position
-* Keep widgets within the canvas during movement, alignment, snapping, pasting, resizing and anchor changes
-
-The last selected widget is used as the alignment reference and is shown with a distinct selection outline.
-
-### Editing
-
-* Add and delete widgets
-* Cut, copy and paste widgets
-* Paste copied widgets at the current pointer position
-* Undo and redo command-based changes
-* Edit widget attributes live in the attributes panel
-
-Supported attributes depend on the widget type and include:
-
-* Widget ID, read-only
-* X and Y coordinates
-* Width and height
-* Text for labels and buttons
-* Background and foreground colors
-* Anchor
-
-### Grid
-
-* Show or hide the grid
-* Change the grid size
-* Change the grid color
-
-### Properties
-
-* Change the project title
-
-### Debugging
-
-* Application call tracing
-* Live widget count output
-* Clipboard output
-* Command stack output
-* Selection output
-* Widget bounding-box output
-* ID-counter output
-
 ## Requirements
-
 * Python 3.10 or newer
 * Tkinter
 * Pillow
 
 ## Running the application
-
 Run the application from the project root:
 
 ```
-python App.py
+python app.py
 ```
 
 The startup window provides three options:
 
-* **Open project** opens an existing `.tkui` file
-* **New project** opens the project setup wizard
-* **Exit** closes the application
+* `Open project` opens an existing `.tkui` file
+* `New project` opens the project setup wizard
+* `Exit` closes the application
 
 ## Creating a project
-
 The setup wizard collects:
 
 * Project title
@@ -108,23 +32,21 @@ The setup wizard collects:
 * Optional project icon
 
 The canvas must be between `200 x 200` and `5000 x 5000` pixels.  
-After the settings are valid, select **Launch designer**.
+After the settings are valid, select `Launch designer`.
 
 ## Using the designer
-
 ### Adding widgets
 
 Right-click the canvas and choose one of the following commands:
 
-* **Add Label**
-* **Add Entry**
-* **Add Button**
+* `Add Label`
+* `Add Entry`
+* `Add Button`
 
 Labels and buttons request text before creation.  
 The widget is placed at the right-click position and clamped to the canvas if necessary.
 
 ### Selecting widgets
-
 * Left-click a widget to select it exclusively
 * Hold `Ctrl` while clicking to toggle it in the current selection
 * Drag across an empty area to select all fully enclosed widgets
@@ -134,7 +56,6 @@ The widget is placed at the right-click position and clamped to the canvas if ne
 The attributes panel is available only when exactly one widget is selected.
 
 ### Editing attributes
-
 When one widget is selected, use the attributes panel to edit its properties.  
 Changes are rendered live and committed as one undoable edit when the interaction finishes.
 
@@ -142,14 +63,11 @@ Changing text can update the required widget dimensions.
 Changes to dimensions or anchors can also adjust the widget position to keep it inside the canvas.
 
 ### Copying and pasting
-
-Copy stores serialized widget snapshots in the designer clipboard.  
+Copy stores serialized widgets in the designer clipboard.  
 Paste places copies relative to the current pointer position, assigns new IDs, preserves the arrangement of multiple copied widgets and clamps the group to the canvas.
 
 ## Controls
-
 ### Mouse
-
 | Input | Action |
 | --- | --- |
 | Left-click widget | Select widget |
@@ -158,11 +76,11 @@ Paste places copies relative to the current pointer position, assigns new IDs, p
 | Drag empty canvas area | Rectangle-select enclosed widgets |
 | `Ctrl` + drag empty canvas area | Add enclosed widgets to selection |
 | Right-click canvas | Open the add-widget menu |
+| Right-click during drag | Abort gesture |
 | Mouse wheel | Scroll vertically |
 | `Shift` + mouse wheel | Scroll horizontally |
 
 ### Project and application
-
 | Shortcut | Action |
 | --- | --- |
 | `Ctrl` + `N` | New project |
@@ -172,7 +90,6 @@ Paste places copies relative to the current pointer position, assigns new IDs, p
 | `Alt` + `F4` | Exit application |
 
 ### Editing and selection
-
 | Shortcut | Action |
 | --- | --- |
 | `Delete` | Delete selected widgets |
@@ -184,7 +101,6 @@ Paste places copies relative to the current pointer position, assigns new IDs, p
 | `Ctrl` + `A` | Select all widgets |
 
 ### Widget positioning
-
 | Shortcut | Action |
 | --- | --- |
 | Arrow key | Nudge selection by 1 pixel |
@@ -198,7 +114,6 @@ Paste places copies relative to the current pointer position, assigns new IDs, p
 Alignment uses the last selected widget as the reference.
 
 ### Grid
-
 | Shortcut | Action |
 | --- | --- |
 | `G` | Show or hide grid |
@@ -206,13 +121,11 @@ Alignment uses the last selected widget as the reference.
 | `Shift` + `G` | Change grid color |
 
 ### Properties
-
 | Shortcut | Action |
 | --- | --- |
 | `Ctrl` + `T` | Change project title |
 
 ### Debug
-
 | Shortcut | Action |
 | --- | --- |
 | `Ctrl` + `Shift` + `T` | Toggle call tracing |
@@ -224,9 +137,8 @@ Alignment uses the last selected widget as the reference.
 | `F5` | Print ID counters |
 
 ## Project file format
-
 Projects use the `.tkui` extension and contain UTF-8 JSON.  
-Version `1` has the following top-level structure:
+Version `1` has the following structure:
 
 ```
 {
@@ -235,34 +147,26 @@ Version `1` has the following top-level structure:
   "width": 800,
   "height": 600,
   "icon_path": "icon.ico",
-  "grid": {
-    "size": 10,
-    "color": "#888888",
-    "visible": false
-  },
-  "theme": {
-    "background_color": "#404040",
-    "label_color": "#404040",
-    "label_text_color": "#FFFFFF",
-    "entry_color": "#606060",
-    "entry_text_color": "#FFFFFF",
-    "button_color": "#505050",
-    "button_text_color": "#FFFFFF"
-  },
+  "grid": {},
+  "theme": {},
   "widgets": [],
-  "id_counters": {
-    "label": 1,
-    "entry": 1,
-    "button": 1
-  }
+  "id_counters": {}
 }
 ```
+
+### Top-level sections
+* `grid` stores grid settings
+* `theme` stores project-wide widget colors
+* `widgets` contains all widget definitions
+* `id_counters` stores the next available ID value for each widget type
 
 Widget entries contain their type, ID, coordinates, colors, dimensions and anchor.  
 Labels and buttons also contain text.
 
-Project loading validates:
+### Validation
+Project files are validated before loading to detect invalid or corrupted data.
 
+**Validation includes:**
 * Required and unexpected keys
 * Project format version
 * Project title and canvas dimensions
@@ -277,37 +181,33 @@ Project loading validates:
 Invalid or corrupted files are rejected before they become application state.
 
 ## Architecture
-
-The application follows a layered, event-driven MVC design extended with centralized state mutation and command-based undo and redo.
+The application follows a layered MVC architecture extended with a centralized mutation engine, an event system and a command system.
 
 ```
-App.py
+app.py
 └── AppController
-    ├── Startup window
-    ├── Project lifecycle and persistence
-    ├── Application EventBus
+    ├── Startup Window
     ├── SetupWizard
+    ├── Project Loading / Saving
+    ├── Application EventBus
     └── Designer
         ├── EventRouter
         ├── Designer EventBus
-        ├── Actions
-        │   ├── EditActions
-        │   └── WidgetActions
-        ├── CommandStack
-        │   ├── AddWidget
-        │   ├── DeleteWidgets
-        │   ├── DragWidgets
-        │   ├── EditWidget
-        │   ├── NudgeWidgets
-        │   ├── PasteWidgetsFromClipboard
-        │   ├── AlignWidgets
-        │   └── SnapWidgetsToGrid
         ├── AppState
         │   └── ProjectDocument
         │       ├── GridConfig
         │       ├── ProjectTheme
-        │       ├── Widget models
-        │       └── IdCounters
+        │       ├── IdCounters
+        │       └── Widget[]
+        │           ├── LabelWidget
+        │           ├── EntryWidget
+        │           └── ButtonWidget
+        ├── CommandStack
+        ├── ActionGroups
+        │   ├── EditActions
+        │   ├── WidgetActions
+        │   ├── GridActions
+        │   └── PropertiesActions
         ├── CanvasController
         ├── Components
         │   ├── Toolbar
@@ -319,72 +219,67 @@ App.py
 ```
 
 ### Data flow
-
 Persistent state changes follow this direction:
 
 ```
-User input
-→ CanvasController or Toolbar
-→ EventRouter
-→ Designer event handler
+User Input
+→ Controller
+→ Event
+→ Designer
 → Action
+→ Commands
 → CommandStack
-→ Command
 → AppState
-→ Designer state-change subscriber
-→ View update
+→ View  
 ```
 
 ### Main responsibilities
-
 #### AppController
-
-- Owns the root window and application-wide event bus
-- Coordinates new, open, save, save-as and exit operations
-- Manages the active setup wizard and designer
-- Handles unsaved-change prompts
+* Owns the root window and application-wide event bus
+* Coordinates new, open, save, save-as and exit operations
+* Manages the active setup wizard and designer
+* Handles unsaved-change prompts
 
 #### Designer
-
-- Constructs and coordinates the editor
-- Connects events to actions
-- Subscribes to `AppState` changes
-- Performs incremental rendering
-- Owns transient editor data such as the clipboard and last right-click position
+* Constructs and coordinates the editor
+* Connects events to actions
+* Subscribes to `AppState` changes
+* Performs incremental rendering
+* Owns transient editor data such as the clipboard and last right-click position
 
 #### AppState
-
-- Owns the active `ProjectDocument`
-- Applies all mutations to owned widget models
-- Tracks dirty, removed, selected and grid-changed state
-- Resolves widgets by ID to avoid stale-reference mutations
-- Batches related mutations into one notification
-- Provides widget and selection query APIs
+* Owns the active `ProjectDocument`
+* Applies all mutations to owned widgets
+* Tracks dirty and removed widgets as well as selection and grid changes
+* Resolves widgets by ID to avoid mutating stale references
+* Batches related mutations into one notification
+* Provides widget and selection query APIs
 
 #### Actions
-
-Actions interpret editor intent, reject no-op operations, prepare commands and execute them through the command stack.
+* Interpret editor intent
+* Reject no-op operations
+* Prepare commands
+* Execute commands through the command stack
 
 #### Commands
-
 Commands snapshot the state required for deterministic execution, undo and redo.  
 Interactive commands, such as dragging and attribute editing, apply live changes and record their final state before entering command history.
 
 #### Views
-
-- `CanvasView` owns the inner design canvas and grid rendering
-- `WidgetView` creates and updates Tk widgets while maintaining identity mappings
-- `SelectionView` renders selection outlines and the rectangle-selection marquee
+* `CanvasView` owns the inner design canvas and grid rendering
+* `WidgetView` creates and updates Tk widgets while maintaining identity mappings
+* `SelectionView` renders selection outlines and the rectangle-selection marquee
 
 ## Project structure
 
 ```
 GUI_Builder/
-├── App.py
-├── AppController.py
-├── AppState.py
-├── Designer.py
-├── SetupWizard.py
+├── app.py
+├── app_controller.py
+├── app_state.py
+├── designer.py
+├── run_tests.py
+├── setup_wizard.py
 ├── actions/
 ├── commands/
 ├── components/
@@ -401,28 +296,19 @@ GUI_Builder/
 
 Additional development conventions are documented in:
 
-* `documents/CodingConventions.md`
-* `documents/CommitMessageConventions.md`
+* `documents/coding_conventions.md`
+* `documents/commit_message_conventions.md`
 
 ## Testing
+Run the test suites from the project root:
+
+```
+python run_tests.py
+```
 
 ### Unit tests
-
-From the project root, run:
-
-```
-python tests/unit/UnitTests.py
-```
-
-The unit suite covers project serialization, widget rendering and movement and undo/redo behavior for core commands.
+The unit test suite covers project serialization, widget rendering and movement and undo/redo behavior for commands.
 
 ### Validation tests
-
-Run the validation suite with:
-
-```
-python tests/validation/ValidationTestSuite.py
-```
-
-The validation suite checks input boundaries, domain invariants, error messages, unsupported operations and inconsistent rendering mappings.
+The validation test suite checks input boundaries, domain invariants, error messages, unsupported operations and inconsistent rendering mappings.
 
