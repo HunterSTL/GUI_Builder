@@ -90,10 +90,8 @@ from tests.validation.cases.utility_tests import (
     test_compute_allowed_y_range_with_widget_height_exceeding_canvas_height
 )
 from tests.validation.cases.view_tests import (
-    test_delete_tk_widget_with_missing_tk_widget_mapping,
-    test_instantiate_widget_with_unsupported_type,
-    test_look_up_widget_with_unknown_canvas_item_id,
-    test_render_tk_widget_with_missing_tk_widget_mapping
+    test_measure_preview_tk_widget_with_unsupported_type,
+    test_look_up_widget_with_unknown_canvas_item_id
 )
 from tests.validation.framework import (
     print_validation_test_results,
@@ -503,24 +501,14 @@ VALIDATION_TESTS = (
         case=test_compute_bounding_box_with_invalid_anchor
     ),
     ValidationTest(
-        name="Deleting Tk widget with missing Tk widget mapping",
-        expected_error_message=f"WidgetView - Tk widget deletion failed: missing Tk widget for canvas item \"{FIRST_CANVAS_ITEM_ID}\"",
-        case=test_delete_tk_widget_with_missing_tk_widget_mapping
+        name="Measuring preview Tk widget with unsupported type",
+        expected_error_message=f"WidgetView - Preview Tk widget measurement failed: unsupported type \"UNSUPPORTED_TYPE\"",
+        case=test_measure_preview_tk_widget_with_unsupported_type
     ),
     ValidationTest(
         name="Looking up widget with unknown canvas item ID",
         expected_error_message=f"WidgetView - widget lookup failed: unknown canvas item ID \"{FIRST_CANVAS_ITEM_ID}\"",
         case=test_look_up_widget_with_unknown_canvas_item_id
-    ),
-    ValidationTest(
-        name="Rendering Tk widget with missing Tk widget mapping",
-        expected_error_message=f"WidgetView - Tk widget rendering failed: missing Tk widget for canvas item \"{FIRST_CANVAS_ITEM_ID}\"",
-        case=test_render_tk_widget_with_missing_tk_widget_mapping
-    ),
-    ValidationTest(
-        name="Instantiating widget with unsupported type",
-        expected_error_message="WidgetView - Tk widget instantiation failed: unsupported type \"UNSUPPORTED_TYPE\"",
-        case=test_instantiate_widget_with_unsupported_type
     )
 )
 

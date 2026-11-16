@@ -233,28 +233,17 @@ class CanvasController:
         """Return the event position in canvas coordinates."""
         return int(self._canvas.canvasx(event.x)), int(self._canvas.canvasy(event.y))
 
-    def _find_topmost_canvas_window_at(
-        self,
-        x: int,
-        y: int
-    ) -> int | None:
-        """Return the topmost canvas window item at the given canvas coordinates."""
-        canvas_item_ids = self._canvas.find_overlapping(x, y, x, y)
-        for canvas_item_id in reversed(canvas_item_ids):    #last is top-most
-            if self._canvas.type(canvas_item_id) == "window":
-                return canvas_item_id
-        return None
-
     def _widget_id_at(
         self,
         x: int,
         y: int
     ) -> str | None:
         """Return the widget ID of the widget located at the given canvas coordinates."""
-        canvas_item_id = self._find_topmost_canvas_window_at(x, y)
-        if canvas_item_id is None:
-            return None
-        return self._resolve_canvas_item_id_to_widget_id(canvas_item_id)
+        canvas_item_ids = self._canvas.find_overlapping(x, y, x, y)
+        for canvas_item_id in reversed(canvas_item_ids):    #last is top-most
+            if "widget_visual" in self._canvas.gettags(canvas_item_id):
+                return self._resolve_canvas_item_id_to_widget_id(canvas_item_id)
+        return None
 
     def _select_enclosed_widgets(
         self,
@@ -265,13 +254,11 @@ class CanvasController:
         is_additive: bool
     ) -> None:
         """Apply additive or exclusive selection to the widgets enclosed by the given canvas coordinates."""
-        #find all enclosed items and filter out anything that isn't a window (widget)
         enclosed_canvas_item_ids = [
             canvas_item_id for canvas_item_id in self._canvas.find_enclosed(x1, y1, x2, y2)
-            if self._canvas.type(canvas_item_id) == "window"
+            if "widget_visual" in self._canvas.gettags(canvas_item_id)
         ]
 
-        #convert canvas item IDs (int) to widget IDs (str)
         enclosed_widget_ids = [
             self._resolve_canvas_item_id_to_widget_id(canvas_item_id)
             for canvas_item_id in enclosed_canvas_item_ids

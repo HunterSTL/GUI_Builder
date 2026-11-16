@@ -56,3 +56,5 @@ class CanvasView:
                 fill=color,
                 tags="grid"
             )
+
+        self.canvas.tag_lower("grid")   #ensures the grid is always rendered below widgets

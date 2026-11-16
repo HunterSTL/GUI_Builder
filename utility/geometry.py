@@ -13,6 +13,14 @@ class BoundingBox:
     right: int
     bottom: int
 
+    @property
+    def center(
+        self
+    ) -> tuple[int, int]:
+        horizontal_center = self.left + (self.right - self.left) // 2
+        vertical_center = self.top + (self.bottom - self.top) // 2
+        return horizontal_center, vertical_center
+
 def allowed_x_range(
     canvas_width: int,
     widget_width: int,

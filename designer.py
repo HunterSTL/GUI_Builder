@@ -371,15 +371,15 @@ class Designer:
         state: AppState
     ) -> None:
         """Render incremental UI updates from AppState state change notification."""
-        #delete Tk widgets and outlines for removed widgets
+        #delete widget visuals and outlines for removed widgets
         for widget_id in state.get_removed_widget_ids():
-            self._widget_view.delete_tk_widget_for(widget_id)
+            self._widget_view.delete_widget_visual_for(widget_id)
             self._selection_view.delete_outline_for(widget_id)
 
-        #render Tk widgets and outlines for dirty widgets
+        #render widget visuals and outlines for dirty widgets
         dirty_widgets = state.get_dirty_widgets()
         for widget in dirty_widgets:
-            self._widget_view.render_tk_widget_for(widget)
+            self._widget_view.render_widget_visual_for(widget)
             if state.selection_contains(widget.id):
                 self._selection_view.render_outline_for(
                     widget_id=widget.id,
@@ -421,9 +421,9 @@ class Designer:
     def _initial_render(
         self
     ) -> None:
-        """Create Tk widgets for all domain widgets and render the grid."""
+        """Create widget visuals for all domain widgets and render the grid."""
         for widget in self.app_state.get_all_widgets():
-            self._widget_view.render_tk_widget_for(widget)
+            self._widget_view.render_widget_visual_for(widget)
 
         self._canvas_view.sync_grid(
             size=self.app_state.project.grid.size,
@@ -638,8 +638,9 @@ class Designer:
         self
     ) -> None:
         """Print the live widget count to the console."""
+        widget_count = len(self._canvas.find_withtag("widget_visual"))
         print("#"*150)
-        print(f"Live widget count: {len(self._canvas.children)}")
+        print(f"Live widget count: {widget_count}")
 
     def _print_clipboard(
         self
