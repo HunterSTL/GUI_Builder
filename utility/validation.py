@@ -27,6 +27,12 @@ def is_positive_integer(
     """Return whether the given value is a positive integer."""
     return isinstance(value, int) and not isinstance(value, bool) and value >= 1
 
+def is_non_negative_integer(
+    value: object
+) -> bool:
+    """Return whether the given value is an integer larger or equal to zero."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
 def is_valid_anchor(
     value: object
 ) -> bool:
