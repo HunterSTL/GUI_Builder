@@ -506,12 +506,12 @@ class Designer:
         """Collect required widget specific input and request widget creation at the last right click position."""
         text = None
 
-        if widget_type == WidgetType.LABEL:
-            text = simpledialog.askstring("Label text", "Enter label text:", parent=self.top)
-            if text is None:
-                return
-        elif widget_type == WidgetType.BUTTON:
-            text = simpledialog.askstring("Button text", "Enter button text:", parent=self.top)
+        if widget_type.supports_text:
+            text = simpledialog.askstring(
+                f"Create {widget_type.value}",
+                f"Enter {widget_type.value} text:",
+                parent=self.top
+            )
             if text is None:
                 return
 

@@ -6,3 +6,9 @@ class WidgetType(Enum):
     LABEL = "label"     #string values for widget serialization
     ENTRY = "entry"
     BUTTON = "button"
+
+    @property
+    def supports_text(
+        self
+    ) -> bool:
+        return self in {WidgetType.LABEL, WidgetType.BUTTON}

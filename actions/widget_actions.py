@@ -194,7 +194,7 @@ class WidgetActions:
         if coordinates is None:
             raise ValueError("WidgetActions - widget creation failed: missing coordinates")
 
-        if widget_type in (WidgetType.LABEL, WidgetType.BUTTON) and text is None:
+        if widget_type.supports_text and text is None:
             raise ValueError("WidgetActions - widget creation failed: missing text")
 
         measurement_text = text if text is not None else ""

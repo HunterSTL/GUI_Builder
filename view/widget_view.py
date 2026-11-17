@@ -72,7 +72,7 @@ class WidgetView:
             raise ValueError(f"WidgetView - Preview Tk widget measurement failed: unsupported type \"{widget_type}\"")
 
         try:
-            if widget_type in {WidgetType.LABEL, WidgetType.BUTTON}:
+            if widget_type.supports_text:
                 tk_widget.config(text=text)
 
             tk_widget.update_idletasks()
@@ -103,7 +103,7 @@ class WidgetView:
         )
         self._widget_id_by_canvas_item_id[rectangle_id] = widget.id
 
-        if widget.type in {WidgetType.LABEL, WidgetType.BUTTON}:
+        if widget.type.supports_text:
             text_id = self._canvas.create_text(0, 0)
             self._widget_id_by_canvas_item_id[text_id] = widget.id
         else:
