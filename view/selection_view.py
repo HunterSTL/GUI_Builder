@@ -6,7 +6,6 @@ from utility.app_theme import (
 )
 from utility.constants import (
     SELECTION_DASH,
-    SELECTION_PADDING,
     SELECTION_WIDTH
 )
 from utility.geometry import BoundingBox
@@ -106,10 +105,10 @@ class SelectionView:
         """Update the selection outline using the given bounding box and color."""
         self._canvas.coords(
             selection_outline_id,
-            bounding_box.left - SELECTION_PADDING,
-            bounding_box.top - SELECTION_PADDING,
-            bounding_box.right + SELECTION_PADDING,
-            bounding_box.bottom + SELECTION_PADDING
+            bounding_box.left,
+            bounding_box.top,
+            bounding_box.right,
+            bounding_box.bottom
         )
 
         self._canvas.itemconfig(
