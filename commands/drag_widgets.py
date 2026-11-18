@@ -42,9 +42,6 @@ class DragWidgets(Command):
         dy: int
     ) -> None:
         """Apply an incremental drag delta to the widgets."""
-        if dx == 0 and dy == 0:         #incremental deltas since last drag event
-            return
-
         with self._app_state.batch():
             for widget_id in self._widget_ids:
                 widget = self._app_state.get_widget_from_widget_id(widget_id)
