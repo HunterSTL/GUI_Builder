@@ -1,6 +1,9 @@
 from .add_widget import AddWidget
 from .align_widgets import AlignWidgets
-from .base_command import Command
+from .base_command import (
+    Command,
+    InteractiveCommand
+)
 from .command_stack import CommandStack
 from .delete_widgets import DeleteWidgets
 from .drag_widgets import DragWidgets
@@ -21,6 +24,7 @@ __all__ = [
     "DeleteWidgets",
     "DragWidgets",
     "EditWidget",
+    "InteractiveCommand",
     "NudgeWidgets",
     "PasteWidgetsFromClipboard",
     "SetGridColor",

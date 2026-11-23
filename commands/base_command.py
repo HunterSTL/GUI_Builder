@@ -16,3 +16,7 @@ class Command(ABC):
     ) -> None:
         """Reverse the command."""
         raise NotImplementedError
+
+
+class InteractiveCommand(Command, ABC):
+    """Represents an undoable operation that applies changes during an active interaction."""

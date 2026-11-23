@@ -7,6 +7,7 @@ from commands import (
     CommandStack,
     DragWidgets,
     EditWidget,
+    InteractiveCommand,
     NudgeWidgets,
     SnapWidgetsToGrid
 )
@@ -39,12 +40,21 @@ class WidgetActions:
         self._command_stack: CommandStack = command_stack
         self._measure_preview_tk_widget_callback: Callable[[WidgetType, str], tuple[int, int]] = measure_preview_tk_widget_callback
 
-        self._active_drag_command: DragWidgets | None = None
-        self._active_drag_widgets: tuple[Widget, ...] | None = None     #live reference to widgets used for bounding box lookup during live dragging
+        self._active_command: InteractiveCommand | None = None
+        self._active_selection:  tuple[Widget, ...] | None = None
 
-        self._active_edit_command: EditWidget | None = None
-        self._active_edit_widget: Widget | None = None                  #live reference to the widget used for dimension recomputation on text changes
+    def abort_active_gesture(
+        self
+    ) -> None:
+        """Undo and clear the active interactive command."""
+        cmd = self._active_command
+        if not cmd:
+            return
 
+        try:
+            cmd.undo()
+        finally:
+            self._clear_active_command()
 
     def nudge(
         self,
@@ -80,12 +90,15 @@ class WidgetActions:
         self
     ) -> None:
         """Start a drag gesture with the current selection."""
+        if self._active_command:
+            return
+
         selected_widgets = self._app_state.get_selected_widgets()
         if not selected_widgets:
             return
 
-        self._active_drag_widgets = selected_widgets    #used for bounding box lookup during live dragging
-        self._active_drag_command = DragWidgets(
+        self._active_selection = selected_widgets
+        self._active_command = DragWidgets(
             widgets=selected_widgets,
             app_state=self._app_state
         )
@@ -96,13 +109,14 @@ class WidgetActions:
         dy: int
     ) -> None:
         """Apply a drag delta to the active drag gesture."""
-        if self._active_drag_command is None or self._active_drag_widgets is None:
+        cmd = self._active_command
+        if not isinstance(cmd, DragWidgets):
             return
 
         dx, dy = clamped_delta(     #keeps widgets within canvas bounds
             canvas_width=self._app_state.project.width,
             canvas_height=self._app_state.project.height,
-            bounding_box=self._app_state.get_widget_group_bounding_box(self._active_drag_widgets),
+            bounding_box=self._app_state.get_widget_group_bounding_box(self._active_selection),
             dx=dx,
             dy=dy
         )
@@ -110,14 +124,14 @@ class WidgetActions:
         if dx == 0 and dy == 0:
             return
 
-        self._active_drag_command.apply_drag_delta(dx, dy)
+        cmd.apply_drag_delta(dx, dy)
 
     def end_drag(
         self
     ) -> None:
         """End the active drag gesture and execute it if it had an effect."""
-        cmd = self._active_drag_command
-        if not cmd:
+        cmd = self._active_command
+        if not isinstance(cmd, DragWidgets):
             return
 
         try:
@@ -126,20 +140,7 @@ class WidgetActions:
             if cmd.has_effect():
                 self._command_stack.execute(cmd)
         finally:
-            self._active_drag_widgets = None
-            self._active_drag_command = None
-
-    def abort_drag(
-        self,
-    ) -> None:
-        """Undo and clear the active drag command."""
-        cmd = self._active_drag_command
-        if not cmd:
-            return
-
-        cmd.undo()
-        self._active_drag_widgets = None
-        self._active_drag_command = None
+            self._clear_active_command()
 
     def snap_to_grid(
         self
@@ -254,15 +255,15 @@ class WidgetActions:
         self
     ) -> None:
         """Start an attribute edit gesture for a single selected widget."""
-        if self._active_edit_command is not None:
+        if self._active_command:
             return
 
         selected_widgets = self._app_state.get_selected_widgets()
         if len(selected_widgets) != 1:
             return
 
-        self._active_edit_widget = selected_widgets[0]  #used for dimension recomputation on text changes
-        self._active_edit_command = EditWidget(
+        self._active_selection = selected_widgets
+        self._active_command = EditWidget(
             widget=selected_widgets[0],
             app_state=self._app_state
         )
@@ -278,24 +279,25 @@ class WidgetActions:
         Text changes may update widget dimensions.
         Dimension and anchor changes may update widget position.
         """
-        if self._active_edit_command is None or self._active_edit_widget is None:
+        if not isinstance(self._active_command, EditWidget):
             return
 
+        widget = self._active_selection[0]
         if attribute == "text":     #text updates require measurement to update widget dimensions
-            width, height = self._measure_preview_tk_widget_callback(self._active_edit_widget.type, value)
+            width, height = self._measure_preview_tk_widget_callback(widget.type, value)
 
             min_x, max_x = allowed_x_range(
                 canvas_width=self._app_state.project.width,
                 widget_width=width,
-                anchor=self._active_edit_widget.anchor
+                anchor=widget.anchor
             )
             min_y, max_y = allowed_y_range(
                 canvas_height=self._app_state.project.height,
                 widget_height=height,
-                anchor=self._active_edit_widget.anchor
+                anchor=widget.anchor
             )
-            x = clamp(self._active_edit_widget.x, min_x, max_x)
-            y = clamp(self._active_edit_widget.y, min_y, max_y)
+            x = clamp(widget.x, min_x, max_x)
+            y = clamp(widget.y, min_y, max_y)
 
             attribute_changes = {
                 "text": value,
@@ -308,9 +310,9 @@ class WidgetActions:
             min_x, max_x = allowed_x_range(
                 canvas_width=self._app_state.project.width,
                 widget_width=value,
-                anchor=self._active_edit_widget.anchor
+                anchor=widget.anchor
             )
-            x = clamp(self._active_edit_widget.x, min_x, max_x)
+            x = clamp(widget.x, min_x, max_x)
 
             attribute_changes = {
                 "width": value,
@@ -320,9 +322,9 @@ class WidgetActions:
             min_y, max_y = allowed_y_range(
                 canvas_height=self._app_state.project.height,
                 widget_height=value,
-                anchor=self._active_edit_widget.anchor
+                anchor=widget.anchor
             )
-            y = clamp(self._active_edit_widget.y, min_y, max_y)
+            y = clamp(widget.y, min_y, max_y)
 
             attribute_changes = {
                 "height": value,
@@ -331,16 +333,16 @@ class WidgetActions:
         elif attribute == "anchor": #anchor updates require recomputation of allowed x and y range
             min_x, max_x = allowed_x_range(
                 canvas_width=self._app_state.project.width,
-                widget_width=self._active_edit_widget.width,
+                widget_width=widget.width,
                 anchor=value
             )
             min_y, max_y = allowed_y_range(
                 canvas_height=self._app_state.project.height,
-                widget_height=self._active_edit_widget.height,
+                widget_height=widget.height,
                 anchor=value
             )
-            x = clamp(self._active_edit_widget.x, min_x, max_x)
-            y = clamp(self._active_edit_widget.y, min_y, max_y)
+            x = clamp(widget.x, min_x, max_x)
+            y = clamp(widget.y, min_y, max_y)
 
             attribute_changes = {
                 "anchor": value,
@@ -352,14 +354,14 @@ class WidgetActions:
                 attribute: value
             }
 
-        self._active_edit_command.apply_attribute_changes(attribute_changes)
+        self._active_command.apply_attribute_changes(attribute_changes)
 
     def commit_edit(
         self
     ) -> None:
         """Commit the active attribute edit gesture if it had an effect."""
-        cmd = self._active_edit_command
-        if not cmd:
+        cmd = self._active_command
+        if not isinstance(cmd, EditWidget):
             return
 
         try:
@@ -368,5 +370,11 @@ class WidgetActions:
             if cmd.has_effect():
                 self._command_stack.execute(cmd)
         finally:
-            self._active_edit_widget = None
-            self._active_edit_command = None
+            self._clear_active_command()
+
+    def _clear_active_command(
+        self
+    ) -> None:
+        """Clear the active command and its corresponsing selection."""
+        self._active_command = None
+        self._active_selection = None

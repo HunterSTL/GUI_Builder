@@ -156,7 +156,7 @@ class CanvasController:
             if self._active_mouse_gesture.press_widget_id is None:
                 self._event_router.emit("selection.rectangle.delete")
             else:
-                self._event_router.emit("widget.drag.abort")
+                self._event_router.emit("widget.gesture.abort")
 
             self._active_mouse_gesture = None
         else:
