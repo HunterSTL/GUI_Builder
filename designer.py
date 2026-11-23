@@ -479,6 +479,9 @@ class Designer:
         self._designer_event_bus.subscribe("widget.drag.start", self._action_groups.widget.start_drag)
         self._designer_event_bus.subscribe("widget.drag.update", self._action_groups.widget.update_drag)
         self._designer_event_bus.subscribe("widget.drag.end", self._action_groups.widget.end_drag)
+        self._designer_event_bus.subscribe("widget.resize.start", self._action_groups.widget.start_resize)
+        self._designer_event_bus.subscribe("widget.resize.update", self._action_groups.widget.update_resize)
+        self._designer_event_bus.subscribe("widget.resize.end", self._action_groups.widget.end_resize)
         self._designer_event_bus.subscribe("widget.gesture.abort", self._action_groups.widget.abort_active_gesture)
 
         #grid events

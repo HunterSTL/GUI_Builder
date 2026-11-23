@@ -12,7 +12,8 @@ from utility.constants import (
     CTRL_KEY_MASK,
     DRAG_THRESHOLD,
     NUDGE_BIG,
-    NUDGE_SMALL
+    NUDGE_SMALL,
+    RESIZE_HIT_TOLERANCE
 )
 from utility.direction import Direction
 from utility.edge import Edge
@@ -21,6 +22,7 @@ from utility.edge import Edge
 class _MouseGestureType(Enum):
     SELECTION_CLICK = auto()
     SELECTION_CLEAR = auto()
+    WIDGET_RESIZE = auto()
     WIDGET_DRAG = auto()
     RECTANGLE_SELECTION = auto()
 
@@ -30,6 +32,7 @@ class _MouseGesture:
     """Stores the state of an active mouse gesture."""
     press_coordinates: tuple[int, int]
     press_widget_id: str | None
+    press_widget_edge: Edge | None
     applied_delta: tuple[int, int]
     is_additive: bool
     is_dragging: bool
@@ -39,7 +42,9 @@ class _MouseGesture:
         self
     ) -> _MouseGestureType:
         if self.is_dragging:
-            if self.press_widget_id:
+            if self.press_widget_id and self.press_widget_edge:
+                return _MouseGestureType.WIDGET_RESIZE
+            elif self.press_widget_id:
                 return _MouseGestureType.WIDGET_DRAG
             else:
                 return _MouseGestureType.RECTANGLE_SELECTION
@@ -66,7 +71,30 @@ class CanvasController:
 
         self._active_mouse_gesture: _MouseGesture | None = None
 
+        self._canvas.bind("<Motion>", self._update_pointer)
         self._bind_events()
+
+    def _update_pointer(
+        self,
+        event: tk.Event
+    ) -> None:
+        """Update the pointer based on the current mouse location."""
+        pointer = "arrow"
+        canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
+        widget_id, widget_edge = self._get_widget_hit_at(canvas_x, canvas_y)
+
+        if widget_id and self._app_state.selection_contains(widget_id):
+            match widget_edge:
+                case Edge.LEFT:
+                    pointer = "left_side"
+                case Edge.TOP:
+                    pointer = "top_side"
+                case Edge.RIGHT:
+                    pointer = "right_side"
+                case Edge.BOTTOM:
+                    pointer = "bottom_side"
+
+        self._canvas.config(cursor=pointer)
 
     def _handle_canvas_press(
         self,
@@ -74,10 +102,12 @@ class CanvasController:
     ) -> None:
         """Record state for the mouse gesture interpretation."""
         canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
+        widget_id, widget_edge = self._get_widget_hit_at(canvas_x, canvas_y)
 
         self._active_mouse_gesture = _MouseGesture(
             press_coordinates=(canvas_x, canvas_y),
-            press_widget_id=self._widget_id_at(canvas_x, canvas_y),
+            press_widget_id=widget_id,
+            press_widget_edge=widget_edge,
             applied_delta=(0, 0),
             is_additive=bool(event.state & CTRL_KEY_MASK),
             is_dragging=False
@@ -108,6 +138,8 @@ class CanvasController:
             gesture.applied_delta = 0, 0
 
             match gesture.type:
+                case _MouseGestureType.WIDGET_RESIZE:
+                    self._event_router.emit("widget.resize.start")
                 case _MouseGestureType.WIDGET_DRAG:
                     if not self._app_state.selection_contains(gesture.press_widget_id):     #preserves the current selection when dragging an already selected widget
                         self._app_state.selection_handle_click(
@@ -125,6 +157,13 @@ class CanvasController:
                     )
 
         match gesture.type:
+            case _MouseGestureType.WIDGET_RESIZE:
+                self._event_router.emit(
+                    "widget.resize.update",
+                    total_dx=total_dx,
+                    total_dy=total_dy,
+                    edge=gesture.press_widget_edge
+                )
             case _MouseGestureType.WIDGET_DRAG:
                 self._event_router.emit(
                     "widget.drag.update",
@@ -159,6 +198,8 @@ class CanvasController:
                     )
                 case _MouseGestureType.SELECTION_CLEAR:
                     self._app_state.selection_clear()
+                case _MouseGestureType.WIDGET_RESIZE:
+                    self._event_router.emit("widget.resize.end")
                 case _MouseGestureType.WIDGET_DRAG:
                     self._event_router.emit("widget.drag.end")
                 case _MouseGestureType.RECTANGLE_SELECTION:
@@ -261,17 +302,35 @@ class CanvasController:
         """Return the event position in canvas coordinates."""
         return int(self._canvas.canvasx(event.x)), int(self._canvas.canvasy(event.y))
 
-    def _widget_id_at(
+    def _get_widget_hit_at(
         self,
         x: int,
         y: int
-    ) -> str | None:
-        """Return the widget ID of the widget located at the given canvas coordinates."""
+    ) -> tuple[str | None, Edge | None]:
+        """Return the ID and edge of the widget located at the given canvas coordinates."""
+        widget_id = None
+        widget_edge = None
+
         canvas_item_ids = self._canvas.find_overlapping(x, y, x, y)
+
         for canvas_item_id in reversed(canvas_item_ids):    #last is top-most
             if "widget_visual" in self._canvas.gettags(canvas_item_id):
-                return self._resolve_canvas_item_id_to_widget_id(canvas_item_id)
-        return None
+                widget_id = self._resolve_canvas_item_id_to_widget_id(canvas_item_id)
+                break
+
+        if widget_id and self._app_state.selection_contains(widget_id):
+            widget = self._app_state.get_widget_from_widget_id(widget_id)
+            bbox = self._app_state.get_widget_bounding_box(widget)
+
+            if x <= bbox.left + RESIZE_HIT_TOLERANCE:
+                widget_edge = Edge.LEFT
+            elif y <= bbox.top + RESIZE_HIT_TOLERANCE:
+                widget_edge = Edge.TOP
+            elif x >= bbox.right - RESIZE_HIT_TOLERANCE:
+                widget_edge = Edge.RIGHT
+            elif y >= bbox.bottom - RESIZE_HIT_TOLERANCE:
+                widget_edge = Edge.BOTTOM
+        return widget_id, widget_edge
 
     def _select_enclosed_widgets(
         self,

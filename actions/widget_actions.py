@@ -9,6 +9,7 @@ from commands import (
     EditWidget,
     InteractiveCommand,
     NudgeWidgets,
+    ResizeWidgets,
     SnapWidgetsToGrid
 )
 from model import (
@@ -136,6 +137,52 @@ class WidgetActions:
 
         try:
             cmd.record_final_positions()
+
+            if cmd.has_effect():
+                self._command_stack.execute(cmd)
+        finally:
+            self._clear_active_command()
+
+    def start_resize(
+        self
+    ) -> None:
+        """Start a resize gesture with the current selection."""
+        if self._active_command:
+            return
+
+        selected_widgets = self._app_state.get_selected_widgets()
+        if not selected_widgets:
+            return
+
+        self._active_selection = selected_widgets
+        self._active_command = ResizeWidgets(
+            widgets=selected_widgets,
+            app_state=self._app_state
+        )
+
+    def update_resize(
+        self,
+        total_dx: int,
+        total_dy: int,
+        edge: Edge
+    ) -> None:
+        """Apply a total resize delta to the active resize gesture."""
+        cmd = self._active_command
+        if not isinstance(cmd, ResizeWidgets):
+            return
+
+        cmd.apply_resize_delta(total_dx, total_dy, edge)
+
+    def end_resize(
+        self
+    ) -> None:
+        """End the active resize gesture and execute it if it had an effect."""
+        cmd = self._active_command
+        if not isinstance(cmd, ResizeWidgets):
+            return
+
+        try:
+            cmd.record_final_bounding_boxes()
 
             if cmd.has_effect():
                 self._command_stack.execute(cmd)

@@ -10,6 +10,7 @@ from .drag_widgets import DragWidgets
 from .edit_widget import EditWidget
 from .nudge_widgets import NudgeWidgets
 from .paste_widgets_from_clipboard import PasteWidgetsFromClipboard
+from .resize_widgets import ResizeWidgets
 from .set_grid_color import SetGridColor
 from .set_grid_size import SetGridSize
 from .set_project_title import SetProjectTitle
@@ -27,6 +28,7 @@ __all__ = [
     "InteractiveCommand",
     "NudgeWidgets",
     "PasteWidgetsFromClipboard",
+    "ResizeWidgets",
     "SetGridColor",
     "SetGridSize",
     "SetProjectTitle",

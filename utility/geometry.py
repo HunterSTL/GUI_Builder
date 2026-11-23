@@ -145,3 +145,33 @@ def compute_widget_bounding_box(
         right=right,
         bottom=bottom
     )
+
+def compute_widget_position_from_bounding_box(
+    bounding_box: BoundingBox,
+    anchor: str
+) -> tuple[int, int]:
+    """Return the x- and y-coordinate values for a widget with the given bounding box and anchor."""
+    left = bounding_box.left
+    top = bounding_box.top
+    right = bounding_box.right
+    bottom = bounding_box.bottom
+
+    match anchor:
+        case "sw":
+            return left, bottom
+        case "w":
+            return left, top + (bottom - top) // 2
+        case "nw":
+            return left, top
+        case "n":
+            return left + (right - left) // 2, top
+        case "ne":
+            return right, top
+        case "e":
+            return right, top + (bottom - top) // 2
+        case "se":
+            return right, bottom
+        case "s":
+            return left + (right - left) // 2, bottom
+        case "center":
+            return left + (right - left) // 2, top + (bottom - top) // 2
