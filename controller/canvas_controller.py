@@ -1,5 +1,9 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import (
+    auto,
+    Enum
+)
 import tkinter as tk
 
 from app_state import AppState
@@ -14,6 +18,13 @@ from utility.direction import Direction
 from utility.edge import Edge
 
 
+class _MouseGestureType(Enum):
+    SELECTION_CLICK = auto()
+    SELECTION_CLEAR = auto()
+    WIDGET_DRAG = auto()
+    RECTANGLE_SELECTION = auto()
+
+
 @dataclass
 class _MouseGesture:
     """Stores the state of an active mouse gesture."""
@@ -22,6 +33,21 @@ class _MouseGesture:
     applied_delta: tuple[int, int]
     is_additive: bool
     is_dragging: bool
+
+    @property
+    def type(
+        self
+    ) -> _MouseGestureType:
+        if self.is_dragging:
+            if self.press_widget_id:
+                return _MouseGestureType.WIDGET_DRAG
+            else:
+                return _MouseGestureType.RECTANGLE_SELECTION
+        else:
+            if self.press_widget_id:
+                return _MouseGestureType.SELECTION_CLICK
+            else:
+                return _MouseGestureType.SELECTION_CLEAR
 
 
 class CanvasController:
@@ -81,37 +107,39 @@ class CanvasController:
             gesture.is_dragging = True
             gesture.applied_delta = 0, 0
 
-            if gesture.press_widget_id is not None:
-                if not self._app_state.selection_contains(gesture.press_widget_id):     #preserves the current selection when dragging an already selected widget
-                    self._app_state.selection_handle_click(
-                        widget_id=gesture.press_widget_id,
-                        is_additive=gesture.is_additive
+            match gesture.type:
+                case _MouseGestureType.WIDGET_DRAG:
+                    if not self._app_state.selection_contains(gesture.press_widget_id):     #preserves the current selection when dragging an already selected widget
+                        self._app_state.selection_handle_click(
+                            widget_id=gesture.press_widget_id,
+                            is_additive=gesture.is_additive
+                        )
+                    self._event_router.emit("widget.drag.start")
+                case _MouseGestureType.RECTANGLE_SELECTION:
+                    self._event_router.emit(
+                        "selection.rectangle.render",
+                        x1=gesture.press_coordinates[0],
+                        y1=gesture.press_coordinates[1],
+                        x2=gesture.press_coordinates[0],
+                        y2=gesture.press_coordinates[1]
                     )
-                self._event_router.emit("widget.drag.start")
-            else:
+
+        match gesture.type:
+            case _MouseGestureType.WIDGET_DRAG:
+                self._event_router.emit(
+                    "widget.drag.update",
+                    dx=incremental_dx,
+                    dy=incremental_dy
+                )
+                gesture.applied_delta = total_dx, total_dy
+            case _MouseGestureType.RECTANGLE_SELECTION:
                 self._event_router.emit(
                     "selection.rectangle.render",
                     x1=gesture.press_coordinates[0],
                     y1=gesture.press_coordinates[1],
-                    x2=gesture.press_coordinates[0],
-                    y2=gesture.press_coordinates[1]
+                    x2=canvas_x,
+                    y2=canvas_y
                 )
-
-        if gesture.press_widget_id is not None:
-            self._event_router.emit(
-                "widget.drag.update",
-                dx=incremental_dx,
-                dy=incremental_dy
-            )
-            gesture.applied_delta = total_dx, total_dy
-        else:
-            self._event_router.emit(
-                "selection.rectangle.render",
-                x1=gesture.press_coordinates[0],
-                y1=gesture.press_coordinates[1],
-                x2=canvas_x,
-                y2=canvas_y
-            )
 
     def _handle_canvas_release(
         self,
@@ -123,18 +151,17 @@ class CanvasController:
             return
 
         try:
-            if not gesture.is_dragging:
-                if gesture.press_widget_id is not None:
+            match gesture.type:
+                case _MouseGestureType.SELECTION_CLICK:
                     self._app_state.selection_handle_click(
                         widget_id=gesture.press_widget_id,
                         is_additive=gesture.is_additive
                     )
-                else:
+                case _MouseGestureType.SELECTION_CLEAR:
                     self._app_state.selection_clear()
-            else:
-                if gesture.press_widget_id is not None:
+                case _MouseGestureType.WIDGET_DRAG:
                     self._event_router.emit("widget.drag.end")
-                else:
+                case _MouseGestureType.RECTANGLE_SELECTION:
                     canvas_x, canvas_y = self._pointer_in_canvas_coords(event)
                     self._select_enclosed_widgets(
                         x1=gesture.press_coordinates[0],
@@ -152,8 +179,9 @@ class CanvasController:
         event: tk.Event
     ) -> None:
         """Open the context menu if no mouse gesture is active, otherwise abort the gesture."""
-        if self._active_mouse_gesture is not None:
-            if self._active_mouse_gesture.press_widget_id is None:
+        gesture = self._active_mouse_gesture
+        if gesture:
+            if gesture.type == _MouseGestureType.RECTANGLE_SELECTION:
                 self._event_router.emit("selection.rectangle.delete")
             else:
                 self._event_router.emit("widget.gesture.abort")
