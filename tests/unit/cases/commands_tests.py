@@ -6,6 +6,7 @@ from commands import (
     EditWidget,
     NudgeWidgets,
     PasteWidgetsFromClipboard,
+    ResizeWidgets,
     SetGridColor,
     SetGridSize,
     SetProjectTitle,
@@ -23,6 +24,7 @@ from utility.constants import (
     GRID_DEFAULT_SIZE
 )
 from utility.edge import Edge
+from utility.geometry import BoundingBox
 
 def test_add_widget() -> None:
     project_document, app_state, command_stack = create_project()
@@ -470,6 +472,84 @@ def test_paste_widgets_from_clipboard() -> None:
         actual=widget.x,
         expected=700,
         message="Requested X-offset was not clamped to the project bounds"
+    )
+
+def test_resize_widgets() -> None:
+    project_document, app_state, command_stack = create_project()
+
+    widget = LabelWidget(
+        x=100,
+        y=100,
+        bg="#000000",
+        fg="#000000",
+        width=100,
+        height=20,
+        text="test"
+    )
+
+    command_stack.execute(
+        AddWidget(
+            widget=widget,
+            app_state=app_state
+        )
+    )
+
+    widget = app_state.get_widget_from_widget_id("label_1")
+    original_bbox = app_state.get_widget_bounding_box(widget)
+
+    cmd = ResizeWidgets(
+        widgets=(widget,),
+        app_state=app_state
+    )
+    cmd.apply_resize_delta(total_dx=-100, total_dy=0, edge=Edge.LEFT)
+    cmd.record_final_bounding_boxes()
+    command_stack.execute(cmd)
+    expected_bbox = BoundingBox(left=0, top=80, right=200, bottom=100)
+
+    assert_equal(
+        actual=app_state.get_widget_bounding_box(widget),
+        expected=expected_bbox,
+        message="Resize delta has not been applied correctly"
+    )
+
+    command_stack.undo()
+    assert_equal(
+        actual=app_state.get_widget_bounding_box(widget),
+        expected=original_bbox,
+        message="Resize delta has not been undone correctly"
+    )
+
+    command_stack.redo()
+    assert_equal(
+        actual=app_state.get_widget_bounding_box(widget),
+        expected=expected_bbox,
+        message="Resize delta has not been redone correctly"
+    )
+
+    cmd = ResizeWidgets(
+        widgets=(widget,),
+        app_state=app_state
+    )
+    cmd.apply_resize_delta(total_dx=-300, total_dy=0, edge=Edge.RIGHT)
+    cmd.record_final_bounding_boxes()
+    command_stack.execute(cmd)
+    assert_equal(
+        actual=widget.width,
+        expected=1,
+        message="Resize to minimum widget width was not applied correctly"
+    )
+
+    cmd = ResizeWidgets(
+        widgets=(widget,),
+        app_state=app_state
+    )
+    cmd.apply_resize_delta(total_dx=1000, total_dy=0, edge=Edge.RIGHT)
+    cmd.record_final_bounding_boxes()
+    command_stack.execute(cmd)
+    assert_equal(
+        actual=widget.width,
+        expected=800,
+        message="Resize to maximum widget width (canvas width) was not applied correctly"
     )
 
 def test_set_grid_color() -> None:

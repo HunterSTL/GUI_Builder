@@ -20,8 +20,10 @@ from tests.validation.cases.app_state_tests import (
 )
 from tests.validation.cases.commands_tests import (
     test_check_drag_widgets_command_effect_without_recording_final_positions,
+    test_check_resize_widgets_command_effect_without_recording_final_bounding_boxes,
     test_execute_drag_widgets_command_without_recording_final_positions,
-    test_execute_edit_widget_command_without_recording_final_attribute_values
+    test_execute_edit_widget_command_without_recording_final_attribute_values,
+    test_execute_resize_widgets_command_without_recording_final_bounding_boxes
 )
 from tests.validation.cases.components_tests import (
     test_compute_spinbox_limits_for_unsupported_attribute,
@@ -209,6 +211,16 @@ VALIDATION_TESTS = (
         name="Executing DragWidgets command without recording final positions",
         expected_error_message="DragWidgets - execution failed: final positions were not recorded",
         case=test_execute_drag_widgets_command_without_recording_final_positions
+    ),
+    ValidationTest(
+        name="Checking ResizeWidgets command effect without recording final bounding boxes",
+        expected_error_message="ResizeWidgets - effect check failed: final bounding boxes were not recorded",
+        case=test_check_resize_widgets_command_effect_without_recording_final_bounding_boxes
+    ),
+    ValidationTest(
+        name="Executing ResizeWidgets command without recording final bounding boxes",
+        expected_error_message="ResizeWidgets - execution failed: final bounding boxes were not recorded",
+        case=test_execute_resize_widgets_command_without_recording_final_bounding_boxes
     ),
     ValidationTest(
         name="Computing spinbox limits for an unsupported attribute",

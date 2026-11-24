@@ -6,6 +6,7 @@ from tests.unit.cases.commands_tests import (
     test_edit_widget,
     test_nudge_widgets,
     test_paste_widgets_from_clipboard,
+    test_resize_widgets,
     test_set_grid_color,
     test_set_grid_size,
     test_set_project_title,
@@ -53,6 +54,10 @@ UNIT_TESTS = (
     UnitTest(
         name="PasteWidgetsFromClipboard",
         case=test_paste_widgets_from_clipboard
+    ),
+    UnitTest(
+        name="ResizeWidgets",
+        case=test_resize_widgets
     ),
     UnitTest(
         name="SetGridColor",

@@ -3,7 +3,8 @@ import tkinter as tk
 from app_state import AppState
 from commands import (
     DragWidgets,
-    EditWidget
+    EditWidget,
+    ResizeWidgets
 )
 from designer import Designer
 from events import EventBus
@@ -78,6 +79,12 @@ def create_edit_widget_command() -> EditWidget:
 
 def create_drag_widgets_command() -> DragWidgets:
     return DragWidgets(
+        widgets=(create_valid_widget(),),
+        app_state=AppState(ProjectDocument())
+    )
+
+def create_resize_widgets_command() -> ResizeWidgets:
+    return ResizeWidgets(
         widgets=(create_valid_widget(),),
         app_state=AppState(ProjectDocument())
     )
